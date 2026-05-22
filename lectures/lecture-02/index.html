@@ -1,0 +1,2038 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- wizard-curator runtime (injected) -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+<script src="https://cdn.jsdelivr.net/npm/mathjs@12/lib/browser/math.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}],throwOnError:false});"></script>
+<script>[800,2200].forEach(function(t){setTimeout(function(){window.renderMathInElement&&renderMathInElement(document.body,{delimiters:[{left:"$$",right:"$$",display:true},{left:"$",right:"$",display:false}],throwOnError:false});},t);});</script>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lecture 02 · Rotating frames in MATLAB</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --page-bg:      #f4efe2;
+  --surface:      #fffdf6;
+  --ink:          #14182a;
+  --ink-soft:     #5a5e70;
+  --border:       #d6cfba;
+  --accent:       #1d3a5f;
+  --accent-2:     #c87c3c;
+  --good:         #2c7a4a;
+  --bad:          #a23030;
+  --font-display: 'Space Grotesk', system-ui, sans-serif;
+  --font-body:    'Source Serif 4', Georgia, serif;
+  --font-mono:    'JetBrains Mono', ui-monospace, monospace;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+
+body {
+  margin: 0;
+  background: var(--page-bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 18px;
+  line-height: 1.65;
+  background-image:
+    linear-gradient(rgba(29,58,95,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(29,58,95,0.03) 1px, transparent 1px);
+  background-size: 32px 32px;
+  background-position: -1px -1px;
+}
+
+.shell {
+  max-width: 1140px;
+  margin: 0 auto;
+  padding: 48px 32px 96px;
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: 56px;
+}
+
+@media (max-width: 900px) {
+  .shell { grid-template-columns: 1fr; gap: 24px; padding: 24px 18px 80px; }
+  nav.toc { position: static !important; max-height: none !important; }
+}
+
+header.hero {
+  grid-column: 1 / -1;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 36px;
+  margin-bottom: 8px;
+  position: relative;
+}
+
+header.hero::before {
+  content: "L02";
+  position: absolute;
+  top: -8px;
+  right: 0;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(6rem, 14vw, 11rem);
+  line-height: 1;
+  color: rgba(29,58,95,0.06);
+  letter-spacing: -0.04em;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.hero-inner { position: relative; z-index: 1; }
+
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 22px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.eyebrow::before {
+  content: "";
+  width: 28px;
+  height: 1px;
+  background: var(--accent-2);
+}
+
+h1.title {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: clamp(2.1rem, 4.4vw, 3.3rem);
+  line-height: 1.08;
+  letter-spacing: -0.02em;
+  margin: 0 0 18px;
+  color: var(--ink);
+  max-width: 22ch;
+}
+
+.subtitle {
+  font-style: italic;
+  font-size: 1.22rem;
+  color: var(--ink-soft);
+  max-width: 60ch;
+  margin: 0 0 32px;
+  line-height: 1.45;
+}
+
+.opening {
+  background: var(--surface);
+  border-left: 3px solid var(--accent);
+  padding: 22px 26px;
+  max-width: 70ch;
+  font-size: 1.02rem;
+  box-shadow: 0 1px 0 var(--border);
+  border-radius: 0 2px 2px 0;
+}
+
+.opening-tag {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  color: var(--accent-2);
+  text-transform: uppercase;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+nav.toc {
+  position: sticky;
+  top: 32px;
+  align-self: start;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  max-height: calc(100vh - 64px);
+  overflow-y: auto;
+}
+
+.toc-label {
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+  font-weight: 600;
+}
+
+.toc ol { list-style: none; padding: 0; margin: 0; }
+.toc li { margin: 0; padding: 5px 0; }
+
+.toc a {
+  display: flex;
+  gap: 10px;
+  color: var(--ink-soft);
+  text-decoration: none;
+  transition: color 0.15s;
+  line-height: 1.35;
+  padding: 2px 0;
+}
+
+.toc a:hover { color: var(--accent); }
+
+.toc-num {
+  color: var(--accent);
+  font-weight: 600;
+  flex-shrink: 0;
+  width: 14px;
+}
+
+main { min-width: 0; }
+
+section.lec {
+  margin-bottom: 64px;
+  scroll-margin-top: 24px;
+}
+
+.sec-head {
+  display: flex;
+  align-items: baseline;
+  gap: 22px;
+  margin-bottom: 20px;
+  padding-bottom: 14px;
+  border-bottom: 1px dashed var(--border);
+}
+
+.sec-num {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--accent-2);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  flex-shrink: 0;
+  padding-top: 4px;
+}
+
+.sec-title {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: clamp(1.4rem, 2.6vw, 1.85rem);
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+.sec-body p { margin: 0 0 1.1em; max-width: 65ch; }
+.sec-body ul, .sec-body ol { max-width: 65ch; padding-left: 22px; }
+.sec-body li { margin: 0.35em 0; }
+
+.voice {
+  font-style: italic;
+  color: var(--accent);
+  border-left: 2px solid var(--accent);
+  padding: 4px 0 4px 18px;
+  margin: 20px 0;
+  max-width: 60ch;
+  font-size: 1.06rem;
+  line-height: 1.5;
+}
+
+.callout {
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  background: var(--surface);
+  padding: 14px 20px;
+  margin: 22px 0;
+  border-radius: 2px;
+  max-width: 65ch;
+}
+
+.callout.amber { border-left-color: var(--accent-2); }
+.callout.blue  { border-left-color: var(--accent); }
+.callout.teal  { border-left-color: #2d8c7a; }
+.callout.green { border-left-color: var(--good); }
+.callout.purple{ border-left-color: #6a4ca8; }
+
+.callout-title {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+.callout.amber  .callout-title { color: var(--accent-2); }
+.callout.blue   .callout-title { color: var(--accent); }
+.callout.teal   .callout-title { color: #2d8c7a; }
+.callout.green  .callout-title { color: var(--good); }
+.callout.purple .callout-title { color: #6a4ca8; }
+
+.callout-body { font-size: 0.96rem; line-height: 1.55; }
+
+.code-block {
+  margin: 22px 0;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+  background: #fbf9f2;
+  max-width: 70ch;
+}
+
+.code-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 9px 14px;
+  background: var(--ink);
+  color: #efe5d3;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+}
+
+.code-label { opacity: 0.85; }
+
+.code-lang {
+  background: var(--accent-2);
+  color: white;
+  padding: 2px 8px;
+  border-radius: 2px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+}
+
+.code-block pre {
+  margin: 0;
+  padding: 16px 18px;
+  font-family: var(--font-mono);
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--ink);
+  overflow-x: auto;
+}
+
+.math-display {
+  margin: 18px 0 22px;
+  padding: 4px 0;
+  max-width: 70ch;
+}
+
+.deriv-grid {
+  display: grid;
+  grid-template-columns: auto 1fr 1fr;
+  gap: 6px 22px;
+  max-width: 56ch;
+  font-family: var(--font-mono);
+  font-size: 13.5px;
+  margin: 18px 0 22px;
+  padding: 18px 22px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+
+.deriv-grid .h {
+  font-weight: 600;
+  color: var(--accent);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+
+.widget-frame {
+  margin: 28px 0 16px;
+  border: 1px dashed var(--accent);
+  border-radius: 6px;
+  background: linear-gradient(180deg, var(--surface) 0%, #fbf6e8 100%);
+  padding: 22px;
+  max-width: 100%;
+  position: relative;
+}
+
+.widget-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  color: var(--accent-2);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  font-weight: 600;
+  display: inline-block;
+  background: var(--surface);
+  padding: 2px 8px;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  position: absolute;
+  top: -10px;
+  left: 18px;
+}
+
+.widget-title {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.05rem;
+  color: var(--ink);
+  margin: 6px 0 10px;
+}
+
+.homework {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 28px 32px;
+  border-radius: 4px;
+  margin-top: 56px;
+  position: relative;
+}
+
+.homework::before {
+  content: "HOMEWORK";
+  position: absolute;
+  top: -10px;
+  left: 24px;
+  background: var(--ink);
+  color: #efe5d3;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  padding: 3px 10px;
+  border-radius: 2px;
+  font-weight: 600;
+}
+
+.homework h2 {
+  font-family: var(--font-display);
+  margin: 0 0 16px;
+  font-size: 1.35rem;
+  letter-spacing: -0.01em;
+}
+
+.hw-item {
+  padding: 16px 0;
+  border-bottom: 1px dashed var(--border);
+}
+.hw-item:last-child { border-bottom: none; padding-bottom: 4px; }
+.hw-item:first-of-type { padding-top: 8px; }
+
+.hw-head {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+
+.hw-title {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.04rem;
+  color: var(--accent);
+}
+
+.hw-body { font-size: 0.97rem; max-width: 65ch; }
+
+.hw-due {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  background: var(--accent-2);
+  color: white;
+  padding: 2px 8px;
+  border-radius: 2px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.concepts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 14px 0 0;
+}
+
+.chip {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  background: rgba(255,253,246,0.6);
+  border: 1px solid var(--border);
+  color: var(--ink-soft);
+  padding: 4px 10px;
+  border-radius: 12px;
+  letter-spacing: 0.02em;
+}
+
+footer.foot {
+  grid-column: 1 / -1;
+  border-top: 1px solid var(--border);
+  padding-top: 28px;
+  margin-top: 56px;
+  color: var(--ink-soft);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  text-align: center;
+}
+
+code:not(pre code) {
+  font-family: var(--font-mono);
+  font-size: 0.88em;
+  background: rgba(29,58,95,0.08);
+  padding: 1px 6px;
+  border-radius: 3px;
+  color: var(--accent);
+}
+
+strong { color: var(--ink); font-weight: 600; }
+em { color: var(--ink); }
+
+.axis-legend {
+  display: flex;
+  gap: 22px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  margin: 14px 0 20px;
+  flex-wrap: wrap;
+  color: var(--ink-soft);
+}
+.axis-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.axis-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; border: 1px solid rgba(0,0,0,0.1); }
+
+.divider-rule {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 28px 0 18px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent-2);
+}
+.divider-rule::before, .divider-rule::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+</style>
+</head>
+<body>
+<div class="shell">
+
+<header class="hero">
+  <div class="hero-inner">
+    <div class="eyebrow">Lecture 02 · Module 1 · Robot Manipulator Kinematics</div>
+    <h1 class="title">Rotating frames in MATLAB — $R_x$, $R_y$, $R_z$ and animating the mobile system</h1>
+    <p class="subtitle">From a single rotation matrix to an animated mobile frame, then transforming a point between frames.</p>
+
+    <div class="opening">
+      <div class="opening-tag">Opening</div>
+      Last time we put two coordinate frames on top of each other and worked out what happens when one of them tilts around the $X$ axis. Today we finish the family — $R_y$ and $R_z$ — and then we make MATLAB <em>show</em> us the rotation by looping through angles, redrawing the frame, and clearing the figure between frames. Once we trust the picture, we use the same rotation matrix to take a point that lives in the mobile frame and ask: where is it in the fixed frame? That last step is the real prize.
+    </div>
+
+    <div class="concepts" style="margin-top:28px">
+      <span class="chip">fixed vs mobile frame</span>
+      <span class="chip">Rx · Ry · Rz</span>
+      <span class="chip">right-hand rule</span>
+      <span class="chip">cosine/sine projections</span>
+      <span class="chip">eye(3) = identity</span>
+      <span class="chip">for · hold on · clf · drawnow</span>
+      <span class="chip">matrix-vector product</span>
+      <span class="chip">point transform u v w → x y z</span>
+    </div>
+  </div>
+</header>
+
+<nav class="toc">
+  <div class="toc-label">Contents</div>
+  <ol>
+    <li><a href="#overview"><span class="toc-num">0</span><span>What this lecture covers</span></a></li>
+    <li><a href="#recap-rx"><span class="toc-num">1</span><span>Recap — two frames and $R_x$</span></a></li>
+    <li><a href="#draw-system"><span class="toc-num">2</span><span>A reusable drawSystem function</span></a></li>
+    <li><a href="#animate"><span class="toc-num">3</span><span>Animating with for · hold · clf · drawnow</span></a></li>
+    <li><a href="#roty"><span class="toc-num">4</span><span>Deriving $R_y$ by projection</span></a></li>
+    <li><a href="#rotz"><span class="toc-num">5</span><span>Deriving $R_z$ the same way</span></a></li>
+    <li><a href="#point-transform"><span class="toc-num">6</span><span>Transforming a point u v w → x y z</span></a></li>
+    <li><a href="#homework"><span class="toc-num">⤳</span><span>Homework</span></a></li>
+  </ol>
+</nav>
+
+<main>
+
+<section class="lec" id="overview">
+  <div class="sec-head">
+    <div class="sec-num">§ 0</div>
+    <h2 class="sec-title">What this lecture covers</h2>
+  </div>
+  <div class="sec-body">
+    <p>We pick up where Lecture 01 left off. You already have <code>rotaX(t)</code> and you can draw a static mobile frame on top of the fixed frame. From here we will:</p>
+    <ol>
+      <li>turn the per-axis plot code into a reusable <code>drawSystem(R)</code> function,</li>
+      <li>wrap it in a <code>for</code> loop with <code>hold on</code> + <code>clf</code> + <code>drawnow</code> so the rotation actually <em>animates</em>,</li>
+      <li>derive and code <code>rotaY</code> and <code>rotaZ</code> by the same tic-tac-toe / projection trick,</li>
+      <li>and use a rotation matrix to map a point $A_{uvw}$ given in the mobile frame into its fixed-frame coordinates $A_{xyz}$.</li>
+    </ol>
+    <p>By the end you should be able to spin the mobile frame around any single axis on screen and report the fixed-frame coordinates of a point that's rigidly attached to it.</p>
+
+    <p class="voice"><em>If you can see the frame move and you can locate a point in it, you have the seed of forward kinematics.</em></p>
+
+    <div class="callout amber">
+      <div class="callout-title">Catch up on the code</div>
+      <div class="callout-body">Several of you haven't run last week's script yet. Don't keep skipping — the rest of the module compounds on this MATLAB scaffolding.</div>
+    </div>
+  </div>
+</section>
+
+<section class="lec" id="recap-rx">
+  <div class="sec-head">
+    <div class="sec-num">§ 1</div>
+    <h2 class="sec-title">Recap — why two frames, and what $R_x$ looks like</h2>
+  </div>
+  <div class="sec-body">
+    <p>Two frames live happily on top of each other until one of them moves. The <strong>fixed frame</strong> uses $x, y, z$; the <strong>mobile frame</strong> uses $u, v, w$. When the frames overlap perfectly, the rotation matrix is the identity — each mobile axis projects fully onto its matching fixed axis, so the diagonal is all ones:</p>
+
+    <div class="axis-legend">
+      <span><span class="axis-dot" style="background:#e63946"></span>x · u</span>
+      <span><span class="axis-dot" style="background:#2a9d8f"></span>y · v</span>
+      <span><span class="axis-dot" style="background:#1d3a5f"></span>z · w</span>
+    </div>
+
+    <div class="math-display">
+      $$ I_3 \;=\; \begin{bmatrix} 1 & 0 & 0 \\ 0 & 1 & 0 \\ 0 & 0 & 1 \end{bmatrix} $$
+    </div>
+
+    <p>Rotate the mobile frame by $\theta$ around the $X$ axis and $u$ still lies on $x$, but $v$ and $w$ pick up cosine/sine projections onto $y$ and $z$. That gave us last lecture's $R_x$:</p>
+
+    <div class="math-display">
+      $$ R_x(\theta) \;=\; \begin{bmatrix} 1 & 0 & 0 \\ 0 & \cos\theta & -\sin\theta \\ 0 & \sin\theta & \cos\theta \end{bmatrix} $$
+    </div>
+
+    <p class="voice"><em>A 1 in the matrix means "this mobile axis is still glued to that fixed axis" — and it forces zeros across its row and column.</em></p>
+
+    <div class="callout blue">
+      <div class="callout-title">Reading the matrix</div>
+      <div class="callout-body">Rows are the mobile axes ($u, v, w$, top to bottom); columns are the fixed axes ($x, y, z$, left to right). Each entry is the projection of one mobile axis onto one fixed axis.</div>
+    </div>
+
+    <div class="code-block">
+      <div class="code-head"><span class="code-label">rotaX.m — rotation about X</span><span class="code-lang">MATLAB</span></div>
+<pre>function Rx = rotaX(t)
+    Rx = [ 1,        0,         0;
+           0,  cosd(t),  -sind(t);
+           0,  sind(t),   cosd(t) ];
+end</pre>
+    </div>
+    <p><code>cosd</code> and <code>sind</code> take their argument in <strong>degrees</strong>. Stay in degrees throughout this module — mixing with <code>cos</code>/<code>sin</code> (which expect radians) silently breaks every result you'll plot.</p>
+  </div>
+</section>
+
+<section class="lec" id="draw-system">
+  <div class="sec-head">
+    <div class="sec-num">§ 2</div>
+    <h2 class="sec-title">Turning the plot code into a reusable function</h2>
+  </div>
+  <div class="sec-body">
+    <p>Last time we plotted the rotated frame by hand: extract <code>ux, uy, uz</code>, then <code>vx, vy, vz</code>, then <code>wx, wy, wz</code> from the rotation matrix and draw three line segments from the origin. That's fine as a script — but to animate we'll need to call it many times. So we wrap it as a function that takes <em>any</em> 3×3 matrix and draws those three axes.</p>
+
+    <p>We also silence MATLAB's echoes with semicolons and pin the camera with <code>view(30, 30)</code> so every frame is drawn from the same angle.</p>
+
+    <p class="voice"><em>A function is just a script with a name and a contract — give me a 3×3, I'll draw you a frame.</em></p>
+
+    <div class="callout teal">
+      <div class="callout-title">Identity = fixed frame</div>
+      <div class="callout-body"><code>eye(3)</code> builds the 3×3 identity (the letter spelling of "I", with a regular parenthesis and the integer 3 inside). Passing it to <code>drawSystem</code> draws the fixed frame — handy as a reference whenever you draw the mobile one.</div>
+    </div>
+
+    <div class="code-block">
+      <div class="code-head"><span class="code-label">drawSystem.m — draws any frame from its rotation matrix</span><span class="code-lang">MATLAB</span></div>
+<pre>function drawSystem(R)
+    ux = R(1,1); uy = R(2,1); uz = R(3,1);
+    vx = R(1,2); vy = R(2,2); vz = R(3,2);
+    wx = R(1,3); wy = R(2,3); wz = R(3,3);
+
+    line([0 ux],[0 uy],[0 uz]);
+    line([0 vx],[0 vy],[0 vz]);
+    line([0 wx],[0 wy],[0 wz]);
+
+    view(30,30);
+end</pre>
+    </div>
+
+    <p>Notice what each column of $R$ is doing: it's one mobile axis written in fixed-frame coordinates. The function reads the three columns and draws one line segment per axis from the origin. If you ever pass the transpose by mistake, you'll draw the <em>inverse</em> rotation — same axes, swapped roles.</p>
+
+    <div class="code-block">
+      <div class="code-head"><span class="code-label">Draw the fixed frame plus a rotated one</span><span class="code-lang">MATLAB</span></div>
+<pre>I = eye(3);
+drawSystem(I);          % fixed frame
+hold on
+drawSystem(rotaX(30));  % mobile frame at 30°</pre>
+    </div>
+  </div>
+</section>
+
+<section class="lec" id="animate">
+  <div class="sec-head">
+    <div class="sec-num">§ 3</div>
+    <h2 class="sec-title">Animating with for, hold on, drawnow and clf</h2>
+  </div>
+  <div class="sec-body">
+    <p>To see the rotation rather than the end state, sweep $\theta$ through a <code>for</code> loop and redraw at every step. Three MATLAB ingredients matter:</p>
+    <ul>
+      <li><strong><code>hold on</code></strong> — keep the fixed frame on screen while we redraw the mobile one.</li>
+      <li><strong><code>drawnow</code></strong> — force MATLAB to flush the figure each iteration, not just at the end of the script.</li>
+      <li><strong><code>clf</code></strong> — clear the figure between iterations so we don't leave a footprint of every intermediate pose.</li>
+    </ul>
+
+    <p>The loop syntax <code>for t = 0:0.1:60</code> advances $t$ from 0 to 60 in steps of 0.1. Without the explicit step, MATLAB walks by 1.</p>
+
+    <p class="voice"><em>Without <code>clf</code> you get a flip-book of every angle layered on top of each other — pretty, but not an animation.</em></p>
+
+    <div class="callout amber">
+      <div class="callout-title">Why clf and not just hold off</div>
+      <div class="callout-body"><code>hold off</code> would only release the hold; <code>clf</code> actually wipes the figure so the next iteration starts from a blank canvas. Without it you get a fan of axes from every angle the loop visited.</div>
+    </div>
+
+    <div class="callout blue">
+      <div class="callout-title">MATLAB for syntax</div>
+      <div class="callout-body">Unlike many languages, you do <em>not</em> increment the counter manually. <code>for t = start:step:stop</code> does it for you; close the block with <code>end</code>. Trying to write <code>t = t + 0.1</code> inside the loop body either crashes or skips values — manual incrementing belongs to <code>while</code>.</div>
+    </div>
+
+    <div class="code-block">
+      <div class="code-head"><span class="code-label">exercise1.m — animate rotation around X from 0° to 60°</span><span class="code-lang">MATLAB</span></div>
+<pre>close all
+I = eye(3);
+
+for t = 0:0.1:60
+    clf
+    hold on
+    Rx = rotaX(t);
+    drawSystem(I);
+    drawSystem(Rx);
+    drawnow
+end</pre>
+    </div>
+
+    <p>With step <code>0.1</code> from $0$ to $60$ that's 601 redraws — on a slow machine you'll feel it. Drop <code>drawnow</code> and the loop completes in silence, painting only the final pose. Drop <code>clf</code> and you see the layered footprint instead of motion. Each ingredient is doing distinct work.</p>
+  </div>
+</section>
+
+<section class="lec" id="roty">
+  <div class="sec-head">
+    <div class="sec-num">§ 4</div>
+    <h2 class="sec-title">Deriving $R_y$ by projection</h2>
+  </div>
+  <div class="sec-body">
+    <p>Rotate the mobile frame by $\theta$ around the $Y$ axis. Now $v$ stays on $y$, so the matrix has a 1 in the middle position and zeros across that row and column. Read each remaining entry off the diagram by projecting the rotated $u$ and $w$ onto $x$ and $z$:</p>
+
+    <div class="deriv-grid">
+      <div class="h">projection</div>
+      <div class="h">leg</div>
+      <div class="h">entry</div>
+      <div>u on x</div><div>adjacent</div><div>$+\cos\theta$</div>
+      <div>u on z</div><div>opposite</div><div>$+\sin\theta$</div>
+      <div>w on x</div><div>opposite (negative side)</div><div>$-\sin\theta$</div>
+      <div>w on z</div><div>adjacent</div><div>$+\cos\theta$</div>
+    </div>
+
+    <p>Assembling the table back into the 3×3:</p>
+
+    <div class="math-display">
+      $$ R_y(\theta) \;=\; \begin{bmatrix} \cos\theta & 0 & \sin\theta \\ 0 & 1 & 0 \\ -\sin\theta & 0 & \cos\theta \end{bmatrix} $$
+    </div>
+
+    <p class="voice"><em>The 1 anchors the row and column it sits in to zeros — then it's just adjacent/opposite around the 2×2 block that's left.</em></p>
+
+    <div class="callout purple">
+      <div class="callout-title">Sign of sin</div>
+      <div class="callout-body">For $R_y$ the minus sign lives at the $(3,1)$ entry — the projection that points <em>against</em> the positive fixed axis under a right-hand-rule rotation. It is not at $(1,3)$. If you ever feel unsure, draw the rotated $w$ vector and ask: which fixed axis is it pointing away from?</div>
+    </div>
+
+    <div class="code-block">
+      <div class="code-head"><span class="code-label">rotaY.m</span><span class="code-lang">MATLAB</span></div>
+<pre>function Ry = rotaY(t)
+    Ry = [  cosd(t),  0,  sind(t);
+            0,        1,  0;
+           -sind(t),  0,  cosd(t) ];
+end</pre>
+    </div>
+
+    <div class="code-block">
+      <div class="code-head"><span class="code-label">exercise2.m — animate around Y</span><span class="code-lang">MATLAB</span></div>
+<pre>close all
+I = eye(3);
+
+for t = 0:0.1:60
+    clf
+    hold on
+    Ry = rotaY(t);
+    drawSystem(I);
+    drawSystem(Ry);
+    drawnow
+end</pre>
+    </div>
+
+    <p>Run it: $v$ stays glued to $y$ while $u$ and $w$ swing around in the $x$–$z$ plane. Same code structure as exercise 1 — only the matrix-building function changed.</p>
+  </div>
+</section>
+
+<section class="lec" id="rotz">
+  <div class="sec-head">
+    <div class="sec-num">§ 5</div>
+    <h2 class="sec-title">Deriving $R_z$ the same way</h2>
+  </div>
+  <div class="sec-body">
+    <p>Rotation about $Z$: now $w$ stays on $z$, so the 1 sits in the bottom-right corner and zeros fill that row and column. The remaining 2×2 block lives in the top-left and holds the cosine/sine pattern, with the minus sign on $v$'s projection onto $x$ — the $(1,2)$ entry.</p>
+
+    <div class="math-display">
+      $$ R_z(\theta) \;=\; \begin{bmatrix} \cos\theta & -\sin\theta & 0 \\ \sin\theta & \cos\theta & 0 \\ 0 & 0 & 1 \end{bmatrix} $$
+    </div>
+
+    <p class="voice"><em>Same trick, different corner — the 1 always sits on the axis you're rotating around.</em></p>
+
+    <p>Three matrices, one rule. The diagonal "1" picks the axis you're not changing; the 2×2 cos/sin block lives in the plane <em>perpendicular</em> to that axis; the right-hand rule decides where the minus lands.</p>
+
+    <div class="code-block">
+      <div class="code-head"><span class="code-label">rotaZ.m</span><span class="code-lang">MATLAB</span></div>
+<pre>function Rz = rotaZ(t)
+    Rz = [ cosd(t),  -sind(t),  0;
+           sind(t),   cosd(t),  0;
+           0,         0,        1 ];
+end</pre>
+    </div>
+
+    <div class="code-block">
+      <div class="code-head"><span class="code-label">exercise3.m — animate around Z</span><span class="code-lang">MATLAB</span></div>
+<pre>close all
+I = eye(3);
+
+for t = 0:0.1:60
+    clf
+    hold on
+    Rz = rotaZ(t);
+    drawSystem(I);
+    drawSystem(Rz);
+    drawnow
+end</pre>
+    </div>
+
+    <p>Now $w$ holds still and the action is in the $x$–$y$ plane: $u$ and $v$ sweep around together. If you run exercises 1, 2 and 3 back-to-back you have the full single-axis family on screen — the same loop scaffolding three times.</p>
+
+    <div class="divider-rule">payoff next</div>
+  </div>
+</section>
+
+<section class="lec" id="point-transform">
+  <div class="sec-head">
+    <div class="sec-num">§ 6</div>
+    <h2 class="sec-title">Transforming a point from the mobile frame to the fixed frame</h2>
+  </div>
+  <div class="sec-body">
+    <p>Imagine a point $A$ rigidly attached to the mobile body. We measure it in mobile coordinates as</p>
+
+    <div class="math-display">
+      $$ A_{uvw} \;=\; \begin{bmatrix} 0.3 \\ 0.4 \\ 0.5 \end{bmatrix}. $$
+    </div>
+
+    <p>When the two frames overlap, those numbers are also its $(x, y, z)$ coordinates. The moment the mobile frame rotates, the <em>numbers in the fixed frame change</em> — even though the point hasn't moved relative to the mobile body. $A_{uvw}$ stays put; $A_{xyz}$ updates.</p>
+
+    <p>The relationship is one matrix-vector product:</p>
+
+    <div class="math-display">
+      $$ A_{xyz} \;=\; R(\theta) \cdot A_{uvw} $$
+    </div>
+
+    <p>A 3×3 times a 3×1 gives a 3×1 — the new fixed-frame coordinates. Each fixed coordinate is a dot product of $A_{uvw}$ with one row of $R$, which is just "how much of $A$ lands along this fixed axis once the mobile frame has been tilted". The same formula works for $R_x$, $R_y$ or $R_z$ — pick whichever single-axis rotation you're doing.</p>
+
+    <p class="voice"><em>The rotation matrix isn't just a picture — it's the calculator that tells you where every point in the mobile body lives in the world.</em></p>
+
+    <div class="callout green">
+      <div class="callout-title">The big idea</div>
+      <div class="callout-body">This is the seed of forward kinematics. Stack rotations (and later, translations) like this for every joint of an arm and you can locate the end-effector in the base frame. Everything we build over the next few lectures hangs off this one product.</div>
+    </div>
+
+    <p>Worked example — rotate the mobile frame by $\theta = -30°$ about $X$ and ask where $A$ lands in the fixed frame. With $\cos(-30°) \approx 0.8660$ and $\sin(-30°) = -0.5$, only the $y$ and $z$ components change (the rotation is about $X$, so the $u$-component is untouched):</p>
+
+    <div class="math-display">
+      $$ A_{xyz} \;=\; R_x(-30°) \cdot \begin{bmatrix} 0.3 \\ 0.4 \\ 0.5 \end{bmatrix} \;\approx\; \begin{bmatrix} 0.3000 \\ 0.5964 \\ 0.2330 \end{bmatrix}. $$
+    </div>
+
+    <div class="code-block">
+      <div class="code-head"><span class="code-label">Transform a point under a −30° rotation about X</span><span class="code-lang">MATLAB</span></div>
+<pre>A_uvw = [0.3; 0.4; 0.5];
+Rx    = rotaX(-30);
+A_xyz = Rx * A_uvw</pre>
+    </div>
+
+    <p>Drop the semicolon on the last line and MATLAB echoes the result to the console; keep the semicolon and the value lives in <code>A_xyz</code> for whatever you do next (printing it on the figure, drawing the point in the animation, etc.).</p>
+
+    <div class="divider-rule">try it</div>
+
+    <p>Below, pick an axis, scrub the angle, and watch the mobile frame swing around the fixed one. Drop a point $A$ in the mobile frame and read its $(x, y, z)$ coordinates live as the rotation matrix re-evaluates each frame — exactly the calculation MATLAB is doing inside your loop.</p>
+
+    <div class="widget-frame">
+      <span class="widget-label">Interactive</span>
+      <div class="widget-title">Rotate the mobile frame · watch a point's fixed-frame coordinates update</div>
+      <div id="rotate-and-transform"></div>
+    </div>
+
+    <p style="font-size:0.92rem;color:var(--ink-soft);max-width:65ch">If your scrubbed numbers match the worked example ($A_{uvw} = (0.3, 0.4, 0.5)$, $X$ axis, $\theta = -30°$ giving roughly $(0.3000, 0.5964, 0.2330)$), the formula and the picture agree — which is the entire point of this lecture.</p>
+  </div>
+</section>
+
+<aside class="homework" id="homework">
+  <h2>Take it home</h2>
+
+  <div class="hw-item">
+    <div class="hw-head">
+      <div class="hw-title">1 · Animate a point with the mobile frame</div>
+      <span class="hw-due">due next lecture</span>
+    </div>
+    <div class="hw-body">Place a point $A_{uvw} = (0.3, 0.4, 0.5)$ in the mobile frame. Extend each of your animations so the point is drawn alongside the rotating frame and moves with it. Do it for $R_x$, $R_y$ and $R_z$.</div>
+  </div>
+
+  <div class="hw-item">
+    <div class="hw-head">
+      <div class="hw-title">2 · Print the fixed-frame coordinates each frame</div>
+      <span class="hw-due">due next lecture</span>
+    </div>
+    <div class="hw-body">Inside the animation loop, compute $A_{xyz} = R(\theta) \cdot A_{uvw}$ and either display it as text on the figure or echo it to the console, so you can watch the numbers evolve with the rotation.</div>
+  </div>
+
+  <div class="hw-item">
+    <div class="hw-head">
+      <div class="hw-title">3 · Catch up on Lecture 01 code</div>
+      <span class="hw-due">due next lecture</span>
+    </div>
+    <div class="hw-body">If you haven't yet run last week's <code>rotaX</code> + <code>drawSystem</code> script on your own MATLAB, do that first. Every exercise from here on builds on it.</div>
+  </div>
+</aside>
+
+</main>
+
+<footer class="foot">
+  Robot Manipulator Kinematics · Module 1 · Lecture 02 · Coordinate frames &amp; rotations
+</footer>
+
+</div>
+
+<script>/* TSI Buddy — vanilla-JS chat widget for the TSI Dynamics course.
+ *
+ * Mount once per page:
+ *
+ *   TSIBuddy.mount({
+ *     systemPrompt: "You are TSI Buddy ...",   // required, the AUDITOR prompt
+ *     contextLabel: "docs/01_F_equals_ma.md",  // shown in the modal subtitle
+ *     openingLine:  "I'm reading the F=ma chapter ..."   // optional pre-fill
+ *   });
+ *
+ * The widget mounts a floating button (top-right of the viewport), a settings
+ * modal where the student pastes their Mistral API key, and a chat panel that
+ * streams responses progressively. API key persists in localStorage.
+ *
+ * Streams via Mistral's SSE endpoint (stream: true). Falls back to a single
+ * non-streaming response if the runtime doesn't expose ReadableStream.
+ *
+ * Designed to coexist with the React+htm widget already inside each hook
+ * page. They use the same localStorage keys so a student who pastes their
+ * key once gets it everywhere.
+ */
+(function () {
+  'use strict';
+
+  if (window.TSIBuddy && window.TSIBuddy.__loaded) return;
+
+  var KEY_LS    = 'tsi_mistral_key';
+  var MODEL_LS  = 'tsi_mistral_model';
+  var ENABLE_LS = 'tsi_buddy_enabled';
+
+  function lsGet(k, fb) { try { var v = localStorage.getItem(k); return v == null ? fb : v; } catch (e) { return fb; } }
+  function lsSet(k, v)  { try { localStorage.setItem(k, v); } catch (e) {} }
+
+  /* ---------- Styles (injected once) ---------- */
+  var STYLE = `
+.tsi-buddy-btn {
+  position: fixed; top: 14px; right: 14px; z-index: 9000;
+  background: rgba(255,255,255,0.95); color: #1a3a5c;
+  border: 1px solid #cbd5e1; border-radius: 999px;
+  padding: 8px 14px; font: 600 13px/1 'Inter', system-ui, sans-serif;
+  box-shadow: 0 2px 6px rgba(15,23,42,0.12);
+  cursor: pointer; display: flex; align-items: center; gap: 8px;
+  transition: transform 0.12s, box-shadow 0.12s;
+}
+.tsi-buddy-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 10px rgba(15,23,42,0.18); }
+.tsi-buddy-btn .tsi-buddy-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: #94a3b8;
+}
+.tsi-buddy-btn.tsi-on .tsi-buddy-dot { background: #16a34a; box-shadow: 0 0 0 2px rgba(34,197,94,0.25); }
+.tsi-buddy-btn.tsi-on { border-color: #16a34a; color: #166534; }
+
+.tsi-buddy-overlay {
+  position: fixed; inset: 0; background: rgba(15,23,42,0.55); z-index: 9100;
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+}
+.tsi-buddy-overlay[hidden] { display: none; }
+
+.tsi-buddy-modal {
+  background: white; border-radius: 12px;
+  max-width: 480px; width: 100%;
+  padding: 24px 26px;
+  box-shadow: 0 20px 60px rgba(15,23,42,0.35);
+  font: 400 14px/1.55 'Inter', system-ui, sans-serif;
+  color: #1e293b;
+}
+.tsi-buddy-modal h3 { margin: 0 0 8px; font-size: 1.2rem; color: #0f172a; }
+.tsi-buddy-modal .tsi-buddy-sub { color: #64748b; font-size: 0.92em; margin: 0 0 16px; }
+.tsi-buddy-modal label { display: block; margin-top: 14px; font-weight: 600; color: #334155; font-size: 0.9em; }
+.tsi-buddy-modal input[type="password"],
+.tsi-buddy-modal select,
+.tsi-buddy-modal textarea {
+  margin-top: 6px; width: 100%; box-sizing: border-box;
+  padding: 9px 12px; border: 1px solid #cbd5e1; border-radius: 6px;
+  font: inherit; color: #1e293b; background: #f8fafc;
+}
+.tsi-buddy-modal input[type="password"] { font-family: ui-monospace, Menlo, monospace; font-size: 0.92em; }
+.tsi-buddy-modal .tsi-buddy-toggle { display: flex; align-items: center; gap: 8px; margin-top: 14px; cursor: pointer; }
+.tsi-buddy-modal .tsi-buddy-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 22px; }
+.tsi-buddy-modal button {
+  font: 600 13px/1 'Inter', system-ui, sans-serif;
+  padding: 9px 16px; border-radius: 6px; border: none; cursor: pointer;
+}
+.tsi-buddy-modal .tsi-buddy-secondary { background: white; color: #475569; border: 1px solid #cbd5e1; }
+.tsi-buddy-modal .tsi-buddy-primary   { background: #1565c0; color: white; }
+.tsi-buddy-modal .tsi-buddy-primary:hover { background: #0d47a1; }
+.tsi-buddy-modal .tsi-buddy-secondary:hover { background: #f1f5f9; }
+.tsi-buddy-modal small { color: #64748b; }
+
+.tsi-buddy-chat {
+  position: fixed; right: 14px; bottom: 14px; z-index: 9000;
+  width: 380px; max-width: calc(100vw - 28px);
+  height: 540px; max-height: calc(100vh - 80px);
+  background: white; border: 1px solid #cbd5e1; border-radius: 12px;
+  box-shadow: 0 12px 40px rgba(15,23,42,0.25);
+  display: flex; flex-direction: column;
+  overflow: hidden;
+  font: 400 14px/1.55 'Inter', system-ui, sans-serif; color: #1e293b;
+}
+.tsi-buddy-chat[hidden] { display: none; }
+.tsi-buddy-chat-head {
+  background: linear-gradient(135deg, #1a3a5c 0%, #1e4d8c 100%);
+  color: white; padding: 12px 14px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.tsi-buddy-chat-head strong { font-size: 0.95em; }
+.tsi-buddy-chat-head small  { color: rgba(255,255,255,0.78); font-size: 0.78em; display: block; margin-top: 2px; }
+.tsi-buddy-chat-head button { background: transparent; border: none; color: white; cursor: pointer; font-size: 1.1em; line-height: 1; padding: 4px 8px; border-radius: 4px; }
+.tsi-buddy-chat-head button:hover { background: rgba(255,255,255,0.16); }
+.tsi-buddy-chat-body {
+  flex: 1 1 auto; overflow-y: auto; padding: 14px 14px 6px;
+  background: #f8fafc;
+}
+.tsi-buddy-bubble {
+  margin: 8px 0; padding: 10px 13px; border-radius: 10px;
+  word-wrap: break-word; overflow-wrap: anywhere; font-size: 0.93em;
+}
+.tsi-buddy-bubble.tsi-user      { background: #e3f2fd; color: #1a3a5c; border-bottom-right-radius: 2px; margin-left: 32px; }
+.tsi-buddy-bubble.tsi-assistant { background: white; border: 1px solid #e2e8f0; margin-right: 32px; }
+.tsi-buddy-bubble .tsi-buddy-role { font-size: 0.72em; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 4px; }
+.tsi-buddy-bubble.tsi-thinking { color: #94a3b8; font-style: italic; }
+/* Markdown typography inside bubbles (rendered for assistant replies). */
+.tsi-buddy-bubble .tsi-buddy-text > * { margin: 0; }
+.tsi-buddy-bubble .tsi-buddy-text > * + * { margin-top: 6px; }
+.tsi-buddy-bubble .tsi-buddy-text p { line-height: 1.55; }
+.tsi-buddy-bubble .tsi-buddy-text strong { font-weight: 700; color: #0f172a; }
+.tsi-buddy-bubble .tsi-buddy-text em { font-style: italic; }
+.tsi-buddy-bubble .tsi-buddy-text ul,
+.tsi-buddy-bubble .tsi-buddy-text ol { padding-left: 22px; }
+.tsi-buddy-bubble .tsi-buddy-text li { margin: 2px 0; }
+.tsi-buddy-bubble .tsi-buddy-text code {
+  background: rgba(15,23,42,0.06); padding: 0 4px; border-radius: 3px;
+  font-family: ui-monospace, Menlo, monospace; font-size: 0.92em;
+}
+.tsi-buddy-bubble .tsi-buddy-text pre {
+  background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px;
+  padding: 8px 10px; overflow-x: auto;
+}
+.tsi-buddy-bubble .tsi-buddy-text pre code { background: transparent; padding: 0; }
+.tsi-buddy-bubble .tsi-buddy-text blockquote {
+  border-left: 3px solid #cbd5e1; padding: 2px 10px; color: #475569;
+  background: #f8fafc; border-radius: 4px;
+}
+.tsi-buddy-bubble .tsi-buddy-text h1,
+.tsi-buddy-bubble .tsi-buddy-text h2,
+.tsi-buddy-bubble .tsi-buddy-text h3,
+.tsi-buddy-bubble .tsi-buddy-text h4 { font-weight: 700; color: #0f172a; }
+.tsi-buddy-bubble .tsi-buddy-text h1 { font-size: 1.05em; }
+.tsi-buddy-bubble .tsi-buddy-text h2 { font-size: 1.0em; }
+.tsi-buddy-bubble .tsi-buddy-text h3,
+.tsi-buddy-bubble .tsi-buddy-text h4 { font-size: 0.95em; }
+.tsi-buddy-bubble .tsi-buddy-text hr { border: none; border-top: 1px solid #e2e8f0; }
+.tsi-buddy-bubble .tsi-buddy-text a { color: #1565c0; text-decoration: underline; }
+.tsi-buddy-error {
+  background: #fee2e2; color: #7f1d1d; border: 1px solid #fecaca;
+  padding: 8px 10px; border-radius: 6px; margin: 8px 14px; font-size: 0.85em;
+}
+.tsi-buddy-chat-foot {
+  border-top: 1px solid #e2e8f0; padding: 10px 12px;
+  display: flex; gap: 8px; align-items: flex-end;
+  background: white;
+}
+.tsi-buddy-chat-foot textarea {
+  flex: 1 1 auto; resize: none; min-height: 36px; max-height: 140px;
+  padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px;
+  font: inherit; color: #1e293b;
+}
+.tsi-buddy-chat-foot button {
+  font: 600 13px/1 'Inter', system-ui, sans-serif;
+  padding: 9px 14px; border-radius: 6px; border: none; cursor: pointer;
+  background: #1565c0; color: white;
+}
+.tsi-buddy-chat-foot button:disabled { background: #94a3b8; cursor: default; }
+.tsi-buddy-chat-foot button:hover:not(:disabled) { background: #0d47a1; }
+.tsi-buddy-startbar {
+  display: flex; gap: 8px; padding: 12px 14px;
+  border-bottom: 1px solid #e2e8f0; background: #fafbfc;
+}
+.tsi-buddy-startbar button {
+  flex: 1 1 auto; font: 600 13px/1 'Inter', system-ui, sans-serif;
+  padding: 9px 12px; border-radius: 6px; border: 1px solid #1565c0;
+  background: white; color: #1565c0; cursor: pointer;
+}
+.tsi-buddy-startbar button:hover { background: #e3f2fd; }
+@media (max-width: 480px) {
+  .tsi-buddy-chat { width: calc(100vw - 16px); right: 8px; bottom: 8px; height: calc(100vh - 90px); }
+}
+`;
+
+  function injectStyles() {
+    if (document.getElementById('tsi-buddy-styles')) return;
+    var s = document.createElement('style');
+    s.id = 'tsi-buddy-styles';
+    s.textContent = STYLE;
+    document.head.appendChild(s);
+  }
+
+  /* ---------- Markdown rendering ---------- */
+  // The buddy returns markdown (bold, italic, lists, code, headers).
+  // We lazily load `marked` from CDN and render assistant replies through it.
+  // Until marked is loaded (or if it fails to load), we fall back to plain
+  // text with newlines preserved as <br>.
+  function loadMarked() {
+    if (window.marked) return Promise.resolve(window.marked);
+    if (window.__tsiMarkedLoading) return window.__tsiMarkedLoading;
+    window.__tsiMarkedLoading = new Promise(function (resolve) {
+      var s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js';
+      s.async = true;
+      s.onload  = function () { resolve(window.marked || null); };
+      s.onerror = function () { resolve(null); };
+      document.head.appendChild(s);
+    });
+    return window.__tsiMarkedLoading;
+  }
+
+  /* ---------- KaTeX (for math in replies) ----------
+     Lazy-load KaTeX + CSS when the host page doesn't already have it, so
+     $...$ / $$...$$ in replies typeset instead of showing raw. */
+  var KATEX_OPTS = {
+    delimiters: [
+      { left: '$$', right: '$$', display: true },
+      { left: '$',  right: '$',  display: false }
+    ],
+    throwOnError: false
+  };
+  function loadKatex() {
+    if (window.katex && window.katex.renderToString) return Promise.resolve(window.katex);
+    if (window.__tsiKatexLoading) return window.__tsiKatexLoading;
+    window.__tsiKatexLoading = new Promise(function (resolve) {
+      if (!document.querySelector('link[data-tsi-katex]')) {
+        var link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = 'https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css';
+        link.setAttribute('data-tsi-katex', '1');
+        document.head.appendChild(link);
+      }
+      var s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js';
+      s.onload  = function () { resolve(window.katex || null); };
+      s.onerror = function () { resolve(null); };
+      document.head.appendChild(s);
+    });
+    return window.__tsiKatexLoading;
+  }
+
+  // Light DOM sanitiser: walks the parsed tree and removes any tags / attrs
+  // that could execute code if the model went rogue. Allow-listing all
+  // safe markdown tags; strip everything else's dangerous attributes.
+  function sanitizeHTML(html) {
+    var div = document.createElement('div');
+    div.innerHTML = html;
+    var deny = ['script', 'style', 'iframe', 'object', 'embed', 'form',
+                'input', 'button', 'textarea', 'select', 'meta', 'link', 'base'];
+    deny.forEach(function (tag) {
+      Array.from(div.getElementsByTagName(tag)).forEach(function (n) { n.remove(); });
+    });
+    Array.from(div.querySelectorAll('*')).forEach(function (n) {
+      Array.from(n.attributes).forEach(function (a) {
+        var name = a.name.toLowerCase();
+        if (name.indexOf('on') === 0) { n.removeAttribute(a.name); return; }
+        if (name === 'href' || name === 'src' || name === 'srcset') {
+          var v = (a.value || '').replace(/\s/g, '');
+          if (/^javascript:/i.test(v) || /^data:text\/html/i.test(v)) {
+            n.removeAttribute(a.name);
+          }
+        }
+      });
+      // External links: open in new tab safely
+      if (n.tagName === 'A' && n.getAttribute('href')) {
+        n.setAttribute('target', '_blank');
+        n.setAttribute('rel', 'noopener noreferrer');
+      }
+    });
+    return div.innerHTML;
+  }
+
+  function escapeHTML(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  function renderContent(text, isAssistant) {
+    var div = document.createElement('div');
+    div.className = 'tsi-buddy-text';
+    var raw = text == null ? '' : String(text);
+    if (isAssistant && window.marked && window.marked.parse) {
+      try {
+        /* Protect math from markdown (it mangles _ * \ inside $…$), then
+           restore + typeset with KaTeX. */
+        var math = [];
+        var protectedSrc = raw
+          .replace(/\$\$([\s\S]+?)\$\$/g, function (_m, body) {
+            math.push({ display: true, tex: body }); return ' @@TSIMATH' + (math.length - 1) + '@@ ';
+          })
+          .replace(/\$([^\$\n]+?)\$/g, function (_m, body) {
+            math.push({ display: false, tex: body }); return '@@TSIMATH' + (math.length - 1) + '@@';
+          });
+        var html = sanitizeHTML(window.marked.parse(protectedSrc, { breaks: true, gfm: true, mangle: false, headerIds: false }));
+        var katexReady = window.katex && window.katex.renderToString;
+        html = html.replace(/@@TSIMATH(\d+)@@/g, function (_m, i) {
+          var item = math[Number(i)];
+          if (!item) return '';
+          if (katexReady) {
+            try { return window.katex.renderToString(item.tex, { displayMode: item.display, throwOnError: false }); }
+            catch (e) {}
+          }
+          var d = item.display ? '$$' : '$';
+          return d + escapeHTML(item.tex) + d;
+        });
+        div.innerHTML = html;
+        if (math.length && !katexReady) {
+          loadKatex().then(function (k) {
+            if (k && window.renderMathInElement) { try { window.renderMathInElement(div, KATEX_OPTS); } catch (e) {} }
+          });
+        }
+        return div;
+      } catch (e) { /* fall through to plain text */ }
+    }
+    // Plain-text fallback (user messages, or assistant before marked loads)
+    div.innerHTML = escapeHTML(raw).replace(/\n/g, '<br>');
+    return div;
+  }
+
+  /* ---------- Streaming Mistral call ---------- */
+  function callMistralChat(apiKey, model, systemPrompt, messages, onDelta) {
+    return fetch('https://api.mistral.ai/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + apiKey, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: model || 'mistral-small-latest',
+        temperature: 0.4,
+        max_tokens: 1500,
+        stream: true,
+        messages: [{ role: 'system', content: systemPrompt }].concat(messages)
+      })
+    }).then(function (r) {
+      if (!r.ok) {
+        return r.text().then(function (t) {
+          throw new Error('Mistral ' + r.status + ': ' + (t || 'request failed'));
+        });
+      }
+      if (!r.body || !r.body.getReader) {
+        return r.json().then(function (data) {
+          if (!data.choices || !data.choices[0]) throw new Error('Mistral returned no choices.');
+          var full = (data.choices[0].message.content || '').trim();
+          if (onDelta) onDelta(full);
+          return full;
+        });
+      }
+      var reader = r.body.getReader();
+      var decoder = new TextDecoder();
+      var buf = '';
+      var full = '';
+      function pump() {
+        return reader.read().then(function (res) {
+          if (res.done) return full.trim();
+          buf += decoder.decode(res.value, { stream: true });
+          var lines = buf.split('\n');
+          buf = lines.pop();
+          for (var i = 0; i < lines.length; i++) {
+            var ln = lines[i];
+            if (ln.indexOf('data: ') !== 0) continue;
+            var s = ln.substring(6).trim();
+            if (s === '[DONE]') return full.trim();
+            try {
+              var d = JSON.parse(s);
+              if (d.choices && d.choices[0] && d.choices[0].delta && d.choices[0].delta.content) {
+                full += d.choices[0].delta.content;
+                if (onDelta) onDelta(full);
+              }
+            } catch (e) {}
+          }
+          return pump();
+        });
+      }
+      return pump();
+    });
+  }
+
+  /* ---------- DOM helpers ---------- */
+  function el(tag, attrs, kids) {
+    var n = document.createElement(tag);
+    if (attrs) for (var k in attrs) {
+      if (k === 'class') n.className = attrs[k];
+      else if (k === 'html') n.innerHTML = attrs[k];
+      else if (k === 'text') n.textContent = attrs[k];
+      else if (k.indexOf('on') === 0 && typeof attrs[k] === 'function') n.addEventListener(k.substring(2), attrs[k]);
+      else if (attrs[k] === true) n.setAttribute(k, '');
+      else if (attrs[k] != null && attrs[k] !== false) n.setAttribute(k, attrs[k]);
+    }
+    if (kids) (Array.isArray(kids) ? kids : [kids]).forEach(function (c) {
+      if (c == null) return;
+      n.appendChild(typeof c === 'string' ? document.createTextNode(c) : c);
+    });
+    return n;
+  }
+
+  /* ---------- Mount ---------- */
+  function mount(opts) {
+    if (!opts || !opts.systemPrompt) {
+      console.warn('TSIBuddy.mount: systemPrompt required');
+      return null;
+    }
+    injectStyles();
+
+    // ---- State (closure-scoped) ----
+    var state = {
+      apiKey:  lsGet(KEY_LS, ''),
+      model:   lsGet(MODEL_LS, 'mistral-small-latest'),
+      enabled: lsGet(ENABLE_LS, '') === '1',
+      messages: [],     // {role, content}
+      pending: '',
+      status:  'idle',  // idle | loading | error
+      error:   '',
+      open:    false    // chat panel visible
+    };
+    if (state.apiKey) state.enabled = true; // having a key implies enabled
+
+    // ---- Floating button ----
+    var btnDot   = el('span', { class: 'tsi-buddy-dot' });
+    var btnLabel = el('span', null, '🤖 TSI Buddy');
+    var btnState = el('span', null, '');
+    var btn = el('button', {
+      class: 'tsi-buddy-btn',
+      title: 'TSI Buddy — your study companion',
+      onclick: function () {
+        if (state.apiKey) toggleChat();
+        else openSettings();
+      }
+    }, [btnDot, btnLabel, btnState]);
+    document.body.appendChild(btn);
+
+    // ---- Settings modal ----
+    var keyInput = el('input', {
+      type: 'password', autocomplete: 'off',
+      placeholder: 'paste your Mistral key (starts with "sk-…")',
+      value: state.apiKey,
+      oninput: function (e) { state.apiKey = e.target.value; }
+    });
+    var modelSelect = el('select', {
+      onchange: function (e) { state.model = e.target.value; }
+    }, ['mistral-small-latest', 'mistral-medium-latest', 'mistral-large-latest'].map(function (m) {
+      var o = el('option', { value: m }, m + (m === 'mistral-small-latest' ? ' (recommended)' : ''));
+      if (m === state.model) o.selected = true;
+      return o;
+    }));
+    var enableBox = el('input', {
+      type: 'checkbox',
+      onchange: function (e) { state.enabled = !!e.target.checked; }
+    });
+    enableBox.checked = state.enabled;
+    var modalCard = el('div', { class: 'tsi-buddy-modal', onclick: function (e) { e.stopPropagation(); } }, [
+      el('h3', null, '🤖 TSI Buddy'),
+      el('p', { class: 'tsi-buddy-sub' }, opts.contextLabel
+        ? ('You are reading: ' + opts.contextLabel + '. The buddy reads the page context and helps you understand worked examples — it does not give you the answer to your homework.')
+        : 'A study companion. The buddy helps you understand the worked examples on this page.'),
+      el('label', { class: 'tsi-buddy-toggle' }, [enableBox, el('span', null, 'Enable TSI Buddy on this page')]),
+      el('label', null, 'Mistral API key'),
+      keyInput,
+      el('label', null, 'Model'),
+      modelSelect,
+      el('p', null, [el('small', null, 'Get a free key at '), el('a', { href: 'https://console.mistral.ai/api-keys/', target: '_blank' }, 'console.mistral.ai'), el('small', null, '. The key stays in your browser only.')]),
+      el('div', { class: 'tsi-buddy-actions' }, [
+        el('button', { class: 'tsi-buddy-secondary', onclick: function () { state.apiKey = ''; keyInput.value = ''; } }, 'Clear key'),
+        el('button', { class: 'tsi-buddy-primary',   onclick: function () { saveSettings(); } }, 'Save')
+      ])
+    ]);
+    var modalOverlay = el('div', { class: 'tsi-buddy-overlay', hidden: true, onclick: function () { closeSettings(); } }, [modalCard]);
+    document.body.appendChild(modalOverlay);
+
+    // ---- Chat panel ----
+    var chatBody = el('div', { class: 'tsi-buddy-chat-body' });
+    var chatErr  = el('div', { class: 'tsi-buddy-error', hidden: true });
+    var inputBox = el('textarea', {
+      rows: 1, placeholder: 'Ask about this page…',
+      onkeydown: function (e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          sendUserMessage();
+        }
+      },
+      oninput: function (e) { state.pending = e.target.value; sendBtn.disabled = !canSend(); autosize(e.target); }
+    });
+    var sendBtn = el('button', {
+      onclick: function () { sendUserMessage(); }
+    }, 'Send');
+    sendBtn.disabled = true;
+
+    var startBar = el('div', { class: 'tsi-buddy-startbar' });
+
+    var chatFoot = el('div', { class: 'tsi-buddy-chat-foot' }, [inputBox, sendBtn]);
+
+    var chatHead = el('div', { class: 'tsi-buddy-chat-head' }, [
+      el('div', null, [
+        el('strong', null, '🤖 TSI Buddy'),
+        opts.contextLabel ? el('small', null, opts.contextLabel) : null
+      ]),
+      el('div', null, [
+        el('button', { title: 'Settings', onclick: function () { openSettings(); } }, '⚙'),
+        el('button', { title: 'Reset chat', onclick: function () { resetChat(); } }, '↺'),
+        el('button', { title: 'Close', onclick: function () { closeChat(); } }, '×')
+      ])
+    ]);
+
+    var chatPanel = el('div', { class: 'tsi-buddy-chat', hidden: true }, [
+      chatHead, startBar, chatErr, chatBody, chatFoot
+    ]);
+    document.body.appendChild(chatPanel);
+
+    // ---- Render ----
+    function refreshButton() {
+      if (state.apiKey && state.enabled) { btn.classList.add('tsi-on'); btnState.textContent = 'ON'; }
+      else                                { btn.classList.remove('tsi-on'); btnState.textContent = 'off'; }
+    }
+    function autosize(t) {
+      t.style.height = 'auto';
+      t.style.height = Math.min(140, Math.max(36, t.scrollHeight)) + 'px';
+    }
+    function canSend() {
+      return !!(state.apiKey && state.enabled && state.pending.trim() && state.status !== 'loading');
+    }
+    function refreshSendBtn() { sendBtn.disabled = !canSend(); }
+    function refreshStartBar() {
+      while (startBar.firstChild) startBar.removeChild(startBar.firstChild);
+      if (state.messages.length > 0) { startBar.style.display = 'none'; return; }
+      startBar.style.display = 'flex';
+      if (opts.openingLine) {
+        startBar.appendChild(el('button', {
+          onclick: function () { startWith(opts.openingLine); }
+        }, '🚀 Start with: "' + opts.openingLine.substring(0, 50) + (opts.openingLine.length > 50 ? '…' : '') + '"'));
+      }
+      startBar.appendChild(el('button', {
+        onclick: function () { startWith('Help me understand the worked example on this page.'); }
+      }, '💡 Generic walkthrough'));
+    }
+    function refreshChat() {
+      while (chatBody.firstChild) chatBody.removeChild(chatBody.firstChild);
+      state.messages.forEach(function (m, i) {
+        var thinking = (state.status === 'loading' && i === state.messages.length - 1 && m.role === 'assistant' && !m.content);
+        var displayText = m.content || (thinking ? '…' : '');
+        var contentDiv = thinking
+          ? (function () { var d = document.createElement('div'); d.className = 'tsi-buddy-text'; d.textContent = '…'; return d; })()
+          : renderContent(displayText, m.role === 'assistant');
+        var bubble = el('div', { class: 'tsi-buddy-bubble tsi-' + m.role }, [
+          el('div', { class: 'tsi-buddy-role' }, m.role === 'assistant' ? '🤖 TSI Buddy' : '🧑 You'),
+          contentDiv
+        ]);
+        if (thinking) bubble.classList.add('tsi-thinking');
+        chatBody.appendChild(bubble);
+      });
+      if (state.status === 'error' && state.error) {
+        chatErr.textContent = 'API error: ' + state.error;
+        chatErr.hidden = false;
+      } else {
+        chatErr.hidden = true;
+      }
+      // scroll to bottom
+      requestAnimationFrame(function () { chatBody.scrollTop = chatBody.scrollHeight; });
+      refreshStartBar();
+      refreshSendBtn();
+    }
+
+    // ---- Behaviour ----
+    function openSettings()  { modalOverlay.hidden = false; setTimeout(function () { keyInput.focus(); }, 50); }
+    function closeSettings() { modalOverlay.hidden = true; }
+    function saveSettings() {
+      lsSet(KEY_LS, state.apiKey || '');
+      lsSet(MODEL_LS, state.model || 'mistral-small-latest');
+      lsSet(ENABLE_LS, state.enabled ? '1' : '');
+      closeSettings();
+      refreshButton();
+      if (state.apiKey && state.enabled) openChat();
+    }
+    function openChat()  { state.open = true; chatPanel.hidden = false; refreshChat(); inputBox.focus(); }
+    function closeChat() { state.open = false; chatPanel.hidden = true; }
+    function toggleChat(){ state.open ? closeChat() : openChat(); }
+    function resetChat() { state.messages = []; state.pending = ''; state.status = 'idle'; state.error = ''; inputBox.value = ''; refreshChat(); }
+    function startWith(line) {
+      inputBox.value = line;
+      state.pending = line;
+      autosize(inputBox);
+      sendUserMessage();
+    }
+    function sendUserMessage() {
+      var draft = (state.pending || '').trim();
+      if (!draft || !state.apiKey || state.status === 'loading') return;
+      var userMsg = { role: 'user', content: draft };
+      state.messages.push(userMsg);
+      state.messages.push({ role: 'assistant', content: '' });
+      state.pending = ''; inputBox.value = ''; autosize(inputBox);
+      state.status = 'loading'; state.error = '';
+      refreshChat();
+      callMistralChat(state.apiKey, state.model, opts.systemPrompt, state.messages.slice(0, -1), function (full) {
+        var last = state.messages[state.messages.length - 1];
+        if (last && last.role === 'assistant') {
+          last.content = full;
+          refreshChat();
+        }
+      }).then(function () {
+        state.status = 'idle';
+        refreshChat();
+      }).catch(function (err) {
+        var last = state.messages[state.messages.length - 1];
+        if (last && last.role === 'assistant' && !last.content) state.messages.pop();
+        state.status = 'error';
+        state.error = (err && err.message) || String(err);
+        refreshChat();
+      });
+    }
+
+    refreshButton();
+    refreshChat();
+
+    // Lazily fetch marked so assistant replies render markdown. If it
+    // arrives mid-conversation, re-render so any plain-text bubbles get
+    // upgraded to formatted ones.
+    loadMarked().then(function (m) { if (m) refreshChat(); });
+
+    // First-time arrival: nudge the modal open if no key set
+    // (but not too aggressively — only on explicit click of the button).
+
+    return {
+      open: openChat, close: closeChat, toggle: toggleChat,
+      reset: resetChat,
+      destroy: function () {
+        try { document.body.removeChild(btn); } catch (e) {}
+        try { document.body.removeChild(modalOverlay); } catch (e) {}
+        try { document.body.removeChild(chatPanel); } catch (e) {}
+      }
+    };
+  }
+
+  window.TSIBuddy = { mount: mount, __loaded: true };
+})();
+</script>
+<!-- widget: rotate-and-transform (animator) -->
+<script type="text/babel">
+(function () {
+  const { useState, useEffect, useMemo } = React;
+
+  const AXES = ['X', 'Y', 'Z'];
+
+  const PRESETS = [
+    { label: 'Rx · 30° · A = (0.3, 0.4, 0.5)',  axis: 'X', theta:  30, u: 0.3, v: 0.4, w: 0.5 },
+    { label: 'Ry · 60° · A on the U axis',      axis: 'Y', theta:  60, u: 1.0, v: 0.0, w: 0.0 },
+    { label: 'Rz · −30° · the homework case',   axis: 'Z', theta: -30, u: 0.3, v: 0.4, w: 0.5 },
+    { label: 'θ = 0  · frames overlap',         axis: 'X', theta:   0, u: 0.3, v: 0.4, w: 0.5 },
+  ];
+
+  function buildR(axis, deg) {
+    const t = deg * Math.PI / 180;
+    const c = Math.cos(t), s = Math.sin(t);
+    if (axis === 'X') return [[1, 0, 0], [0, c, -s], [0, s, c]];
+    if (axis === 'Y') return [[c, 0, s], [0, 1, 0], [-s, 0, c]];
+    return [[c, -s, 0], [s, c, 0], [0, 0, 1]];
+  }
+
+  function mulRv(R, v) {
+    return [
+      R[0][0]*v[0] + R[0][1]*v[1] + R[0][2]*v[2],
+      R[1][0]*v[0] + R[1][1]*v[1] + R[1][2]*v[2],
+      R[2][0]*v[0] + R[2][1]*v[1] + R[2][2]*v[2],
+    ];
+  }
+
+  const C30 = Math.cos(Math.PI / 6);
+  const S30 = Math.sin(Math.PI / 6);
+  const SCALE = 90;
+
+  // Iso-style projection mirroring MATLAB view(30,30): x goes down-left, y down-right, z up.
+  function project([x, y, z]) {
+    return [(-x + y) * C30 * SCALE, (x + y) * S30 * SCALE - z * SCALE];
+  }
+
+  function fmt(n) {
+    if (Math.abs(n) < 1e-10) return ' 0.000';
+    const s = n.toFixed(3);
+    return s.startsWith('-') ? s : ' ' + s;
+  }
+
+  function arcPath(axis, theta) {
+    const r = 0.35;
+    const N = 36;
+    const pts = [];
+    const T = theta * Math.PI / 180;
+    for (let i = 0; i <= N; i++) {
+      const a = T * i / N;
+      const c = Math.cos(a), s = Math.sin(a);
+      let p;
+      if (axis === 'X') p = [0, r * c, r * s];
+      else if (axis === 'Y') p = [r * s, 0, r * c];
+      else p = [r * c, r * s, 0];
+      pts.push(project(p));
+    }
+    return pts.map((p, i) => (i === 0 ? 'M' : 'L') + p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' ');
+  }
+
+  function Widget() {
+    const [axis, setAxis]     = useState('X');
+    const [theta, setTheta]   = useState(30);
+    const [u, setU]           = useState(0.3);
+    const [v, setV]           = useState(0.4);
+    const [w, setW]           = useState(0.5);
+    const [playing, setPlaying] = useState(false);
+
+    useEffect(() => {
+      if (!playing) return;
+      let raf, last = null;
+      const tick = (now) => {
+        if (last == null) last = now;
+        const dt = (now - last) / 1000;
+        last = now;
+        setTheta(prev => {
+          let n = prev + 35 * dt;
+          if (n > 180) n -= 360;
+          return n;
+        });
+        raf = requestAnimationFrame(tick);
+      };
+      raf = requestAnimationFrame(tick);
+      return () => cancelAnimationFrame(raf);
+    }, [playing]);
+
+    const R    = useMemo(() => buildR(axis, theta), [axis, theta]);
+    const Auvw = [u, v, w];
+    const Axyz = mulRv(R, Auvw);
+
+    const uAx = [R[0][0], R[1][0], R[2][0]];
+    const vAx = [R[0][1], R[1][1], R[2][1]];
+    const wAx = [R[0][2], R[1][2], R[2][2]];
+
+    const axisIdx = axis === 'X' ? 0 : axis === 'Y' ? 1 : 2;
+    const fixedLabel  = ['x', 'y', 'z'][axisIdx];
+    const mobileLabel = ['u', 'v', 'w'][axisIdx];
+
+    const axisColor = axisIdx === 0 ? 'var(--accent)' : axisIdx === 1 ? 'var(--accent-2)' : 'var(--good)';
+
+    const pickPreset = (p) => {
+      setPlaying(false);
+      setAxis(p.axis); setTheta(p.theta);
+      setU(p.u); setV(p.v); setW(p.w);
+    };
+
+    const o  = project([0, 0, 0]);
+    const fx = project([1.15, 0, 0]);
+    const fy = project([0, 1.15, 0]);
+    const fz = project([0, 0, 1.15]);
+    const mu = project(uAx);
+    const mv = project(vAx);
+    const mw = project(wAx);
+    const aP = project(Axyz);
+    const aMobile = project(Auvw);   // where A would have been if the frame hadn't rotated
+    const arc = arcPath(axis, theta);
+
+    return (
+      <div className="rat">
+        <style>{`
+          .rat {
+            font-family: var(--font-body);
+            color: var(--ink);
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 18px;
+            display: grid;
+            grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+            gap: 22px;
+          }
+          @media (max-width: 780px) { .rat { grid-template-columns: 1fr; } }
+          .rat-stage svg {
+            width: 100%; height: auto; display: block;
+            background: var(--page-bg);
+            border-radius: 4px;
+            border: 1px solid var(--border);
+          }
+          .rat-panel { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+          .rat-row   { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+          .rat-label {
+            font-family: var(--font-display);
+            font-size: 11px;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--ink-soft);
+            min-width: 60px;
+          }
+          .rat-btn {
+            font-family: var(--font-mono);
+            font-size: 13px;
+            background: var(--surface);
+            color: var(--ink);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 6px 12px;
+            cursor: pointer;
+            transition: background 120ms, color 120ms, border-color 120ms;
+          }
+          .rat-btn.active { background: var(--accent); color: var(--surface); border-color: var(--accent); }
+          .rat-slider { flex: 1; min-width: 140px; accent-color: var(--accent); }
+          .rat-readout {
+            font-family: var(--font-mono);
+            font-size: 13px;
+            min-width: 64px;
+            text-align: right;
+            color: var(--ink);
+          }
+          .rat-num {
+            font-family: var(--font-mono);
+            font-size: 13px;
+            width: 64px;
+            padding: 4px 6px;
+            border: 1px solid var(--border);
+            border-radius: 3px;
+            background: var(--surface);
+            color: var(--ink);
+          }
+          .rat-play {
+            font-family: var(--font-display);
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            background: var(--accent);
+            color: var(--surface);
+            border: none;
+            border-radius: 4px;
+            padding: 8px 16px;
+            cursor: pointer;
+          }
+          .rat-play.alt {
+            background: transparent;
+            color: var(--accent);
+            border: 1px solid var(--accent);
+          }
+          .rat-mat {
+            display: inline-grid;
+            grid-template-columns: repeat(3, auto);
+            gap: 2px;
+            background: var(--border);
+            border-radius: 3px;
+            padding: 1px;
+          }
+          .rat-cell {
+            background: var(--surface);
+            padding: 6px 9px;
+            font-family: var(--font-mono);
+            font-size: 12px;
+            font-variant-numeric: tabular-nums;
+            text-align: right;
+            min-width: 58px;
+            white-space: pre;
+            color: var(--ink);
+            transition: background 220ms, color 220ms;
+          }
+          .rat-cell.hot { background: rgba(200, 124, 60, 0.18); color: var(--accent-2); }
+          .rat-cell.one { background: var(--accent); color: var(--surface); font-weight: 700; }
+          .rat-cell.out { background: rgba(20, 24, 42, 0.05); font-weight: 700; }
+          .rat-eq {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            padding-bottom: 4px;
+          }
+          .rat-vec {
+            display: inline-grid;
+            grid-template-columns: auto;
+            gap: 2px;
+            background: var(--border);
+            border-radius: 3px;
+            padding: 1px;
+          }
+          .rat-op { font-family: var(--font-mono); font-size: 16px; color: var(--ink-soft); }
+          .rat-cap {
+            font-family: var(--font-display);
+            font-size: 11px;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--ink-soft);
+            margin-bottom: 6px;
+          }
+          .rat-hint {
+            font-family: var(--font-body);
+            font-size: 12.5px;
+            color: var(--ink-soft);
+            font-style: italic;
+            line-height: 1.45;
+            margin-top: 8px;
+          }
+          .rat-preset {
+            font-family: var(--font-display);
+            font-size: 10.5px;
+            background: var(--surface);
+            color: var(--ink-soft);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 7px 10px;
+            cursor: pointer;
+            text-align: left;
+            letter-spacing: 0.02em;
+            transition: border-color 120ms, color 120ms;
+          }
+          .rat-preset:hover { border-color: var(--accent); color: var(--ink); }
+        `}</style>
+
+        <div className="rat-stage">
+          <svg viewBox="-180 -160 360 320" preserveAspectRatio="xMidYMid meet">
+            <defs>
+              <marker id="rat-ax" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+                <path d="M0,0 L10,5 L0,10 z" fill="var(--accent)"/>
+              </marker>
+              <marker id="rat-ay" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+                <path d="M0,0 L10,5 L0,10 z" fill="var(--accent-2)"/>
+              </marker>
+              <marker id="rat-az" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+                <path d="M0,0 L10,5 L0,10 z" fill="var(--good)"/>
+              </marker>
+              <marker id="rat-arc-x" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+                <path d="M0,0 L10,5 L0,10 z" fill="var(--accent)"/>
+              </marker>
+              <marker id="rat-arc-y" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+                <path d="M0,0 L10,5 L0,10 z" fill="var(--accent-2)"/>
+              </marker>
+              <marker id="rat-arc-z" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+                <path d="M0,0 L10,5 L0,10 z" fill="var(--good)"/>
+              </marker>
+            </defs>
+
+            {/* Floor grid in xy plane (z=0) — gives the eye a horizon */}
+            <g opacity="0.35" stroke="var(--border)" strokeWidth="0.5" fill="none">
+              {Array.from({length: 5}, (_, i) => {
+                const t = -1 + i * 0.5;
+                const a = project([t, -1, 0]);
+                const b = project([t, 1, 0]);
+                const c = project([-1, t, 0]);
+                const d = project([1, t, 0]);
+                return (
+                  <g key={i}>
+                    <line x1={a[0]} y1={a[1]} x2={b[0]} y2={b[1]} />
+                    <line x1={c[0]} y1={c[1]} x2={d[0]} y2={d[1]} />
+                  </g>
+                );
+              })}
+            </g>
+
+            {/* Trail of A's position in the fixed frame so the student sees the orbit */}
+            <path d={(function () {
+              const N = 80;
+              const pts = [];
+              const step = theta / N;
+              for (let i = 0; i <= N; i++) {
+                const tt = i * step;
+                const Ri = buildR(axis, tt);
+                const p  = mulRv(Ri, Auvw);
+                pts.push(project(p));
+              }
+              return pts.map((p, i) => (i === 0 ? 'M' : 'L') + p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' ');
+            })()}
+                  fill="none" stroke="var(--ink)" strokeWidth="1" opacity="0.18" strokeDasharray="1 3"/>
+
+            {/* Rotation arc indicator — drawn in the axis colour */}
+            {Math.abs(theta) > 0.6 && (
+              <path d={arc} fill="none" stroke={axisColor} strokeWidth="1.6" opacity="0.85"
+                    markerEnd={'url(#rat-arc-' + axis.toLowerCase() + ')'}/>
+            )}
+
+            {/* Fixed frame axes (solid) */}
+            <g strokeWidth="2.4" fill="none" strokeLinecap="round">
+              <line x1={o[0]} y1={o[1]} x2={fx[0]} y2={fx[1]} stroke="var(--accent)"   markerEnd="url(#rat-ax)"/>
+              <line x1={o[0]} y1={o[1]} x2={fy[0]} y2={fy[1]} stroke="var(--accent-2)" markerEnd="url(#rat-ay)"/>
+              <line x1={o[0]} y1={o[1]} x2={fz[0]} y2={fz[1]} stroke="var(--good)"     markerEnd="url(#rat-az)"/>
+            </g>
+            <g fontFamily="var(--font-mono)" fontSize="12" fontWeight="700">
+              <text x={fx[0] + 6} y={fx[1] + 12} fill="var(--accent)">x</text>
+              <text x={fy[0] + 6} y={fy[1] + 12} fill="var(--accent-2)">y</text>
+              <text x={fz[0]}     y={fz[1] - 6}  fill="var(--good)" textAnchor="middle">z</text>
+            </g>
+
+            {/* Mobile frame axes (dashed, same colour family) */}
+            <g strokeWidth="2" fill="none" strokeDasharray="5 4" strokeLinecap="round">
+              <line x1={o[0]} y1={o[1]} x2={mu[0]} y2={mu[1]} stroke="var(--accent)"/>
+              <line x1={o[0]} y1={o[1]} x2={mv[0]} y2={mv[1]} stroke="var(--accent-2)"/>
+              <line x1={o[0]} y1={o[1]} x2={mw[0]} y2={mw[1]} stroke="var(--good)"/>
+            </g>
+            <g fontFamily="var(--font-mono)" fontSize="11" fontStyle="italic" fontWeight="700">
+              <text x={mu[0] - 8}  y={mu[1] - 6}  fill="var(--accent)">u</text>
+              <text x={mv[0] + 6}  y={mv[1] - 6}  fill="var(--accent-2)">v</text>
+              <text x={mw[0] + 6}  y={mw[1] + 2}  fill="var(--good)">w</text>
+            </g>
+
+            {/* Point A rigidly attached to the mobile frame */}
+            <g>
+              <line x1={o[0]} y1={o[1]} x2={aP[0]} y2={aP[1]}
+                    stroke="var(--ink)" strokeWidth="1" opacity="0.5" strokeDasharray="2 3"/>
+              <circle cx={aP[0]} cy={aP[1]} r="6.5" fill="var(--ink)" stroke="var(--surface)" strokeWidth="2"/>
+              <text x={aP[0] + 11} y={aP[1] - 6}
+                    fontFamily="var(--font-mono)" fontSize="13" fontWeight="700" fill="var(--ink)">A</text>
+            </g>
+
+            {/* Subtle caption */}
+            <text x="-175" y="-145" fontFamily="var(--font-display)" fontSize="9.5"
+                  letterSpacing="0.1em" fill="var(--ink-soft)">
+              VIEW(30°, 30°) · SOLID = FIXED (x y z) · DASHED = MOBILE (u v w)
+            </text>
+            <text x="-175" y="-132" fontFamily="var(--font-mono)" fontSize="9.5" fill={axisColor}>
+              rotating about {fixedLabel}  ·  θ = {theta.toFixed(1)}°
+            </text>
+          </svg>
+        </div>
+
+        <div className="rat-panel">
+
+          <div className="rat-row">
+            <span className="rat-label">Axis</span>
+            {AXES.map(a => (
+              <button key={a}
+                      className={'rat-btn ' + (axis === a ? 'active' : '')}
+                      onClick={() => setAxis(a)}>
+                R{a.toLowerCase()}(θ)
+              </button>
+            ))}
+          </div>
+
+          <div className="rat-row">
+            <span className="rat-label">θ</span>
+            <input type="range" min="-180" max="180" step="0.5" value={theta}
+                   onChange={e => { setPlaying(false); setTheta(parseFloat(e.target.value)); }}
+                   className="rat-slider"/>
+            <span className="rat-readout">{theta.toFixed(1)}°</span>
+          </div>
+
+          <div className="rat-row">
+            <button className="rat-play" onClick={() => setPlaying(p => !p)}>
+              {playing ? '❚❚  Pause' : '▶  Play'}
+            </button>
+            <button className="rat-play alt" onClick={() => { setPlaying(false); setTheta(0); }}>
+              ↺  Reset
+            </button>
+          </div>
+
+          <div className="rat-row">
+            <span className="rat-label">A<sub>uvw</sub></span>
+            <input type="number" step="0.1" className="rat-num" value={u}
+                   onChange={e => setU(parseFloat(e.target.value) || 0)}/>
+            <input type="number" step="0.1" className="rat-num" value={v}
+                   onChange={e => setV(parseFloat(e.target.value) || 0)}/>
+            <input type="number" step="0.1" className="rat-num" value={w}
+                   onChange={e => setW(parseFloat(e.target.value) || 0)}/>
+          </div>
+
+          <div>
+            <div className="rat-cap">
+              R<sub>{fixedLabel}</sub>(θ)  ·  A<sub>uvw</sub>  =  A<sub>xyz</sub>
+            </div>
+            <div className="rat-eq">
+              <div className="rat-mat">
+                {[0,1,2].map(i => [0,1,2].map(j => {
+                  const val   = R[i][j];
+                  const isOne = (i === axisIdx && j === axisIdx);
+                  const isLine = !isOne && (i === axisIdx || j === axisIdx);
+                  let cls = 'rat-cell';
+                  if (isOne) cls += ' one';
+                  else if (isLine) cls += ' hot';
+                  return <div key={i * 3 + j} className={cls}>{fmt(val)}</div>;
+                }))}
+              </div>
+              <span className="rat-op">·</span>
+              <div className="rat-vec">
+                <div className="rat-cell">{fmt(u)}</div>
+                <div className="rat-cell">{fmt(v)}</div>
+                <div className="rat-cell">{fmt(w)}</div>
+              </div>
+              <span className="rat-op">=</span>
+              <div className="rat-vec">
+                <div className="rat-cell out">{fmt(Axyz[0])}</div>
+                <div className="rat-cell out">{fmt(Axyz[1])}</div>
+                <div className="rat-cell out">{fmt(Axyz[2])}</div>
+              </div>
+            </div>
+            <div className="rat-hint">
+              The <strong style={{color:'var(--accent)'}}>1</strong> keeps mobile {mobileLabel} glued to fixed {fixedLabel} — and forces zeros across the rest of its row and column.
+              The 2×2 cos/sin block does all the mixing, so the {fixedLabel}-component of A
+              ({fmt(Axyz[axisIdx]).trim()}) never moves while the other two evolve with θ.
+            </div>
+          </div>
+
+          <div>
+            <div className="rat-cap">Presets</div>
+            <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'6px'}}>
+              {PRESETS.map((p, i) => (
+                <button key={i} className="rat-preset" onClick={() => pickPreset(p)}>{p.label}</button>
+              ))}
+            </div>
+          </div>
+
+        </div>
+      </div>
+    );
+  }
+
+  ReactDOM.createRoot(document.getElementById('rotate-and-transform')).render(<Widget />);
+})();
+</script>
+<script>(function(){
+  function go(){ if(window.TSIBuddy){ TSIBuddy.mount({"systemPrompt":"You are TSI Buddy, a friendly tutor on the lecture page \"Rotating frames in MATLAB — Rx, Ry, Rz and animating the mobile system\". (Lecture 02 · Module 1 · Robot Manipulator Kinematics)\n\nYour knowledge is ONLY the LECTURE NOTES and PAGE TEXT printed below.\n\nRules:\n1. Answer from that material. Read it for meaning — explaining,\n   rephrasing, working its examples and connecting its points is\n   your job. Synthesising an answer from what the material says is\n   not \"inventing\".\n2. If the material does not cover something, say so in one sentence\n   and stop. Never invent facts, names, emails, links, places,\n   rooms, dates, or anything not in the material — a plain \"that is\n   not in the lecture material\" is the correct answer to a gap.\n3. Keep replies short — 2–4 sentences — unless the student asks for\n   more depth or worked steps. Mirror the student's language.\n4. Don't hand over self-check / quiz answers; point to the section\n   that explains them instead.\n5. Write maths with $...$ (inline) and $...$ (display).\n\n── LECTURE NOTES ──\nSCOPE\nThis lecture is the MATLAB implementation companion to Lecture 01. It takes the static rotaX(t) work from last time and (a) refactors the per-axis plotting into a reusable drawSystem(R) function, (b) animates rotation with a for-loop + hold on + clf + drawnow, (c) derives and codes rotaY(t) and rotaZ(t) using the same tic-tac-toe / projection trick, and (d) introduces the matrix-vector product A_xyz = R · A_uvw that maps a point from the mobile frame into the fixed frame. It deliberately does NOT cover: composed/sequential rotations across multiple axes, full homogeneous transformations (no translation yet), Euler-angle conventions, RPY, axis-angle, quaternions, inverse kinematics, or DH parameters. Rotation is treated frame-by-frame and one axis at a time.\n\nKEY DEFINITIONS\nFixed frame — The reference coordinate frame, axes labelled x, y, z. It does not move. Drawn from the 3×3 identity.\nMobile frame — A coordinate frame attached to a body of interest (eventually the robot tool plate or an intermediate link). Its axes are labelled u, v, w. It can rotate around the axes of the fixed frame or around its own axes.\nRotation matrix R — A 3×3 matrix whose entries are the projections of the mobile axes (u, v, w) onto the fixed axes (x, y, z). Rows correspond to mobile axes; columns correspond to fixed axes. A \"1\" on the diagonal means that mobile axis is still aligned with its matching fixed axis, which forces zeros across the rest of that row and column.\nIdentity matrix (eye(3) in MATLAB) — The rotation matrix when the two frames overlap; mobile and fixed axes coincide one-for-one.\nRight-hand rule — Convention used to fix the sign of the rotation. Point the right-hand thumb along the rotation axis; the fingers curl in the direction of positive theta.\nTheta (θ, called t in the code) — The rotation angle. In MATLAB it is given in degrees because the functions use cosd / sind, not cos / sin.\ndrawSystem(R) — A MATLAB function that takes any 3×3 rotation matrix and draws three line segments from the origin to the three column vectors, i.e. it renders the frame represented by R.\nPoint in the mobile frame, A_uvw — A 3×1 vector of coordinates measured along (u, v, w). The point is rigidly attached to the mobile body, so A_uvw is constant while the frame rotates.\nPoint in the fixed frame, A_xyz — The same physical point, but expressed in (x, y, z). It changes as the mobile frame rotates, even though the point hasn't moved relative to the mobile frame.\n\nKEY EQUATIONS & RESULTS\nIdentity (frames overlap):\n$ R = I_3 = \\begin{bmatrix} 1 & 0 & 0 \\\\ 0 & 1 & 0 \\\\ 0 & 0 & 1 \\end{bmatrix} $\nEach 1 means a mobile axis sits exactly on the matching fixed axis; the zeros are forced.\n\nRotation about X by angle θ (right-hand rule, mobile frame turned around the fixed x axis):\n$ R_x(\\theta) = \\begin{bmatrix} 1 & 0 & 0 \\\\ 0 & \\cos\\theta & -\\sin\\theta \\\\ 0 & \\sin\\theta & \\cos\\theta \\end{bmatrix} $\nThe \"1\" anchors u to x; the surrounding zeros follow. The 2×2 cos/sin block lives in the v–w / y–z plane. Units: θ in degrees in the MATLAB code (cosd / sind). Holds for a single rigid rotation of the mobile frame about the fixed x axis only.\n\nRotation about Y by angle θ:\n$ R_y(\\theta) = \\begin{bmatrix} \\cos\\theta & 0 & \\sin\\theta \\\\ 0 & 1 & 0 \\\\ -\\sin\\theta & 0 & \\cos\\theta \\end{bmatrix} $\n\"1\" anchors v to y. The minus sign sits on the (3,1) entry — the projection that points against the positive fixed axis under a right-hand-rule rotation about y. Derived in class by projecting u and w onto x and z: u on x = cosθ (adjacent), u on z = sinθ (opposite, positive side), w on x = −sinθ (opposite, negative side), w on z = cosθ (adjacent).\n\nRotation about Z by angle θ:\n$ R_z(\\theta) = \\begin{bmatrix} \\cos\\theta & -\\sin\\theta & 0 \\\\ \\sin\\theta & \\cos\\theta & 0 \\\\ 0 & 0 & 1 \\end{bmatrix} $\n\"1\" anchors w to z. Minus sign sits on (1,2) — v's projection onto x.\n\nPoint transformation (mobile → fixed) for a single-axis rotation:\n$ A_{xyz} = R(\\theta) \\cdot A_{uvw} $\nA_uvw is 3×1, R is 3×3, A_xyz is 3×1. Holds when the two frame origins coincide (no translation in this lecture) and the rotation is around a single axis. Where it comes from: each fixed-frame coordinate is the dot product of A_uvw with the corresponding row of R, which is just the projection of A onto that fixed axis.\n\nNOTATION & CONVENTIONS\n- Fixed axes: x, y, z. Mobile axes: u, v, w. (Lecturer never swaps these.)\n- Rotation angle: theta, written t in MATLAB.\n- Angles in DEGREES throughout. MATLAB code uses cosd(t) and sind(t), not cos(t)/sin(t).\n- Rotation matrix layout: rows = mobile axes (u, v, w from top to bottom), columns = fixed axes (x, y, z from left to right). Entry R(i,j) is the projection of the i-th mobile axis onto the j-th fixed axis.\n- Sign convention: right-hand rule. Thumb along the positive rotation axis, fingers give positive theta.\n- Tic-tac-toe trick: a 1 on the diagonal forces zeros along its full row and column; the remaining 2×2 block holds the cos/sin pattern.\n- Camera view fixed with view(30, 30) (elevation 30, azimuth 30) so every animation frame is drawn from the same angle.\n- MATLAB for-loop syntax: for t = start:step:stop ... end. With no explicit step, the step is 1. The counter does NOT need to be incremented by hand.\n- File naming: rotaX.m, rotaY.m, rotaZ.m for the matrix-building functions; drawSystem.m for the renderer; exercise1.m / exercise2.m / exercise3.m for the three animation scripts.\n\nWORKED EXAMPLES\nExample 1 — Animate Rx from 0° to 60° in 0.1° steps.\nCode: close all; I = eye(3); for t = 0:0.1:60, clf; hold on; Rx = rotaX(t); drawSystem(I); drawSystem(Rx); drawnow; end\nEffect: the fixed frame stays put while the mobile frame sweeps about the x axis from coincident with the fixed frame up to 60° rotation. Without clf you get a layered footprint of every angle; without drawnow MATLAB only paints at the end of the loop.\n\nExample 2 — Animate Ry from 0° to 60° in 0.1° steps.\nCode identical to Example 1 but uses Ry = rotaY(t). Result: v stays glued to y, while u and w sweep around in the x–z plane.\n\nExample 3 — Animate Rz from 0° to 60° in 0.1° steps.\nCode identical, with Rz = rotaZ(t). Result: w stays glued to z, while u and v sweep around in the x–y plane.\n\nExample 4 — Transform a point under a rotation about x by −30°.\nSetup: A_uvw = [0.3; 0.4; 0.5]. When the frames overlap, A_xyz = A_uvw = [0.3; 0.4; 0.5].\nRotate the mobile frame by θ = −30° about x. Build the matrix in MATLAB: Rx = rotaX(-30). Then A_xyz = Rx * A_uvw.\nSymbolic answer (using cos(-30°) ≈ 0.8660, sin(-30°) = −0.5):\n  x_new = 0.3\n  y_new = cos(−30°)·0.4 − sin(−30°)·0.5 = 0.8660·0.4 + 0.5·0.5 ≈ 0.5964\n  z_new = sin(−30°)·0.4 + cos(−30°)·0.5 = −0.5·0.4 + 0.8660·0.5 ≈ 0.2330\nSo A_xyz ≈ [0.3000; 0.5964; 0.2330]. The u-component is untouched because the rotation is about x; the v and w components mix into the new y and z.\n\nMETHOD / PROCEDURE\nA. Building a rotation matrix about a single axis (tic-tac-toe method):\n1. Identify the rotation axis. Put a 1 in the diagonal slot of that axis (x→(1,1), y→(2,2), z→(3,3)).\n2. Fill the rest of that row and column with zeros.\n3. Project the two remaining mobile axes onto the two remaining fixed axes using right-triangle adjacent/opposite reasoning: adjacent leg → cos θ, opposite leg → sin θ.\n4. Determine signs from the right-hand rule. The projection that points against the positive fixed axis under positive θ gets a minus sign.\n5. Translate cos/sin to cosd/sind in MATLAB (angles are in degrees).\n\nB. Writing the drawSystem function:\n1. Take the 3×3 matrix R as input.\n2. Extract the three columns; each column is one mobile axis written in fixed-frame coordinates.\n3. Draw three line segments from (0,0,0) to each column endpoint with line([0 ax],[0 ay],[0 az]).\n4. Set a fixed camera with view(30,30) so every redraw looks the same.\n5. Suppress console echo with semicolons.\n\nC. Animating a single-axis rotation:\n1. close all; build I = eye(3).\n2. Open for t = 0:0.1:60.\n3. Inside the loop: clf to wipe the figure, hold on to keep both frames on screen, build the rotation matrix with rotaX/rotaY/rotaZ(t).\n4. Call drawSystem(I) for the fixed frame, then drawSystem(R) for the mobile one.\n5. drawnow to force the screen to flush this iteration.\n6. end the loop.\n\nD. Transforming a point from mobile to fixed:\n1. Write the point's coordinates in the mobile frame as a 3×1 column vector A_uvw.\n2. Build R for the current angle and axis.\n3. Compute A_xyz = R * A_uvw. The result is the same physical point expressed in fixed-frame coordinates.\n\nINTUITION\n- Why each entry is a cos or sin: the (i,j) entry asks \"if I project the i-th mobile axis onto the j-th fixed axis, how much of it lands there?\" That projection is the cosine of the angle between them; perpendicular projections give the sine of the rotation angle. So the matrix is literally a table of axis-to-axis projections.\n- Why a 1 forces zeros around it: if a mobile axis lies completely on a fixed axis, it has nothing left over to project onto the other two fixed axes; symmetrically, the other two mobile axes are perpendicular to it so they have zero projection onto it.\n- Why the rotation-axis row/column is the cleanest: rotating about an axis leaves that axis alone, so its mobile twin remains glued to it. The action happens in the plane perpendicular to that axis — which is exactly the 2×2 block of cos/sin.\n- Why the matrix-vector product transforms the point: each fixed coordinate (x, y, z) of the point is \"how much of A points along this fixed axis\". That's a dot product of A_uvw with the projection coefficients of the fixed axis onto the mobile axes — i.e. the rows of R. Stack three dot products and you get the matrix-vector product.\n- Why clf in the loop: without it, every old pose is still painted on the figure, producing a fan of axes instead of a moving frame. hold on only prevents new plots from erasing old ones; it does not clear.\n- Why drawnow: MATLAB normally batches drawing for performance and only flushes at the end of a script. Inside a loop, you have to ask explicitly per iteration or you see only the final pose.\n\nMISCONCEPTIONS & GOTCHAS\n- Using cos(t)/sin(t) instead of cosd(t)/sind(t). The lecture's t is in DEGREES; with the radian-mode versions you'll get tiny wrong rotations that look like the matrix barely changes.\n- Forgetting clf inside the loop. You'll see a \"footprint\" of every angle layered together — pretty, but not animation. hold off is NOT a substitute; it only releases the hold.\n- Forgetting drawnow. The loop runs silently and only the final frame is drawn.\n- Trying to increment t by hand (t = t + 0.1) inside a for-loop. MATLAB advances the counter automatically; manual increments either crash or skip values. Manual incrementing belongs to while loops.\n- Putting the minus sign on the wrong entry of Ry. The minus sign lives at (3,1), not (1,3). Tracing the right-hand rule carefully fixes this.\n- Confusing rows vs columns. Rows are mobile axes, columns are fixed axes. drawSystem reads each COLUMN as one mobile axis written in fixed-frame coordinates. Reversing this draws the transpose, which is the inverse rotation.\n- Calling a function with no value for its input. The lecturer's class hit this when running drawSystem without an argument. Always pass a 3×3 matrix; pass eye(3) if you want the fixed frame.\n- Thinking A_uvw changes when the frame rotates. It doesn't — the point is glued to the mobile body, so its (u, v, w) coordinates are fixed. What changes is A_xyz.\n- Eye(3) typos: it's e-y-e (the letter spelling of \"I\"), with a regular parenthesis and the integer 3 inside.\n- Expecting the figure to refresh fast: with step 0.1 from 0 to 60 you do 601 iterations; on a slow machine this is noticeably laggy.\n\nBOUNDARY & LIMIT CASES\n- θ = 0: every rotation matrix collapses to the identity; mobile and fixed frames coincide.\n- θ = 90°: Rx maps v→w and w→−v (the cos/sin block becomes [[0,−1],[1,0]]); similarly Ry and Rz become permutations of axes with signs.\n- θ = 360° (or any integer multiple): the matrix returns to the identity. A full loop in the animation would land back on the fixed frame.\n- Negative θ: rotation reverses direction (clockwise about the chosen axis when viewed along the positive axis from the positive side). The example with θ = −30° uses this.\n- These matrices are rotations only when expressed in degrees consistent with cosd/sind, or in radians with cos/sin. Mixing them silently breaks everything.\n- The single-axis formulas apply to ONE axis at a time. The lecture does not yet compose them (Rx · Ry · Rz). That comes later and is order-dependent.\n- The transformation A_xyz = R · A_uvw assumes both frames share the same origin. As soon as the mobile frame is also translated, this formula is incomplete — you need a homogeneous transformation, which is not covered here.\n\nCONNECTIONS\nBuilds directly on Lecture 01: two coordinate frames overlapping, the meaning of the identity matrix, the derivation of Rx by projec\n\n── PAGE TEXT (what the student is reading) ──\nLecture 02 · Rotating frames in MATLAB Lecture 02 · Module 1 · Robot Manipulator Kinematics Rotating frames in MATLAB — $R_x$, $R_y$, $R_z$ and animating the mobile system From a single rotation matrix to an animated mobile frame, then transforming a point between frames. Opening Last time we put two coordinate frames on top of each other and worked out what happens when one of them tilts around the $X$ axis. Today we finish the family — $R_y$ and $R_z$ — and then we make MATLAB show us the rotation by looping through angles, redrawing the frame, and clearing the figure between frames. Once we trust the picture, we use the same rotation matrix to take a point that lives in the mobile frame and ask: where is it in the fixed frame? That last step is the real prize. fixed vs mobile frame Rx · Ry · Rz right-hand rule cosine/sine projections eye(3) = identity for · hold on · clf · drawnow matrix-vector product point transform u v w → x y z Contents 0 What this lecture covers 1 Recap — two frames and $R_x$ 2 A reusable drawSystem function 3 Animating with for · hold · clf · drawnow 4 Deriving $R_y$ by projection 5 Deriving $R_z$ the same way 6 Transforming a point u v w → x y z ⤳ Homework § 0 What this lecture covers We pick up where Lecture 01 left off. You already have rotaX(t) and you can draw a static mobile frame on top of the fixed frame. From here we will: turn the per-axis plot code into a reusable drawSystem(R) function, wrap it in a for loop with hold on + clf + drawnow so the rotation actually animates , derive and code rotaY and rotaZ by the same tic-tac-toe / projection trick, and use a rotation matrix to map a point $A_{uvw}$ given in the mobile frame into its fixed-frame coordinates $A_{xyz}$. By the end you should be able to spin the mobile frame around any single axis on screen and report the fixed-frame coordinates of a point that's rigidly attached to it. If you can see the frame move and you can locate a point in it, you have the seed of forward kinematics. Catch up on the code Several of you haven't run last week's script yet. Don't keep skipping — the rest of the module compounds on this MATLAB scaffolding. § 1 Recap — why two frames, and what $R_x$ looks like Two frames live happily on top of each other until one of them moves. The fixed frame uses $x, y, z$; the mobile frame uses $u, v, w$. When the frames overlap perfectly, the rotation matrix is the identity — each mobile axis projects fully onto its matching fixed axis, so the diagonal is all ones: x · u y · v z · w $ I_3 \\;=\\; \\begin{bmatrix} 1 & 0 & 0 \\\\ 0 & 1 & 0 \\\\ 0 & 0 & 1 \\end{bmatrix} $ Rotate the mobile frame by $\\theta$ around the $X$ axis and $u$ still lies on $x$, but $v$ and $w$ pick up cosine/sine projections onto $y$ and $z$. That gave us last lecture's $R_x$: $ R_x(\\theta) \\;=\\; \\begin{bmatrix} 1 & 0 & 0 \\\\ 0 & \\cos\\theta & -\\sin\\theta \\\\ 0 & \\sin\\theta & \\cos\\theta \\end{bmatrix} $ A 1 in the matrix means \"this mobile axis is still glued to that fixed axis\" — and it forces zeros across its row and column. Reading the matrix Rows are the mobile axes ($u, v, w$, top to bottom); columns are the fixed axes ($x, y, z$, left to right). Each entry is the projection of one mobile axis onto one fixed axis. rotaX.m — rotation about X MATLAB function Rx = rotaX(t) Rx = [ 1, 0, 0; 0, cosd(t), -sind(t); 0, sind(t), cosd(t) ]; end cosd and sind take their argument in degrees . Stay in degrees throughout this module — mixing with cos / sin (which expect radians) silently breaks every result you'll plot. § 2 Turning the plot code into a reusable function Last time we plotted the rotated frame by hand: extract ux, uy, uz , then vx, vy, vz , then wx, wy, wz from the rotation matrix and draw three line segments from the origin. That's fine as a script — but to animate we'll need to call it many times. So we wrap it as a function that takes any 3×3 matrix and draws those three axes. We also silence MATLAB's echoes with semicolons and pin the camera with view(30, 30) so every frame is drawn from the same angle. A function is just a script with a name and a contract — give me a 3×3, I'll draw you a frame. Identity = fixed frame eye(3) builds the 3×3 identity (the letter spelling of \"I\", with a regular parenthesis and the integer 3 inside). Passing it to drawSystem draws the fixed frame — handy as a reference whenever you draw the mobile one. drawSystem.m — draws any frame from its rotation matrix MATLAB function drawSystem(R) ux = R(1,1); uy = R(2,1); uz = R(3,1); vx = R(1,2); vy = R(2,2); vz = R(3,2); wx = R(1,3); wy = R(2,3); wz = R(3,3); line([0 ux],[0 uy],[0 uz]); line([0 vx],[0 vy],[0 vz]); line([0 wx],[0 wy],[0 wz]); view(30,30); end Notice what each column of $R$ is doing: it's one mobile axis written in fixed-frame coordinates. The function reads the three columns and draws one line segment per axis from the origin. If you ever pass the transpose by mistake, you'll draw the inverse rotation — same axes, swapped roles. Draw the fixed frame plus a rotated one MATLAB I = eye(3); drawSystem(I); % fixed frame hold on drawSystem(rotaX(30)); % mobile frame at 30° § 3 Animating with for, hold on, drawnow and clf To see the rotation rather than the end state, sweep $\\theta$ through a for loop and redraw at every step. Three MATLAB ingredients matter: hold on — keep the fixed frame on screen while we redraw the mobile one. drawnow — force MATLAB to flush the figure each iteration, not just at the end of the script. clf — clear the figure between iterations so we don't leave a footprint of every intermediate pose. The loop syntax for t = 0:0.1:60 advances $t$ from 0 to 60 in steps of 0.1. Without the explicit step, MATLAB walks by 1. Without clf you get a flip-book of every angle layered on top of each other — pretty, but not an animation. Why clf and not just hold off hold off would only release the hold; clf actually wipes the figure so the next iteration starts from a blank canvas. Without it you get a fan of axes from every angle the loop visited. MATLAB for syntax Unlike many languages, you do not increment the counter manually. for t = start:step:stop does it for you; close the block with end . Trying to write t = t + 0.1 inside the loop body either crashes or skips values — manual incrementing belongs to while . exercise1.m — animate rotation around X from 0° to 60° MATLAB close all I = eye(3); for t = 0:0.1:60 clf hold on Rx = rotaX(t); drawSystem(I); drawSystem(Rx); drawnow end With step 0.1 from $0$ to $60$ that's 601 redraws — on a slow machine you'll feel it. Drop drawnow and the loop completes in silence, painting only the final pose. Drop clf and you see the layered footprint instead of motion. Each ingredient is doing distinct work. § 4 Deriving $R_y$ by projection Rotate the mobile frame by $\\theta$ around the $Y$ axis. Now $v$ stays on $y$, so the matrix has a 1 in the middle position and zeros across that row and column. Read each remaining entry off the diagram by projecting the rotated $u$ and $w$ onto $x$ and $z$: projection leg entry u on x adjacent $+\\cos\\theta$ u on z opposite $+\\sin\\theta$ w on x opposite (negative side) $-\\sin\\theta$ w on z adjacent $+\\cos\\theta$ Assembling the table back into the 3×3: $ R_y(\\theta) \\;=\\; \\begin{bmatrix} \\cos\\theta & 0 & \\sin\\theta \\\\ 0 & 1 & 0 \\\\ -\\sin\\theta & 0 & \\cos\\theta \\end{bmatrix} $ The 1 anchors the row and column it sits in to zeros — then it's just adjacent/opposite around the 2×2 block that's left. Sign of sin For $R_y$ the minus sign lives at the $(3,1)$ entry — the projection that points against the positive fixed axis under a right-hand-rule rotation. It is not at $(1,3)$. If you ever feel unsure, draw the rotated $w$ vector and ask: which fixed axis is it pointing away from? rotaY.m MATLAB function Ry = rotaY(t) Ry = [ cosd(t), 0, sind(t); 0, 1, 0; -sind(t), 0, cosd(t) ]; end exercise2.m — animate around Y MATLAB close all I = eye(3); for t = 0:0.1:60 clf hold on Ry = rotaY(t); drawSystem(I); drawSystem(Ry); drawnow end Run it: $v$ stays glued to $y$ while $u$ and $w$ swing around in the $x$–$z$ plane. Same code structure as exercise 1 — only the matrix-building function changed. § 5 Deriving $R_z$ the same way Rotation about $Z$: now $w$ stays on $z$, so the 1 sits in the bottom-right corner and zeros fill that row and column. The remaining 2×2 block lives in the top-left and holds the cosine/sine pattern, with the minus sign on $v
+</html>s projection onto $x$ — the $(1,2)$ entry. $ R_z(\\theta) \\;=\\; \\begin{bmatrix} \\cos\\theta & -\\sin\\theta & 0 \\\\ \\sin\\theta & \\cos\\theta & 0 \\\\ 0 & 0 & 1 \\end{bmatrix} $ Same trick, different corner — the 1 always sits on the axis you're rotating around. Three matrices, one rule. The diagonal \"1\" picks the axis you're not changing; the 2×2 cos/sin block lives in the plane perpendicular to that axis; the right-hand rule decides where the minus lands. rotaZ.m MATLAB function Rz = rotaZ(t) Rz = [ cosd(t), -sind(t), 0; sind(t), cosd(t), 0; 0, 0, 1 ]; end exerc","contextLabel":"Rotating frames in MATLAB — Rx, Ry, Rz and animating the mobile system","openingLine":"I'm reading Rotating frames in MATLAB — Rx, Ry, Rz and animating the mobile system. Can you walk me through…","temperature":0.15,"model":"mistral-small-latest"}); } else { setTimeout(go, 60); } }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", go); else go();
+})();</script>
+</body>
+</html>
