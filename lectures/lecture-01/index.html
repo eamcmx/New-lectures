@@ -1,0 +1,1913 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<!-- wizard-curator runtime (injected) -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+<script src="https://cdn.jsdelivr.net/npm/mathjs@12/lib/browser/math.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}],throwOnError:false});"></script>
+<script>[800,2200].forEach(function(t){setTimeout(function(){window.renderMathInElement&&renderMathInElement(document.body,{delimiters:[{left:"$$",right:"$$",display:true},{left:"$",right:"$",display:false}],throwOnError:false});},t);});</script>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lecture 01 · Frames, DoF & R_x(θ)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --page-bg:      #f4f1ea;
+  --surface:      #ffffff;
+  --ink:          #1a1d24;
+  --ink-soft:     #5a6172;
+  --border:       #d9d3c4;
+  --accent:       #c8442a;
+  --accent-2:     #2b4a6f;
+  --good:         #2f7a4f;
+  --bad:          #b53626;
+  --font-display: 'Space Grotesk', sans-serif;
+  --font-body:    'Inter', sans-serif;
+  --font-mono:    'JetBrains Mono', monospace;
+}
+
+* { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  margin: 0;
+  background: var(--page-bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+  background-image:
+    linear-gradient(var(--border) 1px, transparent 1px),
+    linear-gradient(90deg, var(--border) 1px, transparent 1px);
+  background-size: 32px 32px;
+  background-position: -1px -1px;
+  background-attachment: fixed;
+  background-color: var(--page-bg);
+  background-blend-mode: soft-light;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: var(--page-bg);
+  opacity: 0.85;
+  z-index: -1;
+}
+
+.wrap {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 0 32px;
+}
+
+/* ---------- HEADER ---------- */
+.masthead {
+  border-bottom: 1px solid var(--border);
+  padding: 48px 0 40px;
+  margin-bottom: 56px;
+  position: relative;
+}
+
+.masthead::after {
+  content: "";
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  width: 120px;
+  height: 3px;
+  background: var(--accent);
+}
+
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 18px;
+  font-weight: 500;
+}
+
+.eyebrow .dot { color: var(--ink-soft); margin: 0 8px; }
+
+h1.title {
+  font-family: var(--font-display);
+  font-size: clamp(2.2rem, 5vw, 3.4rem);
+  line-height: 1.08;
+  letter-spacing: -0.02em;
+  margin: 0 0 18px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.subtitle {
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  line-height: 1.45;
+  color: var(--ink-soft);
+  max-width: 760px;
+  font-weight: 400;
+  margin: 0;
+}
+
+.opening-voice {
+  margin-top: 36px;
+  padding: 24px 28px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent-2);
+  border-radius: 2px;
+  font-size: 1.02rem;
+  line-height: 1.7;
+  color: var(--ink);
+  position: relative;
+  max-width: 880px;
+}
+
+.opening-voice::before {
+  content: "Lecturer";
+  position: absolute;
+  top: -10px;
+  left: 24px;
+  background: var(--surface);
+  padding: 0 10px;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--accent-2);
+  font-weight: 600;
+}
+
+/* ---------- LAYOUT ---------- */
+.layout {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: 56px;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .layout { grid-template-columns: 1fr; gap: 24px; }
+  .toc { position: static !important; }
+  .wrap { padding: 0 20px; }
+}
+
+/* ---------- TOC ---------- */
+.toc {
+  position: sticky;
+  top: 32px;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  line-height: 1.5;
+  padding-right: 16px;
+  border-right: 1px solid var(--border);
+}
+
+.toc-label {
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 0.7rem;
+  color: var(--accent);
+  margin-bottom: 14px;
+  font-weight: 600;
+}
+
+.toc ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  counter-reset: toc;
+}
+
+.toc li {
+  margin-bottom: 8px;
+  counter-increment: toc;
+}
+
+.toc a {
+  color: var(--ink-soft);
+  text-decoration: none;
+  display: flex;
+  gap: 10px;
+  padding: 4px 0;
+  transition: color 0.15s;
+  border-bottom: 1px dashed transparent;
+}
+
+.toc a:hover {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+.toc a .num {
+  color: var(--accent-2);
+  font-weight: 600;
+  flex-shrink: 0;
+  width: 18px;
+}
+
+/* ---------- SECTIONS ---------- */
+.section {
+  margin-bottom: 64px;
+  scroll-margin-top: 24px;
+}
+
+.section-header {
+  display: flex;
+  align-items: baseline;
+  gap: 18px;
+  margin-bottom: 18px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.section-num {
+  font-family: var(--font-mono);
+  font-size: 0.95rem;
+  color: var(--accent);
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  padding: 4px 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+h2 {
+  font-family: var(--font-display);
+  font-size: clamp(1.4rem, 2.6vw, 1.85rem);
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  margin: 0;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.section-body p {
+  margin: 0 0 16px;
+  color: var(--ink);
+}
+
+.section-body p:last-child { margin-bottom: 0; }
+
+.section-body strong {
+  color: var(--ink);
+  font-weight: 600;
+  background: linear-gradient(transparent 60%, rgba(200, 68, 42, 0.15) 60%);
+  padding: 0 2px;
+}
+
+.section-body ul, .section-body ol {
+  margin: 0 0 18px;
+  padding-left: 24px;
+}
+
+.section-body li {
+  margin-bottom: 8px;
+}
+
+.section-body code {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  background: rgba(43, 74, 111, 0.08);
+  padding: 1px 6px;
+  border-radius: 3px;
+  color: var(--accent-2);
+}
+
+/* ---------- VOICE LINE ---------- */
+.voice {
+  margin: 22px 0;
+  padding: 14px 20px;
+  background: rgba(43, 74, 111, 0.05);
+  border-left: 3px solid var(--accent-2);
+  font-style: italic;
+  color: var(--ink);
+  font-size: 0.98rem;
+  position: relative;
+}
+
+.voice::before {
+  content: "“";
+  position: absolute;
+  top: -4px;
+  left: 8px;
+  font-family: var(--font-display);
+  font-size: 2rem;
+  color: var(--accent-2);
+  opacity: 0.35;
+  line-height: 1;
+}
+
+/* ---------- CALLOUTS ---------- */
+.callout {
+  margin: 22px 0;
+  padding: 18px 22px;
+  border-radius: 3px;
+  background: var(--surface);
+  border-left: 4px solid var(--accent);
+  border-top: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.callout-title {
+  font-family: var(--font-display);
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.callout-title::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.callout-body { font-size: 0.97rem; line-height: 1.6; }
+
+.callout.tone-blue { border-left-color: var(--accent-2); }
+.callout.tone-blue .callout-title { color: var(--accent-2); }
+.callout.tone-blue .callout-title::before { background: var(--accent-2); }
+
+.callout.tone-amber { border-left-color: #c98a1a; }
+.callout.tone-amber .callout-title { color: #8a5e0e; }
+.callout.tone-amber .callout-title::before { background: #c98a1a; }
+
+.callout.tone-red { border-left-color: var(--bad); }
+.callout.tone-red .callout-title { color: var(--bad); }
+.callout.tone-red .callout-title::before { background: var(--bad); }
+
+.callout.tone-teal { border-left-color: #2a8a82; }
+.callout.tone-teal .callout-title { color: #1f6b65; }
+.callout.tone-teal .callout-title::before { background: #2a8a82; }
+
+.callout.tone-purple { border-left-color: #6f4aa8; }
+.callout.tone-purple .callout-title { color: #573988; }
+.callout.tone-purple .callout-title::before { background: #6f4aa8; }
+
+/* ---------- CODE BLOCKS ---------- */
+.code-block {
+  margin: 22px 0;
+  background: #1a1d24;
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid #2a2e38;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+}
+
+.code-label {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: #b0b8c8;
+  padding: 10px 18px;
+  background: #2a2e38;
+  border-bottom: 1px solid #3a3f4a;
+  display: flex;
+  justify-content: space-between;
+}
+
+.code-label .lang {
+  color: #c8442a;
+  font-weight: 600;
+}
+
+.code-block pre {
+  margin: 0;
+  padding: 18px 22px;
+  color: #e8e6df;
+  font-family: var(--font-mono);
+  font-size: 0.88rem;
+  line-height: 1.55;
+  overflow-x: auto;
+}
+
+/* ---------- WIDGET LEAD-IN ---------- */
+.widget-leadin {
+  margin: 28px 0 14px;
+  padding: 14px 18px;
+  background: linear-gradient(90deg, rgba(200, 68, 42, 0.08), transparent);
+  border-left: 3px solid var(--accent);
+  font-size: 0.97rem;
+}
+
+.widget-leadin .tag {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--accent);
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.widget-mount {
+  margin: 14px 0 28px;
+  min-height: 60px;
+}
+
+/* ---------- HOMEWORK ---------- */
+.homework {
+  margin-top: 72px;
+  padding: 40px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  position: relative;
+  box-shadow: 0 4px 12px rgba(26, 29, 36, 0.04);
+}
+
+.homework::before {
+  content: "Homework";
+  position: absolute;
+  top: -12px;
+  left: 32px;
+  background: var(--accent);
+  color: white;
+  padding: 4px 14px;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  font-weight: 600;
+  border-radius: 2px;
+}
+
+.homework h3 {
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  margin: 0 0 12px;
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.homework .due {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  color: var(--accent);
+  margin-bottom: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.homework p { margin: 0; color: var(--ink); }
+
+/* ---------- CONCEPTS ---------- */
+.concepts {
+  margin-top: 56px;
+  padding-top: 32px;
+  border-top: 1px solid var(--border);
+}
+
+.concepts-label {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--ink-soft);
+  margin-bottom: 16px;
+  font-weight: 600;
+}
+
+.concept-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chip {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  padding: 5px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  color: var(--ink-soft);
+}
+
+/* ---------- FOOTER ---------- */
+footer {
+  margin-top: 80px;
+  padding: 32px 0 48px;
+  border-top: 1px solid var(--border);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+  text-align: center;
+}
+
+/* ---------- MATH ---------- */
+.katex { font-size: 1.02em; }
+.katex-display { margin: 1.2em 0 !important; }
+
+/* small-screen toc hide */
+@media (max-width: 900px) {
+  .toc-label { font-size: 0.65rem; }
+}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <div class="eyebrow">Lecture 01 <span class="dot">·</span> Kinematics and Dynamics of Robot Manipulators</div>
+    <h1 class="title">Frames, degrees of freedom &amp; the rotation matrix around X</h1>
+    <p class="subtitle">From course logistics to drawing your first rotated coordinate frame in MATLAB.</p>
+    <div class="opening-voice">
+      Welcome to robotics. Today we set the rules of the game — how you'll be graded, how you'll document every task — and then we dive straight in. We'll talk about what it means for a body to move in space, how a reference frame lets us pin that motion down, and how a 3×3 matrix of unit-vector projections captures an orientation. By the end of class you'll have MATLAB drawing a fixed frame and computing a rotation around X, ready to draw the mobile frame on your own.
+    </div>
+  </header>
+
+  <div class="layout">
+
+    <nav class="toc">
+      <div class="toc-label">Contents</div>
+      <ol>
+        <li><a href="#overview"><span class="num">0</span> Overview</a></li>
+        <li><a href="#goals-and-outcomes"><span class="num">1</span> Goals &amp; outcomes</a></li>
+        <li><a href="#assessment"><span class="num">2</span> Assessment</a></li>
+        <li><a href="#documentation"><span class="num">3</span> Documentation</a></li>
+        <li><a href="#degrees-of-freedom"><span class="num">4</span> DoF &amp; frames</a></li>
+        <li><a href="#identity-matrix"><span class="num">5</span> Identity matrix</a></li>
+        <li><a href="#rotation-x"><span class="num">6</span> Rotation around X</a></li>
+        <li><a href="#matlab-drawing-frame"><span class="num">7</span> Drawing the frame</a></li>
+        <li><a href="#matlab-rotax"><span class="num">8</span> RotaX function</a></li>
+        <li><a href="#extracting-components"><span class="num">9</span> Extracting components</a></li>
+      </ol>
+    </nav>
+
+    <main>
+
+      <!-- ============= 0 OVERVIEW ============= -->
+      <section class="section" id="overview">
+        <div class="section-header">
+          <div class="section-num">§ 0</div>
+          <h2>What this lecture covers</h2>
+        </div>
+        <div class="section-body">
+          <p>This is the first session of <em>Kinematics and Dynamics of Robot Manipulators</em> (Spring 2022). We cover the course goals, assessment structure, and how you're expected to document every practical task. Then we move into the technical core: <strong>degrees of freedom</strong>, <strong>fixed vs. mobile reference frames</strong>, the <strong>identity matrix</strong> as a representation of overlapping frames, and the <strong>basic rotation matrix around X</strong>. We close with MATLAB — drawing lines, scripts, and our first function <code>RotaX(theta)</code>.</p>
+
+          <div class="voice">Don't miss classes — the code we write today gets reused over and over, and catching up later is brutal.</div>
+
+          <div class="callout tone-blue">
+            <div class="callout-title">Tools we'll use</div>
+            <div class="callout-body">MATLAB for the math and plotting, RoboDK for simulation (installed last semester).</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============= 1 GOALS ============= -->
+      <section class="section" id="goals-and-outcomes">
+        <div class="section-header">
+          <div class="section-num">§ 1</div>
+          <h2>Course goals &amp; learning outcomes</h2>
+        </div>
+        <div class="section-body">
+          <p>The goal: develop <strong>programming skills</strong> and <strong>mathematical models</strong> by introducing the core concepts of kinematics and dynamics of robot manipulators.</p>
+
+          <p><strong>Knowledge</strong> — classification and features of robot manipulators; theories of kinematics and dynamics; mathematical methods for solving kinematics and dynamics problems.</p>
+
+          <p><strong>Skills</strong> — represent the kinematics and dynamics of robot manipulators; carry out kinematic and dynamic calculations; model the behavior of robot manipulators using special software (MATLAB and RoboDK).</p>
+
+          <p><strong>Competences</strong> — understand the features of kinematics and dynamics, and carry out calculation tasks using computer software.</p>
+
+          <div class="callout tone-amber">
+            <div class="callout-title">Heads up on scope</div>
+            <div class="callout-body">Compared to the Mexico version of this course (4 sessions × 1.5h per day), we only have 2 sessions × 1.5h here. We'll adapt how far we can push.</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============= 2 ASSESSMENT ============= -->
+      <section class="section" id="assessment">
+        <div class="section-header">
+          <div class="section-num">§ 2</div>
+          <h2>How you'll be graded</h2>
+        </div>
+        <div class="section-body">
+          <p>The grade breakdown is continuous, not a single exam:</p>
+          <ul>
+            <li><strong>Attendance &amp; active participation — 10%</strong></li>
+            <li><strong>Midterm evaluation — 25%</strong> (collection of simple programs from the first half)</li>
+            <li><strong>Final evaluation — 65%</strong> (a larger, more complex project)</li>
+          </ul>
+
+          <p>All evaluations consist of <strong>completing, documenting, and defending</strong> practical tasks. The midterm is lighter because the early tasks are simpler; the final weighs more because the work gets significantly more involved (GUIs, MATLAB↔RoboDK links, Arduino teach pendants, etc.).</p>
+
+          <div class="voice">I'm assessing <em>your</em> skills — not your classmates' and not someone else's. If I have any doubt about a step in your program, you must be able to explain it on the spot.</div>
+
+          <div class="callout tone-red">
+            <div class="callout-title">Plagiarism check</div>
+            <div class="callout-body">If you can't explain a step in your own code, I'll assume it wasn't written by you.</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============= 3 DOCUMENTATION ============= -->
+      <section class="section" id="documentation">
+        <div class="section-header">
+          <div class="section-num">§ 3</div>
+          <h2>How to document every task</h2>
+        </div>
+        <div class="section-body">
+          <p>Every practical task is documented as a <strong>short recorded video</strong> (uploaded to BigBlueButton or an unlisted YouTube link — I just need the URL). The video must:</p>
+          <ol>
+            <li>Walk through the <strong>hand-written derivation</strong> of the math (your notebook, on camera).</li>
+            <li>Walk through the <strong>code</strong>, explaining what each part does and <strong>why</strong>.</li>
+            <li>Show the <strong>result</strong> — typically an animation or plot produced by the code.</li>
+          </ol>
+          <p>This is your portfolio of evidence. It's what justifies your final grade.</p>
+        </div>
+      </section>
+
+      <!-- ============= 4 DoF ============= -->
+      <section class="section" id="degrees-of-freedom">
+        <div class="section-header">
+          <div class="section-num">§ 4</div>
+          <h2>Degrees of freedom &amp; reference frames</h2>
+        </div>
+        <div class="section-body">
+          <p>To describe whether an object is moving or static, we need a <strong>reference</strong> — a stationary frame to compare against. We assign a reference frame with three axes $x$, $y$, $z$.</p>
+
+          <p>A free body in 3D space has <strong>6 degrees of freedom</strong>: three translational (along $x$, $y$, $z$) and three rotational (about $x$, $y$, $z$). If the body also carries its own <em>mobile</em> frame and can rotate/translate within that frame, the system can carry <strong>up to 12 degrees of freedom</strong>.</p>
+
+          <p>For a robot manipulator, we always have two frames in play:</p>
+          <ul>
+            <li><strong>Frame 0</strong> — the <em>fixed</em> frame, attached to the base of the robot.</li>
+            <li><strong>Mobile frame</strong> — attached to the tool / end-effector.</li>
+          </ul>
+
+          <p>The restrictions imposed by the links determine how the mobile frame can move relative to the fixed frame. The question for the rest of the course: <strong>how do we represent that relationship mathematically?</strong></p>
+
+          <div class="callout tone-teal">
+            <div class="callout-title">The answer</div>
+            <div class="callout-body">Vectors and matrices. Specifically — we project the mobile frame's unit vectors onto the fixed frame's axes.</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============= 5 IDENTITY ============= -->
+      <section class="section" id="identity-matrix">
+        <div class="section-header">
+          <div class="section-num">§ 5</div>
+          <h2>Overlapping frames → the identity matrix</h2>
+        </div>
+        <div class="section-body">
+          <p>Take a mobile frame with unit vectors $\vec{u}$, $\vec{v}$, $\vec{w}$ overlapping the fixed frame $x$, $y$, $z$. Since the vectors are unitary, each component of $\vec{u}$ on a fixed axis is just <strong>how much of $\vec{u}$ projects onto that axis</strong>.</p>
+
+          <p>When the frames perfectly overlap:</p>
+          <ul>
+            <li>$\vec{u} = (1, 0, 0)$ — completely aligned with $x$</li>
+            <li>$\vec{v} = (0, 1, 0)$ — completely aligned with $y$</li>
+            <li>$\vec{w} = (0, 0, 1)$ — completely aligned with $z$</li>
+          </ul>
+
+          <p>Stacking these as columns gives a 3×3 matrix with ones on the diagonal — the <strong>identity matrix</strong> $I_3$:</p>
+
+          <p>$$I_3 = \begin{bmatrix} 1 & 0 & 0 \\ 0 & 1 & 0 \\ 0 & 0 & 1 \end{bmatrix}$$</p>
+
+          <p>This is the rotation matrix that says "the mobile frame has the same orientation as the fixed frame."</p>
+
+          <div class="voice">If you see $(0, -1, 0)$ for $\vec{u}$, that means $\vec{u}$ points in the <em>opposite</em> direction of $y$. The sign tells you direction; the magnitude tells you projection.</div>
+
+          <div class="code-block">
+            <div class="code-label"><span>identity matrix — frames overlapping</span><span class="lang">layout</span></div>
+            <pre>        x   y   z
+   u  [ 1   0   0 ]
+   v  [ 0   1   0 ]
+   w  [ 0   0   1 ]</pre>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============= 6 ROTATION X ============= -->
+      <section class="section" id="rotation-x">
+        <div class="section-header">
+          <div class="section-num">§ 6</div>
+          <h2>Rotation around the X axis</h2>
+        </div>
+        <div class="section-body">
+          <p>Now rotate the mobile frame by angle $\theta$ about the $x$ axis. Project each mobile unit vector onto the fixed axes:</p>
+          <ul>
+            <li>$\vec{u}$ is still aligned with $x$ → $(1, 0, 0)$</li>
+            <li>$\vec{v}$ no longer lies on $y$; it picks up a component on $z$. The projection onto $y$ uses the <strong>adjacent</strong> side → $\cos\theta$; onto $z$ uses the <strong>opposite</strong> side → $\sin\theta$. So $\vec{v} = (0, \cos\theta, \sin\theta)$.</li>
+            <li>$\vec{w}$ tilts away from $z$ toward the negative-$y$ direction → $(0, -\sin\theta, \cos\theta)$.</li>
+          </ul>
+
+          <p>Putting them together:</p>
+
+          <p>$$R_x(\theta) = \begin{bmatrix} 1 & 0 & 0 \\ 0 & \cos\theta & -\sin\theta \\ 0 & \sin\theta & \cos\theta \end{bmatrix}$$</p>
+
+          <p>This is the <strong>basic rotation matrix around X</strong> — the first building block of every transformation we'll build.</p>
+
+          <div class="callout tone-purple">
+            <div class="callout-title">Sign discipline</div>
+            <div class="callout-body">The minus sign on $\sin\theta$ comes from $\vec{w}$ projecting onto the <em>negative</em> side of $y$ after the rotation. Get the sign wrong and your whole chain of transforms is wrong.</div>
+          </div>
+
+          <div class="code-block">
+            <div class="code-label"><span>R_x(theta) layout</span><span class="lang">layout</span></div>
+            <pre>R_x = [  1        0          0     ;
+         0   cos(theta)  -sin(theta) ;
+         0   sin(theta)   cos(theta) ]</pre>
+          </div>
+
+          <!-- WIDGET: rotax-animator -->
+          <div class="widget-leadin">
+            <div class="tag">Try it · interactive</div>
+            Drag the angle $\theta$ below and watch the mobile frame tilt about the fixed X axis. As it rotates, the three columns of $R_x(\theta)$ fill in live — so you can see exactly where each $\cos\theta$, $\sin\theta$, and that crucial minus sign come from.
+          </div>
+          <div class="widget-mount">
+            <div id="rotax-animator"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============= 7 MATLAB FIXED FRAME ============= -->
+      <section class="section" id="matlab-drawing-frame">
+        <div class="section-header">
+          <div class="section-num">§ 7</div>
+          <h2>MATLAB: drawing the fixed reference frame</h2>
+        </div>
+        <div class="section-body">
+          <p>MATLAB's <code>line</code> command takes three bracketed pairs — $[x_1, x_2]$, $[y_1, y_2]$, $[z_1, z_2]$ — and draws a 3D segment between them. To draw the three unit axes from the origin:</p>
+          <ul>
+            <li>$x$ axis (red): from $(0,0,0)$ to $(1,0,0)$</li>
+            <li>$y$ axis (green): from $(0,0,0)$ to $(0,1,0)$</li>
+            <li>$z$ axis (blue): from $(0,0,0)$ to $(0,0,1)$</li>
+          </ul>
+
+          <p>We add <code>'color'</code> and <code>'LineWidth'</code> attributes to make the axes legible, and set a default 3D viewpoint with <code>view(130, 30)</code>. Because we'll need this every session, we save it as a script called <code>fixframe.m</code> and just call <code>fixframe</code> going forward.</p>
+
+          <div class="code-block">
+            <div class="code-label"><span>fixframe.m — draws the fixed reference frame</span><span class="lang">matlab</span></div>
+            <pre>line([0 1],[0 0],[0 0],'color','r','LineWidth',2);
+line([0 0],[0 1],[0 0],'color','g','LineWidth',2);
+line([0 0],[0 0],[0 1],'color','b','LineWidth',2);
+view(130,30);</pre>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============= 8 ROTAX FUNCTION ============= -->
+      <section class="section" id="matlab-rotax">
+        <div class="section-header">
+          <div class="section-num">§ 8</div>
+          <h2>MATLAB: writing the RotaX function</h2>
+        </div>
+        <div class="section-body">
+          <p>A script runs the same code every time. A <strong>function</strong> takes inputs and returns outputs — exactly what we need for $R_x(\theta)$.</p>
+
+          <p>The pattern: <code>function [output] = name(input)</code> ... <code>end</code>. We use <code>cosd</code> and <code>sind</code> so the angle is in degrees, and we suppress the echo with a trailing semicolon. The continuation <code>...</code> is purely cosmetic — it lets the code look like the matrix we wrote on paper.</p>
+
+          <p>With this saved as <code>RotaX.m</code>, calling <code>Rx = RotaX(30)</code> gives the rotation matrix for 30°. Change the angle, call it again — no copy-paste, no rewriting.</p>
+
+          <div class="voice">Common gotcha: the output variable named in the <code>function</code> line <em>must</em> also be assigned inside the body. If you write <code>function [Rx] = RotaX(T)</code> then your matrix must be assigned to <code>Rx</code>, not to something else.</div>
+
+          <div class="callout tone-amber">
+            <div class="callout-title">Name collision</div>
+            <div class="callout-body">If MATLAB complains that <code>RotaX</code> is both a function and a variable, run <code>clear</code> — you've left a stale variable in the workspace with the same name as your function.</div>
+          </div>
+
+          <div class="code-block">
+            <div class="code-label"><span>RotaX.m — rotation about X by theta degrees</span><span class="lang">matlab</span></div>
+            <pre>function [Rx] = RotaX(T)
+    Rx = [ 1      0           0       ; ...
+           0   cosd(T)   -sind(T) ; ...
+           0   sind(T)    cosd(T) ];
+end</pre>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============= 9 EXTRACTING ============= -->
+      <section class="section" id="extracting-components">
+        <div class="section-header">
+          <div class="section-num">§ 9</div>
+          <h2>Extracting the mobile-frame vectors from Rx</h2>
+        </div>
+        <div class="section-body">
+          <p>To draw the rotated frame we need each mobile unit vector as separate $x$, $y$, $z$ components. Each entry of $R_x$ already holds one projection — we just pull them out by matrix index.</p>
+
+          <p>Reading $R_x$ column by column: column 1 is $\vec{u}$, column 2 is $\vec{v}$, column 3 is $\vec{w}$. So <code>Rx(1,1)</code> is $u_x$, <code>Rx(2,1)</code> is $u_y$, <code>Rx(3,1)</code> is $u_z$, and so on across the other two columns.</p>
+
+          <p>Once you have $u_x, u_y, u_z, v_x, v_y, v_z, w_x, w_y, w_z$, the three <code>line</code> calls for the <strong>mobile</strong> frame look exactly like the ones for the fixed frame — but the endpoints are these extracted values instead of literal 1s and 0s.</p>
+
+          <div class="callout tone-blue">
+            <div class="callout-title">Index convention</div>
+            <div class="callout-body">MATLAB is <code>(row, column)</code>. The $u$ vector is the <em>first column</em>, so its components are at rows 1, 2, 3 of column 1 — not row 1, columns 1–3.</div>
+          </div>
+
+          <div class="code-block">
+            <div class="code-label"><span>pulling components out of Rx</span><span class="lang">matlab</span></div>
+            <pre>ux = Rx(1,1);  uy = Rx(2,1);  uz = Rx(3,1);
+vx = Rx(1,2);  vy = Rx(2,2);  vz = Rx(3,2);
+wx = Rx(1,3);  wy = Rx(2,3);  wz = Rx(3,3);</pre>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============= HOMEWORK ============= -->
+      <section class="homework" id="homework">
+        <h3>1 · Plot the rotated coordinate frame</h3>
+        <div class="due">Due — next lecture</div>
+        <p>Using the <code>RotaX(theta)</code> function and the component-extraction pattern from class, write MATLAB code that draws the <strong>mobile</strong> coordinate frame (rotated by <code>theta</code> about the X axis) on top of the fixed frame produced by <code>fixframe</code>. Submit the code plus the recorded explanation video showing the hand derivation, the code walkthrough, and the resulting plot.</p>
+      </section>
+
+      <!-- ============= CONCEPTS ============= -->
+      <section class="concepts">
+        <div class="concepts-label">Key concepts from this lecture</div>
+        <div class="concept-chips">
+          <span class="chip">degree of freedom</span>
+          <span class="chip">fixed reference frame</span>
+          <span class="chip">mobile reference frame</span>
+          <span class="chip">unit vector projection</span>
+          <span class="chip">identity matrix</span>
+          <span class="chip">rotation matrix around X</span>
+          <span class="chip">cos &amp; sin of θ</span>
+          <span class="chip">MATLAB line command</span>
+          <span class="chip">script vs. function</span>
+          <span class="chip">matrix indexing</span>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <footer>
+    Kinematics and Dynamics of Robot Manipulators · Spring 2022 · Lecture 01
+  </footer>
+
+</div>
+
+<script>/* TSI Buddy — vanilla-JS chat widget for the TSI Dynamics course.
+ *
+ * Mount once per page:
+ *
+ *   TSIBuddy.mount({
+ *     systemPrompt: "You are TSI Buddy ...",   // required, the AUDITOR prompt
+ *     contextLabel: "docs/01_F_equals_ma.md",  // shown in the modal subtitle
+ *     openingLine:  "I'm reading the F=ma chapter ..."   // optional pre-fill
+ *   });
+ *
+ * The widget mounts a floating button (top-right of the viewport), a settings
+ * modal where the student pastes their Mistral API key, and a chat panel that
+ * streams responses progressively. API key persists in localStorage.
+ *
+ * Streams via Mistral's SSE endpoint (stream: true). Falls back to a single
+ * non-streaming response if the runtime doesn't expose ReadableStream.
+ *
+ * Designed to coexist with the React+htm widget already inside each hook
+ * page. They use the same localStorage keys so a student who pastes their
+ * key once gets it everywhere.
+ */
+(function () {
+  'use strict';
+
+  if (window.TSIBuddy && window.TSIBuddy.__loaded) return;
+
+  var KEY_LS    = 'tsi_mistral_key';
+  var MODEL_LS  = 'tsi_mistral_model';
+  var ENABLE_LS = 'tsi_buddy_enabled';
+
+  function lsGet(k, fb) { try { var v = localStorage.getItem(k); return v == null ? fb : v; } catch (e) { return fb; } }
+  function lsSet(k, v)  { try { localStorage.setItem(k, v); } catch (e) {} }
+
+  /* ---------- Styles (injected once) ---------- */
+  var STYLE = `
+.tsi-buddy-btn {
+  position: fixed; top: 14px; right: 14px; z-index: 9000;
+  background: rgba(255,255,255,0.95); color: #1a3a5c;
+  border: 1px solid #cbd5e1; border-radius: 999px;
+  padding: 8px 14px; font: 600 13px/1 'Inter', system-ui, sans-serif;
+  box-shadow: 0 2px 6px rgba(15,23,42,0.12);
+  cursor: pointer; display: flex; align-items: center; gap: 8px;
+  transition: transform 0.12s, box-shadow 0.12s;
+}
+.tsi-buddy-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 10px rgba(15,23,42,0.18); }
+.tsi-buddy-btn .tsi-buddy-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: #94a3b8;
+}
+.tsi-buddy-btn.tsi-on .tsi-buddy-dot { background: #16a34a; box-shadow: 0 0 0 2px rgba(34,197,94,0.25); }
+.tsi-buddy-btn.tsi-on { border-color: #16a34a; color: #166534; }
+
+.tsi-buddy-overlay {
+  position: fixed; inset: 0; background: rgba(15,23,42,0.55); z-index: 9100;
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+}
+.tsi-buddy-overlay[hidden] { display: none; }
+
+.tsi-buddy-modal {
+  background: white; border-radius: 12px;
+  max-width: 480px; width: 100%;
+  padding: 24px 26px;
+  box-shadow: 0 20px 60px rgba(15,23,42,0.35);
+  font: 400 14px/1.55 'Inter', system-ui, sans-serif;
+  color: #1e293b;
+}
+.tsi-buddy-modal h3 { margin: 0 0 8px; font-size: 1.2rem; color: #0f172a; }
+.tsi-buddy-modal .tsi-buddy-sub { color: #64748b; font-size: 0.92em; margin: 0 0 16px; }
+.tsi-buddy-modal label { display: block; margin-top: 14px; font-weight: 600; color: #334155; font-size: 0.9em; }
+.tsi-buddy-modal input[type="password"],
+.tsi-buddy-modal select,
+.tsi-buddy-modal textarea {
+  margin-top: 6px; width: 100%; box-sizing: border-box;
+  padding: 9px 12px; border: 1px solid #cbd5e1; border-radius: 6px;
+  font: inherit; color: #1e293b; background: #f8fafc;
+}
+.tsi-buddy-modal input[type="password"] { font-family: ui-monospace, Menlo, monospace; font-size: 0.92em; }
+.tsi-buddy-modal .tsi-buddy-toggle { display: flex; align-items: center; gap: 8px; margin-top: 14px; cursor: pointer; }
+.tsi-buddy-modal .tsi-buddy-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 22px; }
+.tsi-buddy-modal button {
+  font: 600 13px/1 'Inter', system-ui, sans-serif;
+  padding: 9px 16px; border-radius: 6px; border: none; cursor: pointer;
+}
+.tsi-buddy-modal .tsi-buddy-secondary { background: white; color: #475569; border: 1px solid #cbd5e1; }
+.tsi-buddy-modal .tsi-buddy-primary   { background: #1565c0; color: white; }
+.tsi-buddy-modal .tsi-buddy-primary:hover { background: #0d47a1; }
+.tsi-buddy-modal .tsi-buddy-secondary:hover { background: #f1f5f9; }
+.tsi-buddy-modal small { color: #64748b; }
+
+.tsi-buddy-chat {
+  position: fixed; right: 14px; bottom: 14px; z-index: 9000;
+  width: 380px; max-width: calc(100vw - 28px);
+  height: 540px; max-height: calc(100vh - 80px);
+  background: white; border: 1px solid #cbd5e1; border-radius: 12px;
+  box-shadow: 0 12px 40px rgba(15,23,42,0.25);
+  display: flex; flex-direction: column;
+  overflow: hidden;
+  font: 400 14px/1.55 'Inter', system-ui, sans-serif; color: #1e293b;
+}
+.tsi-buddy-chat[hidden] { display: none; }
+.tsi-buddy-chat-head {
+  background: linear-gradient(135deg, #1a3a5c 0%, #1e4d8c 100%);
+  color: white; padding: 12px 14px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.tsi-buddy-chat-head strong { font-size: 0.95em; }
+.tsi-buddy-chat-head small  { color: rgba(255,255,255,0.78); font-size: 0.78em; display: block; margin-top: 2px; }
+.tsi-buddy-chat-head button { background: transparent; border: none; color: white; cursor: pointer; font-size: 1.1em; line-height: 1; padding: 4px 8px; border-radius: 4px; }
+.tsi-buddy-chat-head button:hover { background: rgba(255,255,255,0.16); }
+.tsi-buddy-chat-body {
+  flex: 1 1 auto; overflow-y: auto; padding: 14px 14px 6px;
+  background: #f8fafc;
+}
+.tsi-buddy-bubble {
+  margin: 8px 0; padding: 10px 13px; border-radius: 10px;
+  word-wrap: break-word; overflow-wrap: anywhere; font-size: 0.93em;
+}
+.tsi-buddy-bubble.tsi-user      { background: #e3f2fd; color: #1a3a5c; border-bottom-right-radius: 2px; margin-left: 32px; }
+.tsi-buddy-bubble.tsi-assistant { background: white; border: 1px solid #e2e8f0; margin-right: 32px; }
+.tsi-buddy-bubble .tsi-buddy-role { font-size: 0.72em; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 4px; }
+.tsi-buddy-bubble.tsi-thinking { color: #94a3b8; font-style: italic; }
+/* Markdown typography inside bubbles (rendered for assistant replies). */
+.tsi-buddy-bubble .tsi-buddy-text > * { margin: 0; }
+.tsi-buddy-bubble .tsi-buddy-text > * + * { margin-top: 6px; }
+.tsi-buddy-bubble .tsi-buddy-text p { line-height: 1.55; }
+.tsi-buddy-bubble .tsi-buddy-text strong { font-weight: 700; color: #0f172a; }
+.tsi-buddy-bubble .tsi-buddy-text em { font-style: italic; }
+.tsi-buddy-bubble .tsi-buddy-text ul,
+.tsi-buddy-bubble .tsi-buddy-text ol { padding-left: 22px; }
+.tsi-buddy-bubble .tsi-buddy-text li { margin: 2px 0; }
+.tsi-buddy-bubble .tsi-buddy-text code {
+  background: rgba(15,23,42,0.06); padding: 0 4px; border-radius: 3px;
+  font-family: ui-monospace, Menlo, monospace; font-size: 0.92em;
+}
+.tsi-buddy-bubble .tsi-buddy-text pre {
+  background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px;
+  padding: 8px 10px; overflow-x: auto;
+}
+.tsi-buddy-bubble .tsi-buddy-text pre code { background: transparent; padding: 0; }
+.tsi-buddy-bubble .tsi-buddy-text blockquote {
+  border-left: 3px solid #cbd5e1; padding: 2px 10px; color: #475569;
+  background: #f8fafc; border-radius: 4px;
+}
+.tsi-buddy-bubble .tsi-buddy-text h1,
+.tsi-buddy-bubble .tsi-buddy-text h2,
+.tsi-buddy-bubble .tsi-buddy-text h3,
+.tsi-buddy-bubble .tsi-buddy-text h4 { font-weight: 700; color: #0f172a; }
+.tsi-buddy-bubble .tsi-buddy-text h1 { font-size: 1.05em; }
+.tsi-buddy-bubble .tsi-buddy-text h2 { font-size: 1.0em; }
+.tsi-buddy-bubble .tsi-buddy-text h3,
+.tsi-buddy-bubble .tsi-buddy-text h4 { font-size: 0.95em; }
+.tsi-buddy-bubble .tsi-buddy-text hr { border: none; border-top: 1px solid #e2e8f0; }
+.tsi-buddy-bubble .tsi-buddy-text a { color: #1565c0; text-decoration: underline; }
+.tsi-buddy-error {
+  background: #fee2e2; color: #7f1d1d; border: 1px solid #fecaca;
+  padding: 8px 10px; border-radius: 6px; margin: 8px 14px; font-size: 0.85em;
+}
+.tsi-buddy-chat-foot {
+  border-top: 1px solid #e2e8f0; padding: 10px 12px;
+  display: flex; gap: 8px; align-items: flex-end;
+  background: white;
+}
+.tsi-buddy-chat-foot textarea {
+  flex: 1 1 auto; resize: none; min-height: 36px; max-height: 140px;
+  padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px;
+  font: inherit; color: #1e293b;
+}
+.tsi-buddy-chat-foot button {
+  font: 600 13px/1 'Inter', system-ui, sans-serif;
+  padding: 9px 14px; border-radius: 6px; border: none; cursor: pointer;
+  background: #1565c0; color: white;
+}
+.tsi-buddy-chat-foot button:disabled { background: #94a3b8; cursor: default; }
+.tsi-buddy-chat-foot button:hover:not(:disabled) { background: #0d47a1; }
+.tsi-buddy-startbar {
+  display: flex; gap: 8px; padding: 12px 14px;
+  border-bottom: 1px solid #e2e8f0; background: #fafbfc;
+}
+.tsi-buddy-startbar button {
+  flex: 1 1 auto; font: 600 13px/1 'Inter', system-ui, sans-serif;
+  padding: 9px 12px; border-radius: 6px; border: 1px solid #1565c0;
+  background: white; color: #1565c0; cursor: pointer;
+}
+.tsi-buddy-startbar button:hover { background: #e3f2fd; }
+@media (max-width: 480px) {
+  .tsi-buddy-chat { width: calc(100vw - 16px); right: 8px; bottom: 8px; height: calc(100vh - 90px); }
+}
+`;
+
+  function injectStyles() {
+    if (document.getElementById('tsi-buddy-styles')) return;
+    var s = document.createElement('style');
+    s.id = 'tsi-buddy-styles';
+    s.textContent = STYLE;
+    document.head.appendChild(s);
+  }
+
+  /* ---------- Markdown rendering ---------- */
+  // The buddy returns markdown (bold, italic, lists, code, headers).
+  // We lazily load `marked` from CDN and render assistant replies through it.
+  // Until marked is loaded (or if it fails to load), we fall back to plain
+  // text with newlines preserved as <br>.
+  function loadMarked() {
+    if (window.marked) return Promise.resolve(window.marked);
+    if (window.__tsiMarkedLoading) return window.__tsiMarkedLoading;
+    window.__tsiMarkedLoading = new Promise(function (resolve) {
+      var s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js';
+      s.async = true;
+      s.onload  = function () { resolve(window.marked || null); };
+      s.onerror = function () { resolve(null); };
+      document.head.appendChild(s);
+    });
+    return window.__tsiMarkedLoading;
+  }
+
+  /* ---------- KaTeX (for math in replies) ----------
+     Lazy-load KaTeX + CSS when the host page doesn't already have it, so
+     $...$ / $$...$$ in replies typeset instead of showing raw. */
+  var KATEX_OPTS = {
+    delimiters: [
+      { left: '$$', right: '$$', display: true },
+      { left: '$',  right: '$',  display: false }
+    ],
+    throwOnError: false
+  };
+  function loadKatex() {
+    if (window.katex && window.katex.renderToString) return Promise.resolve(window.katex);
+    if (window.__tsiKatexLoading) return window.__tsiKatexLoading;
+    window.__tsiKatexLoading = new Promise(function (resolve) {
+      if (!document.querySelector('link[data-tsi-katex]')) {
+        var link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = 'https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css';
+        link.setAttribute('data-tsi-katex', '1');
+        document.head.appendChild(link);
+      }
+      var s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js';
+      s.onload  = function () { resolve(window.katex || null); };
+      s.onerror = function () { resolve(null); };
+      document.head.appendChild(s);
+    });
+    return window.__tsiKatexLoading;
+  }
+
+  // Light DOM sanitiser: walks the parsed tree and removes any tags / attrs
+  // that could execute code if the model went rogue. Allow-listing all
+  // safe markdown tags; strip everything else's dangerous attributes.
+  function sanitizeHTML(html) {
+    var div = document.createElement('div');
+    div.innerHTML = html;
+    var deny = ['script', 'style', 'iframe', 'object', 'embed', 'form',
+                'input', 'button', 'textarea', 'select', 'meta', 'link', 'base'];
+    deny.forEach(function (tag) {
+      Array.from(div.getElementsByTagName(tag)).forEach(function (n) { n.remove(); });
+    });
+    Array.from(div.querySelectorAll('*')).forEach(function (n) {
+      Array.from(n.attributes).forEach(function (a) {
+        var name = a.name.toLowerCase();
+        if (name.indexOf('on') === 0) { n.removeAttribute(a.name); return; }
+        if (name === 'href' || name === 'src' || name === 'srcset') {
+          var v = (a.value || '').replace(/\s/g, '');
+          if (/^javascript:/i.test(v) || /^data:text\/html/i.test(v)) {
+            n.removeAttribute(a.name);
+          }
+        }
+      });
+      // External links: open in new tab safely
+      if (n.tagName === 'A' && n.getAttribute('href')) {
+        n.setAttribute('target', '_blank');
+        n.setAttribute('rel', 'noopener noreferrer');
+      }
+    });
+    return div.innerHTML;
+  }
+
+  function escapeHTML(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  function renderContent(text, isAssistant) {
+    var div = document.createElement('div');
+    div.className = 'tsi-buddy-text';
+    var raw = text == null ? '' : String(text);
+    if (isAssistant && window.marked && window.marked.parse) {
+      try {
+        /* Protect math from markdown (it mangles _ * \ inside $…$), then
+           restore + typeset with KaTeX. */
+        var math = [];
+        var protectedSrc = raw
+          .replace(/\$\$([\s\S]+?)\$\$/g, function (_m, body) {
+            math.push({ display: true, tex: body }); return ' @@TSIMATH' + (math.length - 1) + '@@ ';
+          })
+          .replace(/\$([^\$\n]+?)\$/g, function (_m, body) {
+            math.push({ display: false, tex: body }); return '@@TSIMATH' + (math.length - 1) + '@@';
+          });
+        var html = sanitizeHTML(window.marked.parse(protectedSrc, { breaks: true, gfm: true, mangle: false, headerIds: false }));
+        var katexReady = window.katex && window.katex.renderToString;
+        html = html.replace(/@@TSIMATH(\d+)@@/g, function (_m, i) {
+          var item = math[Number(i)];
+          if (!item) return '';
+          if (katexReady) {
+            try { return window.katex.renderToString(item.tex, { displayMode: item.display, throwOnError: false }); }
+            catch (e) {}
+          }
+          var d = item.display ? '$$' : '$';
+          return d + escapeHTML(item.tex) + d;
+        });
+        div.innerHTML = html;
+        if (math.length && !katexReady) {
+          loadKatex().then(function (k) {
+            if (k && window.renderMathInElement) { try { window.renderMathInElement(div, KATEX_OPTS); } catch (e) {} }
+          });
+        }
+        return div;
+      } catch (e) { /* fall through to plain text */ }
+    }
+    // Plain-text fallback (user messages, or assistant before marked loads)
+    div.innerHTML = escapeHTML(raw).replace(/\n/g, '<br>');
+    return div;
+  }
+
+  /* ---------- Streaming Mistral call ---------- */
+  function callMistralChat(apiKey, model, systemPrompt, messages, onDelta) {
+    return fetch('https://api.mistral.ai/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + apiKey, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: model || 'mistral-small-latest',
+        temperature: 0.4,
+        max_tokens: 1500,
+        stream: true,
+        messages: [{ role: 'system', content: systemPrompt }].concat(messages)
+      })
+    }).then(function (r) {
+      if (!r.ok) {
+        return r.text().then(function (t) {
+          throw new Error('Mistral ' + r.status + ': ' + (t || 'request failed'));
+        });
+      }
+      if (!r.body || !r.body.getReader) {
+        return r.json().then(function (data) {
+          if (!data.choices || !data.choices[0]) throw new Error('Mistral returned no choices.');
+          var full = (data.choices[0].message.content || '').trim();
+          if (onDelta) onDelta(full);
+          return full;
+        });
+      }
+      var reader = r.body.getReader();
+      var decoder = new TextDecoder();
+      var buf = '';
+      var full = '';
+      function pump() {
+        return reader.read().then(function (res) {
+          if (res.done) return full.trim();
+          buf += decoder.decode(res.value, { stream: true });
+          var lines = buf.split('\n');
+          buf = lines.pop();
+          for (var i = 0; i < lines.length; i++) {
+            var ln = lines[i];
+            if (ln.indexOf('data: ') !== 0) continue;
+            var s = ln.substring(6).trim();
+            if (s === '[DONE]') return full.trim();
+            try {
+              var d = JSON.parse(s);
+              if (d.choices && d.choices[0] && d.choices[0].delta && d.choices[0].delta.content) {
+                full += d.choices[0].delta.content;
+                if (onDelta) onDelta(full);
+              }
+            } catch (e) {}
+          }
+          return pump();
+        });
+      }
+      return pump();
+    });
+  }
+
+  /* ---------- DOM helpers ---------- */
+  function el(tag, attrs, kids) {
+    var n = document.createElement(tag);
+    if (attrs) for (var k in attrs) {
+      if (k === 'class') n.className = attrs[k];
+      else if (k === 'html') n.innerHTML = attrs[k];
+      else if (k === 'text') n.textContent = attrs[k];
+      else if (k.indexOf('on') === 0 && typeof attrs[k] === 'function') n.addEventListener(k.substring(2), attrs[k]);
+      else if (attrs[k] === true) n.setAttribute(k, '');
+      else if (attrs[k] != null && attrs[k] !== false) n.setAttribute(k, attrs[k]);
+    }
+    if (kids) (Array.isArray(kids) ? kids : [kids]).forEach(function (c) {
+      if (c == null) return;
+      n.appendChild(typeof c === 'string' ? document.createTextNode(c) : c);
+    });
+    return n;
+  }
+
+  /* ---------- Mount ---------- */
+  function mount(opts) {
+    if (!opts || !opts.systemPrompt) {
+      console.warn('TSIBuddy.mount: systemPrompt required');
+      return null;
+    }
+    injectStyles();
+
+    // ---- State (closure-scoped) ----
+    var state = {
+      apiKey:  lsGet(KEY_LS, ''),
+      model:   lsGet(MODEL_LS, 'mistral-small-latest'),
+      enabled: lsGet(ENABLE_LS, '') === '1',
+      messages: [],     // {role, content}
+      pending: '',
+      status:  'idle',  // idle | loading | error
+      error:   '',
+      open:    false    // chat panel visible
+    };
+    if (state.apiKey) state.enabled = true; // having a key implies enabled
+
+    // ---- Floating button ----
+    var btnDot   = el('span', { class: 'tsi-buddy-dot' });
+    var btnLabel = el('span', null, '🤖 TSI Buddy');
+    var btnState = el('span', null, '');
+    var btn = el('button', {
+      class: 'tsi-buddy-btn',
+      title: 'TSI Buddy — your study companion',
+      onclick: function () {
+        if (state.apiKey) toggleChat();
+        else openSettings();
+      }
+    }, [btnDot, btnLabel, btnState]);
+    document.body.appendChild(btn);
+
+    // ---- Settings modal ----
+    var keyInput = el('input', {
+      type: 'password', autocomplete: 'off',
+      placeholder: 'paste your Mistral key (starts with "sk-…")',
+      value: state.apiKey,
+      oninput: function (e) { state.apiKey = e.target.value; }
+    });
+    var modelSelect = el('select', {
+      onchange: function (e) { state.model = e.target.value; }
+    }, ['mistral-small-latest', 'mistral-medium-latest', 'mistral-large-latest'].map(function (m) {
+      var o = el('option', { value: m }, m + (m === 'mistral-small-latest' ? ' (recommended)' : ''));
+      if (m === state.model) o.selected = true;
+      return o;
+    }));
+    var enableBox = el('input', {
+      type: 'checkbox',
+      onchange: function (e) { state.enabled = !!e.target.checked; }
+    });
+    enableBox.checked = state.enabled;
+    var modalCard = el('div', { class: 'tsi-buddy-modal', onclick: function (e) { e.stopPropagation(); } }, [
+      el('h3', null, '🤖 TSI Buddy'),
+      el('p', { class: 'tsi-buddy-sub' }, opts.contextLabel
+        ? ('You are reading: ' + opts.contextLabel + '. The buddy reads the page context and helps you understand worked examples — it does not give you the answer to your homework.')
+        : 'A study companion. The buddy helps you understand the worked examples on this page.'),
+      el('label', { class: 'tsi-buddy-toggle' }, [enableBox, el('span', null, 'Enable TSI Buddy on this page')]),
+      el('label', null, 'Mistral API key'),
+      keyInput,
+      el('label', null, 'Model'),
+      modelSelect,
+      el('p', null, [el('small', null, 'Get a free key at '), el('a', { href: 'https://console.mistral.ai/api-keys/', target: '_blank' }, 'console.mistral.ai'), el('small', null, '. The key stays in your browser only.')]),
+      el('div', { class: 'tsi-buddy-actions' }, [
+        el('button', { class: 'tsi-buddy-secondary', onclick: function () { state.apiKey = ''; keyInput.value = ''; } }, 'Clear key'),
+        el('button', { class: 'tsi-buddy-primary',   onclick: function () { saveSettings(); } }, 'Save')
+      ])
+    ]);
+    var modalOverlay = el('div', { class: 'tsi-buddy-overlay', hidden: true, onclick: function () { closeSettings(); } }, [modalCard]);
+    document.body.appendChild(modalOverlay);
+
+    // ---- Chat panel ----
+    var chatBody = el('div', { class: 'tsi-buddy-chat-body' });
+    var chatErr  = el('div', { class: 'tsi-buddy-error', hidden: true });
+    var inputBox = el('textarea', {
+      rows: 1, placeholder: 'Ask about this page…',
+      onkeydown: function (e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          sendUserMessage();
+        }
+      },
+      oninput: function (e) { state.pending = e.target.value; sendBtn.disabled = !canSend(); autosize(e.target); }
+    });
+    var sendBtn = el('button', {
+      onclick: function () { sendUserMessage(); }
+    }, 'Send');
+    sendBtn.disabled = true;
+
+    var startBar = el('div', { class: 'tsi-buddy-startbar' });
+
+    var chatFoot = el('div', { class: 'tsi-buddy-chat-foot' }, [inputBox, sendBtn]);
+
+    var chatHead = el('div', { class: 'tsi-buddy-chat-head' }, [
+      el('div', null, [
+        el('strong', null, '🤖 TSI Buddy'),
+        opts.contextLabel ? el('small', null, opts.contextLabel) : null
+      ]),
+      el('div', null, [
+        el('button', { title: 'Settings', onclick: function () { openSettings(); } }, '⚙'),
+        el('button', { title: 'Reset chat', onclick: function () { resetChat(); } }, '↺'),
+        el('button', { title: 'Close', onclick: function () { closeChat(); } }, '×')
+      ])
+    ]);
+
+    var chatPanel = el('div', { class: 'tsi-buddy-chat', hidden: true }, [
+      chatHead, startBar, chatErr, chatBody, chatFoot
+    ]);
+    document.body.appendChild(chatPanel);
+
+    // ---- Render ----
+    function refreshButton() {
+      if (state.apiKey && state.enabled) { btn.classList.add('tsi-on'); btnState.textContent = 'ON'; }
+      else                                { btn.classList.remove('tsi-on'); btnState.textContent = 'off'; }
+    }
+    function autosize(t) {
+      t.style.height = 'auto';
+      t.style.height = Math.min(140, Math.max(36, t.scrollHeight)) + 'px';
+    }
+    function canSend() {
+      return !!(state.apiKey && state.enabled && state.pending.trim() && state.status !== 'loading');
+    }
+    function refreshSendBtn() { sendBtn.disabled = !canSend(); }
+    function refreshStartBar() {
+      while (startBar.firstChild) startBar.removeChild(startBar.firstChild);
+      if (state.messages.length > 0) { startBar.style.display = 'none'; return; }
+      startBar.style.display = 'flex';
+      if (opts.openingLine) {
+        startBar.appendChild(el('button', {
+          onclick: function () { startWith(opts.openingLine); }
+        }, '🚀 Start with: "' + opts.openingLine.substring(0, 50) + (opts.openingLine.length > 50 ? '…' : '') + '"'));
+      }
+      startBar.appendChild(el('button', {
+        onclick: function () { startWith('Help me understand the worked example on this page.'); }
+      }, '💡 Generic walkthrough'));
+    }
+    function refreshChat() {
+      while (chatBody.firstChild) chatBody.removeChild(chatBody.firstChild);
+      state.messages.forEach(function (m, i) {
+        var thinking = (state.status === 'loading' && i === state.messages.length - 1 && m.role === 'assistant' && !m.content);
+        var displayText = m.content || (thinking ? '…' : '');
+        var contentDiv = thinking
+          ? (function () { var d = document.createElement('div'); d.className = 'tsi-buddy-text'; d.textContent = '…'; return d; })()
+          : renderContent(displayText, m.role === 'assistant');
+        var bubble = el('div', { class: 'tsi-buddy-bubble tsi-' + m.role }, [
+          el('div', { class: 'tsi-buddy-role' }, m.role === 'assistant' ? '🤖 TSI Buddy' : '🧑 You'),
+          contentDiv
+        ]);
+        if (thinking) bubble.classList.add('tsi-thinking');
+        chatBody.appendChild(bubble);
+      });
+      if (state.status === 'error' && state.error) {
+        chatErr.textContent = 'API error: ' + state.error;
+        chatErr.hidden = false;
+      } else {
+        chatErr.hidden = true;
+      }
+      // scroll to bottom
+      requestAnimationFrame(function () { chatBody.scrollTop = chatBody.scrollHeight; });
+      refreshStartBar();
+      refreshSendBtn();
+    }
+
+    // ---- Behaviour ----
+    function openSettings()  { modalOverlay.hidden = false; setTimeout(function () { keyInput.focus(); }, 50); }
+    function closeSettings() { modalOverlay.hidden = true; }
+    function saveSettings() {
+      lsSet(KEY_LS, state.apiKey || '');
+      lsSet(MODEL_LS, state.model || 'mistral-small-latest');
+      lsSet(ENABLE_LS, state.enabled ? '1' : '');
+      closeSettings();
+      refreshButton();
+      if (state.apiKey && state.enabled) openChat();
+    }
+    function openChat()  { state.open = true; chatPanel.hidden = false; refreshChat(); inputBox.focus(); }
+    function closeChat() { state.open = false; chatPanel.hidden = true; }
+    function toggleChat(){ state.open ? closeChat() : openChat(); }
+    function resetChat() { state.messages = []; state.pending = ''; state.status = 'idle'; state.error = ''; inputBox.value = ''; refreshChat(); }
+    function startWith(line) {
+      inputBox.value = line;
+      state.pending = line;
+      autosize(inputBox);
+      sendUserMessage();
+    }
+    function sendUserMessage() {
+      var draft = (state.pending || '').trim();
+      if (!draft || !state.apiKey || state.status === 'loading') return;
+      var userMsg = { role: 'user', content: draft };
+      state.messages.push(userMsg);
+      state.messages.push({ role: 'assistant', content: '' });
+      state.pending = ''; inputBox.value = ''; autosize(inputBox);
+      state.status = 'loading'; state.error = '';
+      refreshChat();
+      callMistralChat(state.apiKey, state.model, opts.systemPrompt, state.messages.slice(0, -1), function (full) {
+        var last = state.messages[state.messages.length - 1];
+        if (last && last.role === 'assistant') {
+          last.content = full;
+          refreshChat();
+        }
+      }).then(function () {
+        state.status = 'idle';
+        refreshChat();
+      }).catch(function (err) {
+        var last = state.messages[state.messages.length - 1];
+        if (last && last.role === 'assistant' && !last.content) state.messages.pop();
+        state.status = 'error';
+        state.error = (err && err.message) || String(err);
+        refreshChat();
+      });
+    }
+
+    refreshButton();
+    refreshChat();
+
+    // Lazily fetch marked so assistant replies render markdown. If it
+    // arrives mid-conversation, re-render so any plain-text bubbles get
+    // upgraded to formatted ones.
+    loadMarked().then(function (m) { if (m) refreshChat(); });
+
+    // First-time arrival: nudge the modal open if no key set
+    // (but not too aggressively — only on explicit click of the button).
+
+    return {
+      open: openChat, close: closeChat, toggle: toggleChat,
+      reset: resetChat,
+      destroy: function () {
+        try { document.body.removeChild(btn); } catch (e) {}
+        try { document.body.removeChild(modalOverlay); } catch (e) {}
+        try { document.body.removeChild(chatPanel); } catch (e) {}
+      }
+    };
+  }
+
+  window.TSIBuddy = { mount: mount, __loaded: true };
+})();
+</script>
+
+<!-- widget: rotax-animator (animator) -->
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+const mount = document.getElementById('rotax-animator');
+
+const style = document.createElement('style');
+style.textContent = `
+#rotax-animator{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:16px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;font-family:var(--font-body);color:var(--ink)}
+@media(max-width:780px){#rotax-animator{grid-template-columns:1fr}}
+.rx-scene{position:relative;background:#161922;border-radius:6px;min-height:460px;overflow:hidden;border:1px solid var(--border)}
+.rx-scene canvas{display:block}
+.rx-panel{display:flex;flex-direction:column;gap:12px;min-width:0}
+.rx-slider-wrap{display:flex;flex-direction:column;gap:6px}
+.rx-slider-wrap .head{display:flex;justify-content:space-between;align-items:baseline;font-family:var(--font-display);font-size:13px;color:var(--ink-soft)}
+.rx-slider-wrap .head strong{font-family:var(--font-mono);font-size:18px;color:var(--accent);font-weight:700;font-variant-numeric:tabular-nums}
+.rx-slider{width:100%;accent-color:var(--accent)}
+.rx-row{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.rx-btn{font-family:var(--font-display);font-size:13px;padding:6px 14px;border:1px solid var(--border);background:var(--surface);color:var(--ink);border-radius:5px;cursor:pointer;transition:all .15s;font-weight:500}
+.rx-btn:hover:not(:disabled){border-color:var(--accent);color:var(--accent)}
+.rx-btn:disabled{cursor:not-allowed}
+.rx-btn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+.rx-btn.primary:hover:not(:disabled){filter:brightness(.9);color:#fff}
+.rx-btn.secondary{background:var(--accent-2);color:#fff;border-color:var(--accent-2)}
+.rx-btn.secondary:hover:not(:disabled){filter:brightness(1.1);color:#fff}
+.rx-matrix{font-family:var(--font-mono);font-size:13px;background:var(--page-bg);border:1px solid var(--border);border-radius:6px;padding:10px}
+.rx-matrix .title{font-family:var(--font-display);font-size:12px;color:var(--ink-soft);margin-bottom:8px;display:flex;justify-content:space-between;align-items:baseline}
+.rx-matrix .title em{font-family:var(--font-mono);font-style:normal;color:var(--accent);font-weight:600}
+.rx-grid{display:grid;grid-template-columns:22px repeat(3,1fr);gap:4px;align-items:center}
+.rx-grid .lbl{font-family:var(--font-display);font-weight:700;font-size:12px;text-align:center;padding:2px}
+.rx-grid .lbl.col{color:var(--ink-soft)}
+.rx-cell{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:6px 4px;text-align:center;font-variant-numeric:tabular-nums;transition:background .25s,border-color .25s,color .25s}
+.rx-cell.fixed{color:var(--ink-soft);background:transparent;border-style:dashed;opacity:.7}
+.rx-cell.trig{background:color-mix(in srgb,var(--accent) 12%,var(--surface));border-color:color-mix(in srgb,var(--accent) 55%,var(--border));color:var(--ink);font-weight:600}
+.rx-legend{display:flex;flex-wrap:wrap;gap:4px 10px;font-family:var(--font-mono);font-size:11px;color:var(--ink-soft)}
+.rx-legend span{display:inline-flex;align-items:center;gap:4px}
+.rx-legend i{width:14px;height:3px;border-radius:2px;display:inline-block}
+.rx-presets{display:flex;flex-wrap:wrap;gap:4px}
+.rx-preset{font-family:var(--font-mono);font-size:11px;padding:4px 9px;background:var(--page-bg);border:1px solid var(--border);border-radius:12px;cursor:pointer;color:var(--ink-soft);transition:all .15s}
+.rx-preset:hover{border-color:var(--accent-2);color:var(--accent-2)}
+.rx-callout{font-family:var(--font-body);font-size:12px;line-height:1.5;color:var(--ink);border-left:3px solid var(--accent);padding:8px 10px;background:color-mix(in srgb,var(--accent) 5%,transparent);border-radius:0 4px 4px 0;min-height:54px}
+.rx-callout em{color:var(--accent);font-style:normal;font-weight:600;font-family:var(--font-mono)}
+.rx-matlab{font-family:var(--font-mono);font-size:12px;background:#1a1d24;color:#e4e8f0;border-radius:5px;padding:8px 10px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.rx-matlab code{color:#e4e8f0;font-variant-numeric:tabular-nums}
+.rx-matlab button{font-family:var(--font-display);font-size:11px;padding:3px 8px;background:var(--accent-2);color:#fff;border:none;border-radius:3px;cursor:pointer}
+.rx-matlab button:hover{filter:brightness(1.15)}
+.rx-hint{font-family:var(--font-mono);font-size:10px;color:var(--ink-soft);opacity:.7;text-align:center;margin-top:-4px}
+`;
+document.head.appendChild(style);
+
+mount.innerHTML = `
+<div class="rx-scene"></div>
+<div class="rx-panel">
+  <div class="rx-slider-wrap">
+    <div class="head"><span>rotation angle &nbsp;θ</span><strong class="theta-val">+30.0°</strong></div>
+    <input type="range" class="rx-slider" min="-180" max="180" step="0.5" value="30"/>
+  </div>
+  <div class="rx-row">
+    <button class="rx-btn primary play">▶ Play</button>
+    <button class="rx-btn secondary pause" disabled style="opacity:.5">❚❚ Pause</button>
+    <button class="rx-btn reset">↺ Reset</button>
+  </div>
+  <div class="rx-matrix">
+    <div class="title"><span>R<sub>x</sub>(θ)  — columns are u, v, w in the fixed frame</span><em class="cur-deg">+30.0°</em></div>
+    <div class="rx-grid">
+      <div></div>
+      <div class="lbl col" style="color:#e08a3f">u</div>
+      <div class="lbl col" style="color:#8c4fbf">v</div>
+      <div class="lbl col" style="color:#2aa8a8">w</div>
+      <div class="lbl" style="color:#c8442a">x</div>
+      <div class="rx-cell fixed">1.000</div>
+      <div class="rx-cell fixed">0.000</div>
+      <div class="rx-cell fixed">0.000</div>
+      <div class="lbl" style="color:#2f7a4f">y</div>
+      <div class="rx-cell fixed">0.000</div>
+      <div class="rx-cell trig" id="rx-c11">0.866</div>
+      <div class="rx-cell trig" id="rx-c12">-0.500</div>
+      <div class="lbl" style="color:#2b4a6f">z</div>
+      <div class="rx-cell fixed">0.000</div>
+      <div class="rx-cell trig" id="rx-c21">0.500</div>
+      <div class="rx-cell trig" id="rx-c22">0.866</div>
+    </div>
+  </div>
+  <div class="rx-legend">
+    <span><i style="background:#c8442a"></i>x · fixed</span>
+    <span><i style="background:#2f7a4f"></i>y · fixed</span>
+    <span><i style="background:#2b4a6f"></i>z · fixed</span>
+    <span><i style="background:#e08a3f"></i>u · mobile</span>
+    <span><i style="background:#8c4fbf"></i>v · mobile</span>
+    <span><i style="background:#2aa8a8"></i>w · mobile</span>
+  </div>
+  <div class="rx-callout"></div>
+  <div class="rx-presets"></div>
+  <div class="rx-matlab"><code class="matlab-line">Rx = RotaX(30.0)</code><button class="copy-btn">copy</button></div>
+  <div class="rx-hint">drag the scene to orbit · scroll to zoom</div>
+</div>
+`;
+
+const sceneEl = mount.querySelector('.rx-scene');
+const slider = mount.querySelector('.rx-slider');
+const thetaVal = mount.querySelector('.theta-val');
+const curDeg = mount.querySelector('.cur-deg');
+const playBtn = mount.querySelector('.play');
+const pauseBtn = mount.querySelector('.pause');
+const resetBtn = mount.querySelector('.reset');
+const callout = mount.querySelector('.rx-callout');
+const presetsEl = mount.querySelector('.rx-presets');
+const matlabLine = mount.querySelector('.matlab-line');
+const copyBtn = mount.querySelector('.copy-btn');
+const c11 = mount.querySelector('#rx-c11');
+const c12 = mount.querySelector('#rx-c12');
+const c21 = mount.querySelector('#rx-c21');
+const c22 = mount.querySelector('#rx-c22');
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color('#161922');
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(window.devicePixelRatio);
+let W = sceneEl.clientWidth || 480, H = 460;
+renderer.setSize(W, H);
+sceneEl.appendChild(renderer.domElement);
+
+const camera = new THREE.PerspectiveCamera(40, W / H, 0.1, 100);
+camera.up.set(0, 0, 1);
+camera.position.set(2.4, -2.7, 1.9);
+camera.lookAt(0, 0, 0);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+controls.target.set(0, 0, 0);
+controls.minDistance = 1.5;
+controls.maxDistance = 8;
+
+scene.add(new THREE.AmbientLight(0xffffff, 0.85));
+const dl = new THREE.DirectionalLight(0xffffff, 0.4);
+dl.position.set(3, -2, 4);
+scene.add(dl);
+
+const grid = new THREE.GridHelper(2.4, 12, 0x2a2f3a, 0x1f242e);
+grid.rotation.x = Math.PI / 2;
+scene.add(grid);
+
+const HEX = { x:0xc8442a, y:0x2f7a4f, z:0x2b4a6f, u:0xe08a3f, v:0x8c4fbf, w:0x2aa8a8 };
+const CSS = { x:'#c8442a', y:'#2f7a4f', z:'#2b4a6f', u:'#e08a3f', v:'#8c4fbf', w:'#2aa8a8' };
+
+function arrow(dir, hex, len, hl, hw) {
+  return new THREE.ArrowHelper(dir.clone().normalize(), new THREE.Vector3(), len, hex, hl, hw);
+}
+
+scene.add(arrow(new THREE.Vector3(1,0,0), HEX.x, 1.08, 0.13, 0.07));
+scene.add(arrow(new THREE.Vector3(0,1,0), HEX.y, 1.08, 0.13, 0.07));
+scene.add(arrow(new THREE.Vector3(0,0,1), HEX.z, 1.08, 0.13, 0.07));
+
+const mobile = new THREE.Group();
+mobile.add(arrow(new THREE.Vector3(1,0,0), HEX.u, 1.0, 0.16, 0.09));
+mobile.add(arrow(new THREE.Vector3(0,1,0), HEX.v, 1.0, 0.16, 0.09));
+mobile.add(arrow(new THREE.Vector3(0,0,1), HEX.w, 1.0, 0.16, 0.09));
+scene.add(mobile);
+
+function label(text, color, size=0.22) {
+  const cv = document.createElement('canvas');
+  cv.width = 128; cv.height = 128;
+  const ctx = cv.getContext('2d');
+  ctx.font = 'bold 84px Inter, sans-serif';
+  ctx.fillStyle = color;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(text, 64, 64);
+  const tex = new THREE.CanvasTexture(cv);
+  tex.minFilter = THREE.LinearFilter;
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false }));
+  sp.scale.set(size, size, 1);
+  return sp;
+}
+
+const lx = label('x', CSS.x); lx.position.set(1.24, 0, 0); scene.add(lx);
+const ly = label('y', CSS.y); ly.position.set(0, 1.24, 0); scene.add(ly);
+const lz = label('z', CSS.z); lz.position.set(0, 0, 1.24); scene.add(lz);
+
+const lu = label('u', CSS.u); lu.position.set(1.18, 0, 0); mobile.add(lu);
+const lv = label('v', CSS.v); lv.position.set(0, 1.18, 0); mobile.add(lv);
+const lw = label('w', CSS.w); lw.position.set(0, 0, 1.18); mobile.add(lw);
+
+function makeCircle() {
+  const segs = 96;
+  const pts = [];
+  for (let i = 0; i <= segs; i++) {
+    const t = (i / segs) * Math.PI * 2;
+    pts.push(0, Math.cos(t), Math.sin(t));
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3));
+  return new THREE.Line(g, new THREE.LineBasicMaterial({ color: 0x4a5266, transparent: true, opacity: 0.35 }));
+}
+scene.add(makeCircle());
+
+function dashed(hex, opacity=0.9) {
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(6), 3));
+  const m = new THREE.LineDashedMaterial({ color: hex, dashSize: 0.045, gapSize: 0.028, transparent: true, opacity });
+  return new THREE.Line(g, m);
+}
+const proj = {
+  vY: dashed(HEX.v), vZ: dashed(HEX.v),
+  wY: dashed(HEX.w), wZ: dashed(HEX.w)
+};
+Object.values(proj).forEach(l => scene.add(l));
+
+function setSeg(line, p1, p2) {
+  const a = line.geometry.attributes.position.array;
+  a[0]=p1.x; a[1]=p1.y; a[2]=p1.z;
+  a[3]=p2.x; a[4]=p2.y; a[5]=p2.z;
+  line.geometry.attributes.position.needsUpdate = true;
+  line.computeLineDistances();
+}
+
+function dot(hex, r=0.024) {
+  return new THREE.Mesh(new THREE.SphereGeometry(r, 16, 12), new THREE.MeshBasicMaterial({ color: hex }));
+}
+const vDot = dot(HEX.v); scene.add(vDot);
+const wDot = dot(HEX.w); scene.add(wDot);
+const vYf = dot(HEX.v, 0.016); scene.add(vYf);
+const vZf = dot(HEX.v, 0.016); scene.add(vZf);
+const wYf = dot(HEX.w, 0.016); scene.add(wYf);
+const wZf = dot(HEX.w, 0.016); scene.add(wZf);
+
+const arcGeom = new THREE.BufferGeometry();
+arcGeom.setAttribute('position', new THREE.BufferAttribute(new Float32Array(99), 3));
+const arcLine = new THREE.Line(arcGeom, new THREE.LineBasicMaterial({ color: 0xffd28a, linewidth: 2 }));
+scene.add(arcLine);
+const thetaLbl = label('θ', '#ffd28a', 0.18);
+scene.add(thetaLbl);
+
+function updateArc(rad) {
+  const r = 0.34;
+  const segs = 32;
+  const arr = new Float32Array((segs + 1) * 3);
+  const step = rad / segs;
+  for (let i = 0; i <= segs; i++) {
+    const t = i * step;
+    arr[i*3] = 0;
+    arr[i*3+1] = r * Math.cos(t);
+    arr[i*3+2] = r * Math.sin(t);
+  }
+  arcGeom.setAttribute('position', new THREE.Float32BufferAttribute(arr, 3));
+  arcGeom.computeBoundingSphere();
+  const mid = rad / 2;
+  thetaLbl.position.set(0, (r + 0.11) * Math.cos(mid), (r + 0.11) * Math.sin(mid));
+  thetaLbl.visible = Math.abs(rad) > 0.05;
+}
+
+function fmt(x) {
+  const r = Math.round(x * 1000) / 1000;
+  if (Object.is(r, -0)) return '0.000';
+  return r.toFixed(3);
+}
+
+let theta = 30;
+let playing = false;
+let playStart = 0;
+
+function setPlayUI(p) {
+  playBtn.disabled = p;
+  playBtn.style.opacity = p ? '0.5' : '1';
+  pauseBtn.disabled = !p;
+  pauseBtn.style.opacity = p ? '1' : '0.5';
+}
+
+function updateAll() {
+  const rad = theta * Math.PI / 180;
+  const c = Math.cos(rad);
+  const s = Math.sin(rad);
+
+  mobile.rotation.x = rad;
+
+  c11.textContent = fmt(c);
+  c12.textContent = fmt(-s);
+  c21.textContent = fmt(s);
+  c22.textContent = fmt(c);
+
+  const sgn = theta >= 0 ? '+' : '';
+  thetaVal.textContent = `${sgn}${theta.toFixed(1)}°`;
+  curDeg.textContent = `${sgn}${theta.toFixed(1)}°`;
+
+  const vTip = new THREE.Vector3(0, c, s);
+  const wTip = new THREE.Vector3(0, -s, c);
+  setSeg(proj.vY, vTip, new THREE.Vector3(0, c, 0));
+  setSeg(proj.vZ, vTip, new THREE.Vector3(0, 0, s));
+  setSeg(proj.wY, wTip, new THREE.Vector3(0, -s, 0));
+  setSeg(proj.wZ, wTip, new THREE.Vector3(0, 0, c));
+
+  vDot.position.copy(vTip);
+  wDot.position.copy(wTip);
+  vYf.position.set(0, c, 0);
+  vZf.position.set(0, 0, s);
+  wYf.position.set(0, -s, 0);
+  wZf.position.set(0, 0, c);
+
+  updateArc(rad);
+
+  if (Math.abs(theta) < 0.5) {
+    callout.innerHTML = `θ = 0° — the mobile frame overlaps the fixed frame, so R<sub>x</sub> is the <em>identity</em>. Every diagonal is 1, every off-diagonal is 0.`;
+  } else if (Math.abs(Math.abs(theta) - 90) < 0.5) {
+    const sign = theta > 0 ? '+' : '−';
+    callout.innerHTML = `θ = ${sign}90° — <em>v</em> lands on ${sign}z, <em>w</em> lands on ${theta>0?'−':'+'}y. Read the columns straight off the picture: cos = 0, sin = ${sign}1.`;
+  } else if (Math.abs(Math.abs(theta) - 180) < 0.5) {
+    callout.innerHTML = `θ = ±180° — v flips to −y, w flips to −z. cos θ = −1, sin θ = 0. The frame is upside-down about x.`;
+  } else {
+    callout.innerHTML = `v projects onto y as <em>cos θ = ${fmt(c)}</em> (adjacent) and onto z as <em>sin θ = ${fmt(s)}</em> (opposite). w<sub>y</sub> = <em>−sin θ = ${fmt(-s)}</em> — the minus is because w tilted toward the ${s > 0 ? 'negative' : 'positive'} side of y.`;
+  }
+
+  matlabLine.textContent = `Rx = RotaX(${theta.toFixed(1)})`;
+}
+
+slider.addEventListener('input', (e) => {
+  theta = parseFloat(e.target.value);
+  if (playing) { playing = false; setPlayUI(false); }
+  updateAll();
+});
+
+playBtn.addEventListener('click', () => {
+  if (playing) return;
+  playing = true;
+  const phase = Math.asin(Math.max(-1, Math.min(1, theta / 180)));
+  playStart = performance.now() - (phase / 0.7) * 1000;
+  setPlayUI(true);
+});
+
+pauseBtn.addEventListener('click', () => {
+  if (!playing) return;
+  playing = false;
+  setPlayUI(false);
+});
+
+resetBtn.addEventListener('click', () => {
+  playing = false;
+  theta = 30;
+  slider.value = '30';
+  setPlayUI(false);
+  updateAll();
+});
+
+const presets = [
+  { label: '0° · identity', theta: 0 },
+  { label: '30°', theta: 30 },
+  { label: '90°', theta: 90 },
+  { label: '180°', theta: 180 },
+  { label: '−45°', theta: -45 },
+];
+presets.forEach(p => {
+  const b = document.createElement('button');
+  b.className = 'rx-preset';
+  b.textContent = p.label;
+  b.addEventListener('click', () => {
+    playing = false;
+    theta = p.theta;
+    slider.value = String(p.theta);
+    setPlayUI(false);
+    updateAll();
+  });
+  presetsEl.appendChild(b);
+});
+
+copyBtn.addEventListener('click', () => {
+  const txt = `Rx = RotaX(${theta.toFixed(1)})`;
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(txt).then(() => {
+      copyBtn.textContent = 'copied';
+      setTimeout(() => { copyBtn.textContent = 'copy'; }, 1200);
+    });
+  }
+});
+
+function resize() {
+  W = sceneEl.clientWidth;
+  H = sceneEl.clientHeight || 460;
+  renderer.setSize(W, H);
+  camera.aspect = W / H;
+  camera.updateProjectionMatrix();
+}
+new ResizeObserver(resize).observe(sceneEl);
+window.addEventListener('resize', resize);
+
+updateAll();
+resize();
+
+function animate(now) {
+  requestAnimationFrame(animate);
+  if (playing) {
+    const elapsed = (now - playStart) / 1000;
+    theta = 180 * Math.sin(elapsed * 0.7);
+    slider.value = String(Math.round(theta * 2) / 2);
+    updateAll();
+  }
+  controls.update();
+  renderer.render(scene, camera);
+}
+requestAnimationFrame(animate);
+</script>
+<script>(function(){
+  function go(){ if(window.TSIBuddy){ TSIBuddy.mount({"systemPrompt":"You are TSI Buddy, a friendly tutor on the lecture page \"Frames, degrees of freedom & the rotation matrix around X\". (Lecture 01 · Kinematics and Dynamics of Robot Manipulators)\n\nYour knowledge is ONLY the LECTURE NOTES and PAGE TEXT printed below.\n\nRules:\n1. Answer from that material. Read it for meaning — explaining,\n   rephrasing, working its examples and connecting its points is\n   your job. Synthesising an answer from what the material says is\n   not \"inventing\".\n2. If the material does not cover something, say so in one sentence\n   and stop. Never invent facts, names, emails, links, places,\n   rooms, dates, or anything not in the material — a plain \"that is\n   not in the lecture material\" is the correct answer to a gap.\n3. Keep replies short — 2–4 sentences — unless the student asks for\n   more depth or worked steps. Mirror the student's language.\n4. Don't hand over self-check / quiz answers; point to the section\n   that explains them instead.\n5. Write maths with $...$ (inline) and $...$ (display).\n\n── LECTURE NOTES ──\nSCOPE\nThis lecture is the opening session of Spring 2022 \"Kinematics and Dynamics of Robot Manipulators.\" It splits into two halves. The first half is course logistics: goals, learning outcomes, assessment weights, and how every practical task must be documented on video. The second half is the technical kickoff: what a degree of freedom is, why we need a reference frame, the distinction between a fixed (base) frame and a mobile (tool) frame, the identity matrix as the representation of two perfectly overlapping frames, the derivation of the basic rotation matrix around the X axis $R_x(\\theta)$, and an introductory MATLAB session that draws the fixed frame and writes a `RotaX(theta)` function. The lecture deliberately does NOT cover rotations about Y or Z (those come later), translation/position vectors, full homogeneous transformations, Denavit–Hartenberg parameters, forward or inverse kinematics, dynamics, or RoboDK simulation. It also stops short of actually drawing the rotated mobile frame in MATLAB — that is left as the homework.\n\nKEY DEFINITIONS\n\nRobot manipulator (in this course's framing) — a mechanical chain of rigid links whose tool end-effector's position and orientation we want to describe and control mathematically.\n\nReference (something stationary or otherwise designated) — the lecturer's premise: you can only call an object \"moving\" or \"static\" by comparing it against something else. That something else is the reference, and in practice it is realised as a reference frame.\n\nReference frame — a set of three mutually perpendicular axes $x$, $y$, $z$ attached to a body or to a point in space, used as the basis against which positions and orientations are described.\n\nFixed frame (Frame 0) — the reference frame attached to the base of the robot. It does not move. Denoted with subscript or index $0$.\n\nMobile frame — the reference frame attached to the moving body of interest (in robotics, the tool / end-effector). Its unit vectors are $\\vec{u}$, $\\vec{v}$, $\\vec{w}$, corresponding to the mobile-frame analogues of $x$, $y$, $z$.\n\nDegree of freedom (DoF) — an independent axis along or about which a body can move. A free rigid body in 3D has six: three translational (along $x$, $y$, $z$) and three rotational (about $x$, $y$, $z$). When the body additionally carries its own mobile frame and can rotate/translate within that frame, the system can carry up to twelve degrees of freedom.\n\nTranslational DoF — motion along a straight line parallel to an axis ($x$, $y$, or $z$).\n\nRotational DoF — angular motion about an axis ($x$, $y$, or $z$).\n\nUnit vector (unitary vector) — a vector of length 1. The lecturer's key consequence: when $\\vec{u}$, $\\vec{v}$, $\\vec{w}$ are unit vectors, the component of $\\vec{u}$ along a fixed axis is exactly the *projection* of $\\vec{u}$ onto that axis — no scaling, just \"how much of $\\vec{u}$ lies along that axis.\"\n\nProjection (of a mobile unit vector onto a fixed axis) — the scalar telling you how much of that mobile unit vector lies along the given fixed axis. The sign indicates direction (a $-1$ on $y$ means the vector points along $-y$).\n\nIdentity matrix $I_3$ — the 3×3 matrix with ones on the diagonal and zeros elsewhere; it represents the case where the mobile frame's unit vectors $\\vec{u}$, $\\vec{v}$, $\\vec{w}$ are perfectly aligned with the fixed frame's $x$, $y$, $z$. Lecturer denotes it $E$ or $I$; subscript $3$ marks the dimension.\n\nBasic rotation matrix around X, $R_x(\\theta)$ — the 3×3 matrix whose columns are the projections, onto the fixed $x$, $y$, $z$ axes, of the mobile frame's unit vectors $\\vec{u}$, $\\vec{v}$, $\\vec{w}$ after the mobile frame has been rotated by angle $\\theta$ about the fixed $x$ axis.\n\nRestriction (imposed by the links) — the lecturer's word for the fact that a robot's geometry constrains where the mobile frame can sit and how it can move. We can rotate the mobile frame \"around its own reference frame\" only because the link structure permits it.\n\nScript (MATLAB) — a saved file of commands run top-to-bottom every time, no inputs, no outputs. Used here for `fixframe.m`.\n\nFunction (MATLAB) — a saved file with a declared signature `function [output] = name(input)` ... `end` that takes inputs and returns outputs. Used here for `RotaX.m`.\n\nKEY EQUATIONS & RESULTS\n\nIdentity matrix (perfectly overlapping frames):\n$I_3 = \\begin{bmatrix} 1 & 0 & 0 \\\\ 0 & 1 & 0 \\\\ 0 & 0 & 1 \\end{bmatrix}$\nColumn 1 is $\\vec{u}$ expressed in the fixed frame, column 2 is $\\vec{v}$, column 3 is $\\vec{w}$. Conditions: $\\vec{u}\\parallel x$, $\\vec{v}\\parallel y$, $\\vec{w}\\parallel z$, all pointing in the positive sense. Comes from the definition of unit-vector projection — when each mobile axis lies on the corresponding fixed axis, its only nonzero projection is a $1$ on that axis.\n\nBasic rotation around X by angle $\\theta$:\n$R_x(\\theta) = \\begin{bmatrix} 1 & 0 & 0 \\\\ 0 & \\cos\\theta & -\\sin\\theta \\\\ 0 & \\sin\\theta & \\cos\\theta \\end{bmatrix}$\n- Column 1 is $\\vec{u}$ in the fixed frame: $(1,0,0)$ — unchanged because rotation is about $x$, so $\\vec{u}$ is the axis of rotation.\n- Column 2 is $\\vec{v}$ in the fixed frame: $(0,\\cos\\theta,\\sin\\theta)$ — adjacent side $\\cos\\theta$ lies on $y$, opposite side $\\sin\\theta$ lies on $z$.\n- Column 3 is $\\vec{w}$ in the fixed frame: $(0,-\\sin\\theta,\\cos\\theta)$ — projects onto the *negative* $y$ direction (hence the minus) and onto $z$ as $\\cos\\theta$.\n\nSymbols: $\\theta$ is the rotation angle of the mobile frame about the fixed $x$ axis, measured in degrees in the MATLAB code (the function uses `cosd` and `sind`). $\\cos\\theta$ and $\\sin\\theta$ are the usual trigonometric ratios. Conditions: rotation is about the $x$ axis only; both frames share the same origin (translation has not been introduced yet). No approximation — the result is exact. Validity range: any $\\theta$. Where it comes from: dropping perpendiculars from the rotated tips of $\\vec{v}$ and $\\vec{w}$ onto the fixed $y$ and $z$ axes and reading the adjacent / opposite cathetus of the right triangle so formed.\n\nWorked numerical instance from class: $\\theta = 30°$ gives $\\cos 30° \\approx 0.866$, $\\sin 30° = 0.5$, so\n$R_x(30°) = \\begin{bmatrix} 1 & 0 & 0 \\\\ 0 & 0.866 & -0.5 \\\\ 0 & 0.5 & 0.866 \\end{bmatrix}$\nThe lecturer also re-evaluated the same expression at $\\theta = 45°$ to show why a function beats copy-paste.\n\nDegree-of-freedom counts (results, not equations):\n- Free rigid body in 3D: 6 DoF (3 translational + 3 rotational).\n- Same body when its motion is described relative to *both* a fixed and a mobile frame, with motion possible in each: up to 12 DoF.\n\nLine in 3D (MATLAB `line` command, as used in class):\n`line([x1 x2], [y1 y2], [z1 z2], 'color', c, 'LineWidth', w)`\nThis is the form actually demonstrated, not the bare two-argument form returned by `help line`.\n\nNOTATION & CONVENTIONS\n\nAxes: $x$, $y$, $z$ for the fixed frame; $\\vec{u}$, $\\vec{v}$, $\\vec{w}$ for the mobile frame, in the same order (so $\\vec{u}$ corresponds to $x$, $\\vec{v}$ to $y$, $\\vec{w}$ to $z$).\nColours (used both on the whiteboard and in MATLAB): $x$ is red, $y$ is green, $z$ is blue. (The lecturer briefly slips and says \"blue\" for $x$ before correcting to red.)\nFrame numbering: the fixed frame at the base of the robot is \"Frame 0.\" The mobile frame on the tool is not given a fixed number in this lecture.\nMatrix layout: the columns of a rotation matrix are the mobile-frame unit vectors expressed in the fixed frame. Row $i$ of column $j$ is the $i$-th fixed-axis component of the $j$-th mobile-frame vector — e.g. $R_x(2,3)$ is the $y$-component of $\\vec{w}$.\nSign convention: a negative entry means the mobile axis projects onto the *negative* side of the corresponding fixed axis. In $R_x(\\theta)$, the $-\\sin\\theta$ entry encodes that after a positive rotation about $x$, $\\vec{w}$ has tilted toward $-y$.\nAngles in MATLAB: passed in **degrees**. The function uses `cosd` and `sind`, not `cos` and `sin`. This is a deliberate choice for the course — the lecturer flags that `cos`/`sin` would treat the input as radians.\nMATLAB indexing: `(row, column)`, 1-based. So `Rx(1,1)` is top-left, `Rx(3,3)` is bottom-right.\nIdentity matrix: written $E$ or $I$ in the lecturer's notation; subscripted with its size, so the 3×3 identity is $I_3$.\nView convention for plots: `view(130, 30)` — azimuth 130°, elevation 30° — is the course's default 3D viewpoint.\n\nWORKED EXAMPLES\n\n1. Two overlapping frames → identity matrix.\n   Setup: $\\vec{u}$, $\\vec{v}$, $\\vec{w}$ lie exactly on $x$, $y$, $z$.\n   Projection of $\\vec{u}$: on $x$ = 1 (full alignment), on $y$ = 0 (perpendicular), on $z$ = 0 (perpendicular).\n   Projection of $\\vec{v}$: on $x$ = 0, on $y$ = 1, on $z$ = 0.\n   Projection of $\\vec{w}$: on $x$ = 0, on $y$ = 0, on $z$ = 1.\n   Result: $I_3$, the 3×3 identity matrix.\n\n2. Interpreting an unusual decomposition.\n   The lecturer asks: \"What if $\\vec{u}$ on $x,y,z$ is $(0,-1,0)$?\" Answer: $\\vec{u}$ has unit magnitude but points along $-y$, i.e. opposite to the positive $y$ axis. Sign carries the direction; magnitude carries the projection length. Used to drill the convention before deriving $R_x$.\n\n3. Mobile frame rotated by $\\theta$ about $x$ — derivation of $R_x(\\theta)$.\n   $\\vec{u}$: unchanged (it *is* the axis of rotation). Projection: $(1, 0, 0)$.\n   $\\vec{v}$: lies in the $y$–$z$ plane after rotation. The right triangle formed has $\\vec{v}$ as hypotenuse (length 1), the adjacent cathetus along $y$ has length $\\cos\\theta$, the opposite cathetus along $z$ has length $\\sin\\theta$. Projection: $(0, \\cos\\theta, \\sin\\theta)$.\n   $\\vec{w}$: also lies in the $y$–$z$ plane. Its $y$-projection points toward $-y$ with magnitude $\\sin\\theta$, and its $z$-projection is $\\cos\\theta$. Projection: $(0, -\\sin\\theta, \\cos\\theta)$.\n   Stacking as columns gives $R_x(\\theta)$.\n\n4. Numerical evaluation at $\\theta = 30°$ in MATLAB.\n   In the workspace the lecturer sets `theta = 30`, then constructs the matrix manually:\n   `Rx = [1 0 0; 0 cosd(theta) -sind(theta); 0 sind(theta) cosd(theta)]`\n   The displayed result has $1$ at (1,1), $\\cos 30° \\approx 0.8660$ at (2,2) and (3,3), $\\sin 30° = 0.5$ at (3,2), and $-0.5$ at (2,3).\n\n5. Why a function beats a script: the lecturer then changes `theta` to 45°, re-pastes the same matrix line, and gets $R_x(45°)$. This motivates writing `RotaX(T)` so the angle becomes an input rather than a literal in the code.\n\n6. Drawing the fixed frame in MATLAB.\n   `line([0 1],[0 0],[0 0],'color','r','LineWidth',2);` — red $x$ axis.\n   `line([0 0],[0 1],[0 0],'color','g','LineWidth',2);` — green $y$ axis.\n   `line([0 0],[0 0],[0 1],'color','b','LineWidth',2);` — blue $z$ axis.\n   `view(130,30);` — set the standard viewpoint.\n   Saved as `fixframe.m`; thereafter calling `fixframe` redraws all three axes at once.\n\n7. Writing `RotaX.m`.\n   `function [Rx] = RotaX(T)`\n       `Rx = [1 0 0; 0 cosd(T) -sind(T); 0 sind(T) cosd(T)];`\n   `end`\n   With ellipsis `...` line continuations purely so the on-screen layout mirrors the hand-written matrix. The output variable on the `function` line (`Rx`) MUST match the variable assigned inside the body — the lecturer made and corrected this mistake on the fly (he had used `Tita` inside; renaming to `T` fixed it).\n\n8. Extracting columns of `Rx` into nine scalars.\n   `ux = Rx(1,1);  uy = Rx(2,1);  uz = Rx(3,1);`\n   `vx = Rx(1,2);  vy = Rx(2,2);  vz = Rx(3,2);`\n   `wx = Rx(1,3);  wy = Rx(2,3);  wz = Rx(3,3);`\n   These nine numbers are exactly what the homework needs to draw the three rotated-frame line segments.\n\nMETHOD / PROCEDURE\n\nHow to derive any basic rotation matrix (the recipe the lecture establishes for $R_x$, to be reused for $R_y$ and $R_z$ in future sessions):\n1. Draw the fixed frame $x,y,z$ and the mobile frame $\\vec{u},\\vec{v},\\vec{w}$ sharing the same origin.\n2. Apply the rotation (here: angle $\\theta$ about the fixed $x$ axis).\n3. For each mobile unit vector $\\vec{u},\\vec{v},\\vec{w}$ in turn, ask: what is its projection onto $x$, onto $y$, onto $z$?\n   - If the mobile vector lies on the axis of rotation, its components are unchanged.\n   - Otherwise, drop perpendiculars from its rotated tip onto the fixed axes and read the adjacent cathetus ($\\cos\\theta$) and opposite cathetus ($\\sin\\theta$).\n   - Sign each projection by whether it falls on the positive or negative side of the fixed axis.\n4. Stack the three projection vectors as columns into a 3×3 matrix. That is the rotation matrix.\n\nHow to set up the MATLAB scaffold used by the rest of the course:\n1. Create `fixframe.m` containing the three coloured `line` calls and the `view(130,30)` call. Save it on the MATLAB path.\n2. Create `RotaX.m` with signature `function [Rx] = RotaX(T)` and body that builds the matrix using `cosd(T)` and `sind(T)`. Save it.\n3. From the command window: set `theta = <value>`; call `Rx = RotaX(theta);`.\n4. Extract the nine components `ux,uy,uz,vx,vy,vz,wx,wy,wz` from `Rx` by indexing each entry.\n5. (Homework) Call `fixframe`, then issue three\n\n── PAGE TEXT (what the student is reading) ──\nLecture 01 · Frames, DoF & R_x(θ) Lecture 01 · Kinematics and Dynamics of Robot Manipulators Frames, degrees of freedom & the rotation matrix around X From course logistics to drawing your first rotated coordinate frame in MATLAB. Welcome to robotics. Today we set the rules of the game — how you'll be graded, how you'll document every task — and then we dive straight in. We'll talk about what it means for a body to move in space, how a reference frame lets us pin that motion down, and how a 3×3 matrix of unit-vector projections captures an orientation. By the end of class you'll have MATLAB drawing a fixed frame and computing a rotation around X, ready to draw the mobile frame on your own. Contents 0 Overview 1 Goals & outcomes 2 Assessment 3 Documentation 4 DoF & frames 5 Identity matrix 6 Rotation around X 7 Drawing the frame 8 RotaX function 9 Extracting components § 0 What this lecture covers This is the first session of Kinematics and Dynamics of Robot Manipulators (Spring 2022). We cover the course goals, assessment structure, and how you're expected to document every practical task. Then we move into the technical core: degrees of freedom , fixed vs. mobile reference frames , the identity matrix as a representation of overlapping frames, and the basic rotation matrix around X . We close with MATLAB — drawing lines, scripts, and our first function RotaX(theta) . Don't miss classes — the code we write today gets reused over and over, and catching up later is brutal. Tools we'll use MATLAB for the math and plotting, RoboDK for simulation (installed last semester). § 1 Course goals & learning outcomes The goal: develop programming skills and mathematical models by introducing the core concepts of kinematics and dynamics of robot manipulators. Knowledge — classification and features of robot manipulators; theories of kinematics and dynamics; mathematical methods for solving kinematics and dynamics problems. Skills — represent the kinematics and dynamics of robot manipulators; carry out kinematic and dynamic calculations; model the behavior of robot manipulators using special software (MATLAB and RoboDK). Competences — understand the features of kinematics and dynamics, and carry out calculation tasks using computer software. Heads up on scope Compared to the Mexico version of this course (4 sessions × 1.5h per day), we only have 2 sessions × 1.5h here. We'll adapt how far we can push. § 2 How you'll be graded The grade breakdown is continuous, not a single exam: Attendance & active participation — 10% Midterm evaluation — 25% (collection of simple programs from the first half) Final evaluation — 65% (a larger, more complex project) All evaluations consist of completing, documenting, and defending practical tasks. The midterm is lighter because the early tasks are simpler; the final weighs more because the work gets significantly more involved (GUIs, MATLAB↔RoboDK links, Arduino teach pendants, etc.). I'm assessing your skills — not your classmates' and not someone else's. If I have any doubt about a step in your program, you must be able to explain it on the spot. Plagiarism check If you can't explain a step in your own code, I'll assume it wasn't written by you. § 3 How to document every task Every practical task is documented as a short recorded video (uploaded to BigBlueButton or an unlisted YouTube link — I just need the URL). The video must: Walk through the hand-written derivation of the math (your notebook, on camera). Walk through the code , explaining what each part does and why . Show the result — typically an animation or plot produced by the code. This is your portfolio of evidence. It's what justifies your final grade. § 4 Degrees of freedom & reference frames To describe whether an object is moving or static, we need a reference — a stationary frame to compare against. We assign a reference frame with three axes $x$, $y$, $z$. A free body in 3D space has 6 degrees of freedom : three translational (along $x$, $y$, $z$) and three rotational (about $x$, $y$, $z$). If the body also carries its own mobile frame and can rotate/translate within that frame, the system can carry up to 12 degrees of freedom . For a robot manipulator, we always have two frames in play: Frame 0 — the fixed frame, attached to the base of the robot. Mobile frame — attached to the tool / end-effector. The restrictions imposed by the links determine how the mobile frame can move relative to the fixed frame. The question for the rest of the course: how do we represent that relationship mathematically? The answer Vectors and matrices. Specifically — we project the mobile frame's unit vectors onto the fixed frame's axes. § 5 Overlapping frames → the identity matrix Take a mobile frame with unit vectors $\\vec{u}$, $\\vec{v}$, $\\vec{w}$ overlapping the fixed frame $x$, $y$, $z$. Since the vectors are unitary, each component of $\\vec{u}$ on a fixed axis is just how much of $\\vec{u}$ projects onto that axis . When the frames perfectly overlap: $\\vec{u} = (1, 0, 0)$ — completely aligned with $x$ $\\vec{v} = (0, 1, 0)$ — completely aligned with $y$ $\\vec{w} = (0, 0, 1)$ — completely aligned with $z$ Stacking these as columns gives a 3×3 matrix with ones on the diagonal — the identity matrix $I_3$: $I_3 = \\begin{bmatrix} 1 & 0 & 0 \\\\ 0 & 1 & 0 \\\\ 0 & 0 & 1 \\end{bmatrix}$ This is the rotation matrix that says \"the mobile frame has the same orientation as the fixed frame.\" If you see $(0, -1, 0)$ for $\\vec{u}$, that means $\\vec{u}$ points in the opposite direction of $y$. The sign tells you direction; the magnitude tells you projection. identity matrix — frames overlapping layout x y z u [ 1 0 0 ] v [ 0 1 0 ] w [ 0 0 1 ] § 6 Rotation around the X axis Now rotate the mobile frame by angle $\\theta$ about the $x$ axis. Project each mobile unit vector onto the fixed axes: $\\vec{u}$ is still aligned with $x$ → $(1, 0, 0)$ $\\vec{v}$ no longer lies on $y$; it picks up a component on $z$. The projection onto $y$ uses the adjacent side → $\\cos\\theta$; onto $z$ uses the opposite side → $\\sin\\theta$. So $\\vec{v} = (0, \\cos\\theta, \\sin\\theta)$. $\\vec{w}$ tilts away from $z$ toward the negative-$y$ direction → $(0, -\\sin\\theta, \\cos\\theta)$. Putting them together: $R_x(\\theta) = \\begin{bmatrix} 1 & 0 & 0 \\\\ 0 & \\cos\\theta & -\\sin\\theta \\\\ 0 & \\sin\\theta & \\cos\\theta \\end{bmatrix}$ This is the basic rotation matrix around X — the first building block of every transformation we'll build. Sign discipline The minus sign on $\\sin\\theta$ comes from $\\vec{w}$ projecting onto the negative side of $y$ after the rotation. Get the sign wrong and your whole chain of transforms is wrong. R_x(theta) layout layout R_x = [ 1 0 0 ; 0 cos(theta) -sin(theta) ; 0 sin(theta) cos(theta) ] Try it · interactive Drag the angle $\\theta$ below and watch the mobile frame tilt about the fixed X axis. As it rotates, the three columns of $R_x(\\theta)$ fill in live — so you can see exactly where each $\\cos\\theta$, $\\sin\\theta$, and that crucial minus sign come from. § 7 MATLAB: drawing the fixed reference frame MATLAB's line command takes three bracketed pairs — $[x_1, x_2]$, $[y_1, y_2]$, $[z_1, z_2]$ — and draws a 3D segment between them. To draw the three unit axes from the origin: $x$ axis (red): from $(0,0,0)$ to $(1,0,0)$ $y$ axis (green): from $(0,0,0)$ to $(0,1,0)$ $z$ axis (blue): from $(0,0,0)$ to $(0,0,1)$ We add 'color' and 'LineWidth' attributes to make the axes legible, and set a default 3D viewpoint with view(130, 30) . Because we'll need this every session, we save it as a script called fixframe.m and just call fixframe going forward. fixframe.m — draws the fixed reference frame matlab line([0 1],[0 0],[0 0],'color','r','LineWidth',2); line([0 0],[0 1],[0 0],'color','g','LineWidth',2); line([0 0],[0 0],[0 1],'color','b','LineWidth',2); view(130,30); § 8 MATLAB: writing the RotaX function A script runs the same code every time. A function takes inputs and returns outputs — exactly what we need for $R_x(\\theta)$. The pattern: function [output] = name(input) ... end . We use cosd and sind so the angle is in degrees, and we suppress the echo with a trailing semicolon. The continuation ... is purely cosmetic — it lets the code look like the matrix we wrote on paper. With this saved as RotaX.m , calling Rx = RotaX(30) gives the rotation matrix for 30°. Change the angle, call it again — no copy-paste, no rewriting. Common gotcha: the output variable named in the function line must also be assigned inside the body. If you write function [Rx] = RotaX(T) then your matrix must be assigned to Rx , not to something else. Name collision If MATLAB complains that RotaX is both a function and a variable, run clear — you've left a stale variable in the workspace with the same name as your function. RotaX.m — rotation about X by theta degrees matlab function [Rx] = RotaX(T) Rx = [ 1 0 0 ; ... 0 cosd(T) -sind(T) ; ... 0 sind(T) cosd(T) ]; end § 9 Extracting the mobile-frame vectors from Rx To draw the r","contextLabel":"Frames, degrees of freedom & the rotation matrix around X","openingLine":"I'm reading Frames, degrees of freedom & the rotation matrix around X. Can you walk me through…","temperature":0.15,"model":"mistral-small-latest"}); } else { setTimeout(go, 60); } }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", go); else go();
+})();</script>
+</body>
+</html>
