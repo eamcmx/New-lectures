@@ -3574,68 +3574,79 @@ footer.endcap {
   }
 })();
 </script>
-<!-- widget: computed-torque-loop · rebuilt 2026-05-23T21:16:34.570Z -->
+<!-- widget: computed-torque-loop · rebuilt 2026-05-23T21:51:17.236Z -->
 <script type="text/babel">
 (function () {
   try {
-    const { useState, useEffect, useRef } = React;
+    const { useState, useEffect, useRef, useCallback } = React;
 
-    const PRESETS = {
-      'ff-on-low':   { label: 'FF on · gains low',     ff: true,  kp: 35,  kd: 8,  dist: 0 },
-      'ff-off-low':  { label: 'FF off · gains low',    ff: false, kp: 35,  kd: 8,  dist: 0 },
-      'ff-off-high': { label: 'FF off · gains high',   ff: false, kp: 400, kd: 40, dist: 0 },
-      'ff-on-dist':  { label: 'FF on · disturbance',   ff: true,  kp: 35,  kd: 8,  dist: 8 },
+    const PARAMS = {
+      m1: 1.0, m2: 1.0,
+      l1: 1.0, l2: 1.0,
+      lc1: 0.5, lc2: 0.5,
+      I1: 1/12, I2: 1/12,
+      g: 9.81
     };
 
-    const STAGES = [
-      { label: '1 · Plan trajectory',  sym: 'q_d, q\u0307_d, q\u0308_d' },
-      { label: '2 · Inverse dynamics', sym: '\u03C4_ff' },
-      { label: '3 · Tracking error',   sym: 'e = q_d \u2212 q' },
-      { label: '4 · PD feedback',      sym: '\u03C4_fb' },
-      { label: '5 · Sum torques',      sym: '\u03C4 = \u03C4_ff + \u03C4_fb' },
-      { label: '6 · Apply to plant',   sym: '\u03C4 \u2192 arm' },
-      { label: '7 · Forward dynamics', sym: 'q\u0308 = D\u207B\u00B9(\u03C4 \u2212 h \u2212 c)' },
-    ];
+    const PRESETS = {
+      'ff-on-low': {
+        label: 'FF on · gains low',
+        ff: true, Kp: 25, Kd: 8, disturb: 0,
+        note: 'Inverse dynamics carries the motion. PD feedback only nudges — ‖τ_fb‖ is tiny, tracking error stays under 1°.'
+      },
+      'ff-off-low': {
+        label: 'FF off · gains low',
+        ff: false, Kp: 25, Kd: 8, disturb: 0,
+        note: 'Pure PD. Watch the error explode — feedback alone cannot keep up with gravity, inertia and Coriolis on a fast trajectory.'
+      },
+      'ff-off-high': {
+        label: 'FF off · gains high',
+        ff: false, Kp: 400, Kd: 40, disturb: 0,
+        note: 'Crank the gains. Tracking improves but ‖τ_fb‖ saturates and ringing appears — brute force is no substitute for a model.'
+      },
+      'ff-on-disturb': {
+        label: 'FF on · disturbance',
+        ff: true, Kp: 25, Kd: 8, disturb: 4.0,
+        note: 'A sinusoidal disturbance hits joint 1. Feedforward cancels the predictable physics; feedback cleans up only the surprise.'
+      }
+    };
 
-    const L1 = 0.5, L2 = 0.4, M1 = 1.5, M2 = 1.0, G = 9.81;
-    const Q0 = [Math.PI / 3, -Math.PI / 3];
-    const AMP = [0.55, 0.65];
-    const OMEGA = 1.7;
-
-    function Dmat(q) {
-      const c2 = Math.cos(q[1]);
-      const d11 = M1 * L1 * L1 + M2 * (L1 * L1 + L2 * L2 + 2 * L1 * L2 * c2);
-      const d12 = M2 * (L2 * L2 + L1 * L2 * c2);
-      const d22 = M2 * L2 * L2;
-      return [[d11, d12], [d12, d22]];
+    function inertiaMatrix(q1, q2) {
+      const { m1, m2, l1, lc1, lc2, I1, I2 } = PARAMS;
+      const a = m1*lc1*lc1 + m2*(l1*l1 + lc2*lc2) + I1 + I2;
+      const b = m2*l1*lc2;
+      const d = m2*lc2*lc2 + I2;
+      const c2 = Math.cos(q2);
+      return [[a + 2*b*c2, d + b*c2], [d + b*c2, d]];
     }
-    function hVec(q, qd) {
-      const s2 = Math.sin(q[1]);
+    function coriolisVector(q1, q2, qd1, qd2) {
+      const { m2, l1, lc2 } = PARAMS;
+      const b = m2*l1*lc2;
+      const s2 = Math.sin(q2);
+      return [-b*s2*(2*qd1*qd2 + qd2*qd2), b*s2*qd1*qd1];
+    }
+    function gravityVector(q1, q2) {
+      const { m1, m2, l1, lc1, lc2, g } = PARAMS;
       return [
-        -M2 * L1 * L2 * s2 * (2 * qd[0] * qd[1] + qd[1] * qd[1]),
-         M2 * L1 * L2 * s2 * qd[0] * qd[0],
+        m1*g*lc1*Math.cos(q1) + m2*g*(l1*Math.cos(q1) + lc2*Math.cos(q1+q2)),
+        m2*g*lc2*Math.cos(q1+q2)
       ];
     }
-    function cVec(q) {
-      return [
-        (M1 + M2) * G * L1 * Math.cos(q[0]) + M2 * G * L2 * Math.cos(q[0] + q[1]),
-        M2 * G * L2 * Math.cos(q[0] + q[1]),
-      ];
+    function solve2(M, v) {
+      const det = M[0][0]*M[1][1] - M[0][1]*M[1][0];
+      const inv = 1/det;
+      return [inv*(M[1][1]*v[0] - M[0][1]*v[1]), inv*(-M[1][0]*v[0] + M[0][0]*v[1])];
     }
-    function inv2(M) {
-      const det = M[0][0] * M[1][1] - M[0][1] * M[1][0];
-      return [[M[1][1] / det, -M[0][1] / det], [-M[1][0] / det, M[0][0] / det]];
-    }
-    function mv(M, v) { return [M[0][0] * v[0] + M[0][1] * v[1], M[1][0] * v[0] + M[1][1] * v[1]]; }
-
-    function traj(t) {
+    function trajectory(t) {
+      const q1_0 = Math.PI/2, q2_0 = -Math.PI/6;
+      const A1 = 0.6, w1 = 1.2, A2 = 0.5, w2 = 1.8;
       return {
-        q:   [Q0[0] + AMP[0] * Math.sin(OMEGA * t),
-              Q0[1] + AMP[1] * Math.sin(OMEGA * t + 0.6)],
-        qd:  [AMP[0] * OMEGA * Math.cos(OMEGA * t),
-              AMP[1] * OMEGA * Math.cos(OMEGA * t + 0.6)],
-        qdd: [-AMP[0] * OMEGA * OMEGA * Math.sin(OMEGA * t),
-              -AMP[1] * OMEGA * OMEGA * Math.sin(OMEGA * t + 0.6)],
+        q1: q1_0 + A1*Math.sin(w1*t),
+        q2: q2_0 + A2*Math.sin(w2*t),
+        qd1: A1*w1*Math.cos(w1*t),
+        qd2: A2*w2*Math.cos(w2*t),
+        qdd1: -A1*w1*w1*Math.sin(w1*t),
+        qdd2: -A2*w2*w2*Math.sin(w2*t)
       };
     }
 
@@ -3643,426 +3654,342 @@ footer.endcap {
       const [presetKey, setPresetKey] = useState('ff-on-low');
       const [running, setRunning] = useState(true);
       const [, setTick] = useState(0);
-
-      const presetRef = useRef(PRESETS[presetKey]);
-      useEffect(() => { presetRef.current = PRESETS[presetKey]; }, [presetKey]);
-
       const stateRef = useRef(null);
-      const initState = () => {
-        const T0 = traj(0);
+      const rafRef = useRef(null);
+      const lastTimeRef = useRef(null);
+
+      const initState = useCallback(() => {
+        const tr = trajectory(0);
         stateRef.current = {
           t: 0,
-          q: [T0.q[0], T0.q[1]],
-          qd: [T0.qd[0], T0.qd[1]],
-          tauFf: [0, 0], tauFb: [0, 0], tauTot: [0, 0],
-          errSum: 0, errN: 0,
-          history: [],
-          stage: 0, stageT: 0,
+          q1: tr.q1, q2: tr.q2,
+          qd1: 0, qd2: 0,
+          tau_ff: [0,0], tau_fb: [0,0],
+          rmsAccum: 0, rmsN: 0,
+          history: []
         };
-      };
-      if (!stateRef.current) initState();
+      }, []);
+      if (stateRef.current === null) initState();
 
-      const reset = () => { initState(); setTick(x => x + 1); };
+      const reset = useCallback(() => {
+        initState();
+        lastTimeRef.current = null;
+        setTick(t => t+1);
+      }, [initState]);
+
+      useEffect(() => { reset(); /* eslint-disable-next-line */ }, [presetKey]);
 
       useEffect(() => {
-        if (!running) return;
-        let raf, last = performance.now();
-        const TMAX_TQ = 250;
-        const STAGE_DT = 0.32;
-
-        function frame(now) {
-          const dt = Math.min(0.05, (now - last) / 1000);
-          last = now;
-          const stepSize = 0.001;
-          const steps = Math.max(1, Math.round(dt / stepSize));
-          const st = stateRef.current;
-          const p = presetRef.current;
-
-          for (let i = 0; i < steps; i++) {
-            const T = traj(st.t);
-            const Dq = Dmat(st.q);
-            const h  = hVec(st.q, st.qd);
-            const c  = cVec(st.q);
-
-            let tauFf = [0, 0];
-            if (p.ff) {
-              const Dqdd = mv(Dq, T.qdd);
-              tauFf = [Dqdd[0] + h[0] + c[0], Dqdd[1] + h[1] + c[1]];
+        if (!running) {
+          if (rafRef.current) cancelAnimationFrame(rafRef.current);
+          rafRef.current = null; lastTimeRef.current = null;
+          return;
+        }
+        const preset = PRESETS[presetKey];
+        const step = (now) => {
+          if (lastTimeRef.current === null) lastTimeRef.current = now;
+          let dt = (now - lastTimeRef.current)/1000;
+          lastTimeRef.current = now;
+          dt = Math.min(dt, 0.05);
+          const subSteps = 6;
+          const h = dt/subSteps;
+          const s = stateRef.current;
+          for (let i = 0; i < subSteps; i++) {
+            const des = trajectory(s.t);
+            const e1 = des.q1 - s.q1, e2 = des.q2 - s.q2;
+            const ed1 = des.qd1 - s.qd1, ed2 = des.qd2 - s.qd2;
+            const tau_fb = [preset.Kp*e1 + preset.Kd*ed1, preset.Kp*e2 + preset.Kd*ed2];
+            let tau_ff = [0,0];
+            if (preset.ff) {
+              const D_d = inertiaMatrix(s.q1, s.q2);
+              const h_d = coriolisVector(s.q1, s.q2, des.qd1, des.qd2);
+              const c_d = gravityVector(s.q1, s.q2);
+              tau_ff = [
+                D_d[0][0]*des.qdd1 + D_d[0][1]*des.qdd2 + h_d[0] + c_d[0],
+                D_d[1][0]*des.qdd1 + D_d[1][1]*des.qdd2 + h_d[1] + c_d[1]
+              ];
             }
-            const e  = [T.q[0]  - st.q[0],  T.q[1]  - st.q[1]];
-            const ed = [T.qd[0] - st.qd[0], T.qd[1] - st.qd[1]];
-            const tauFb = [p.kp * e[0] + p.kd * ed[0], p.kp * e[1] + p.kd * ed[1]];
-
-            const dist = p.dist > 0
-              ? [p.dist * Math.sin(2.3 * st.t),
-                 p.dist * Math.cos(1.7 * st.t + 0.4)]
-              : [0, 0];
-
-            let tau = [tauFf[0] + tauFb[0] + dist[0], tauFf[1] + tauFb[1] + dist[1]];
-            tau[0] = Math.max(-TMAX_TQ, Math.min(TMAX_TQ, tau[0]));
-            tau[1] = Math.max(-TMAX_TQ, Math.min(TMAX_TQ, tau[1]));
-
-            const rhs = [tau[0] - h[0] - c[0], tau[1] - h[1] - c[1]];
-            const qdd = mv(inv2(Dq), rhs);
-
-            st.qd[0] = Math.max(-20, Math.min(20, st.qd[0] + qdd[0] * stepSize));
-            st.qd[1] = Math.max(-20, Math.min(20, st.qd[1] + qdd[1] * stepSize));
-            st.q[0] += st.qd[0] * stepSize;
-            st.q[1] += st.qd[1] * stepSize;
-
-            st.tauFf = tauFf; st.tauFb = tauFb; st.tauTot = tau;
-            st.errSum += e[0] * e[0] + e[1] * e[1];
-            st.errN += 1;
-            if (st.errN > 2000) { st.errSum *= 2000 / st.errN; st.errN = 2000; }
-
-            if (i === steps - 1) {
-              st.history.push({ t: st.t, q1: st.q[0], q2: st.q[1], q1d: T.q[0], q2d: T.q[1] });
-              if (st.history.length > 220) st.history.shift();
+            const SAT = 80;
+            const tau = [
+              Math.max(-SAT, Math.min(SAT, tau_ff[0] + tau_fb[0])),
+              Math.max(-SAT, Math.min(SAT, tau_ff[1] + tau_fb[1]))
+            ];
+            const dist = preset.disturb * Math.sin(2.5*s.t);
+            const tau_app = [tau[0] + dist, tau[1]];
+            const D = inertiaMatrix(s.q1, s.q2);
+            const hv = coriolisVector(s.q1, s.q2, s.qd1, s.qd2);
+            const cv = gravityVector(s.q1, s.q2);
+            const rhs = [tau_app[0] - hv[0] - cv[0], tau_app[1] - hv[1] - cv[1]];
+            const qdd = solve2(D, rhs);
+            s.qd1 += qdd[0]*h; s.qd2 += qdd[1]*h;
+            s.q1  += s.qd1*h;  s.q2  += s.qd2*h;
+            s.t   += h;
+            s.rmsAccum += e1*e1 + e2*e2; s.rmsN += 1;
+            s.tau_ff = tau_ff; s.tau_fb = tau_fb;
+            if (i === subSteps - 1) {
+              s.history.push({ t: s.t, q1: s.q1, q2: s.q2, q1d: des.q1, q2d: des.q2 });
+              if (s.history.length > 600) s.history.shift();
             }
-            st.t += stepSize;
           }
+          setTick(t => t+1);
+          rafRef.current = requestAnimationFrame(step);
+        };
+        rafRef.current = requestAnimationFrame(step);
+        return () => {
+          if (rafRef.current) cancelAnimationFrame(rafRef.current);
+          lastTimeRef.current = null;
+        };
+      }, [running, presetKey]);
 
-          st.stageT += dt;
-          if (st.stageT > STAGE_DT) { st.stageT = 0; st.stage = (st.stage + 1) % 7; }
-          setTick(x => (x + 1) & 0xff);
-          raf = requestAnimationFrame(frame);
-        }
-        raf = requestAnimationFrame(frame);
-        return () => cancelAnimationFrame(raf);
-      }, [running]);
+      const s = stateRef.current;
+      const preset = PRESETS[presetKey];
+      const des = trajectory(s.t);
+      const ffMag = Math.hypot(s.tau_ff[0], s.tau_ff[1]);
+      const fbMag = Math.hypot(s.tau_fb[0], s.tau_fb[1]);
+      const rms = s.rmsN > 0 ? Math.sqrt(s.rmsAccum/s.rmsN) : 0;
+      const rmsDeg = rms * 180/Math.PI;
 
-      const st = stateRef.current;
-      const tauFfMag = Math.hypot(st.tauFf[0], st.tauFf[1]);
-      const tauFbMag = Math.hypot(st.tauFb[0], st.tauFb[1]);
-      const errRms = st.errN ? Math.sqrt(st.errSum / st.errN) : 0;
+      const armCx = 130, armCy = 215, armScale = 75;
+      const x1 = armCx + armScale*Math.cos(s.q1);
+      const y1 = armCy - armScale*Math.sin(s.q1);
+      const x2 = x1 + armScale*Math.cos(s.q1+s.q2);
+      const y2 = y1 - armScale*Math.sin(s.q1+s.q2);
+      const dx1 = armCx + armScale*Math.cos(des.q1);
+      const dy1 = armCy - armScale*Math.sin(des.q1);
+      const dx2 = dx1 + armScale*Math.cos(des.q1+des.q2);
+      const dy2 = dy1 - armScale*Math.sin(des.q1+des.q2);
 
-      const scaleA = 175, cx = 250, cy = 215;
-      const armPts = (q) => {
-        const x1 = cx + scaleA * L1 * Math.cos(q[0]);
-        const y1 = cy - scaleA * L1 * Math.sin(q[0]);
-        const x2 = x1 + scaleA * L2 * Math.cos(q[0] + q[1]);
-        const y2 = y1 - scaleA * L2 * Math.sin(q[0] + q[1]);
-        return { x1, y1, x2, y2 };
-      };
-      const Tnow = traj(st.t);
-      const aDes = armPts(Tnow.q);
-      const aAct = armPts(st.q);
+      const plotW = 460, plotH = 150, plotPad = 30;
+      const tNow = s.t;
+      const tMin = Math.max(0, tNow - 6);
+      const tMax = tNow + 0.5;
+      const yMin = -2.5, yMax = 2.7;
+      const tx = (t) => plotPad + (t - tMin)/(tMax - tMin) * (plotW - 2*plotPad);
+      const ty = (q) => plotPad + (1 - (q - yMin)/(yMax - yMin)) * (plotH - 2*plotPad);
+      const pathFor = (key) => s.history.map((p, i) =>
+        `${i===0?'M':'L'}${tx(p.t).toFixed(1)},${ty(p[key]).toFixed(1)}`).join(' ');
 
-      const plotW = 500, plotH = 260;
-      const histLen = st.history.length;
-      const tMax = histLen ? st.history[histLen - 1].t : 1;
-      const tMin = histLen ? Math.max(0, tMax - 3.5) : 0;
-      const tRange = Math.max(0.01, tMax - tMin);
-      const qMin = -2.2, qMax = 2.2;
-      const xPix = (t) => 50 + (t - tMin) / tRange * (plotW - 60);
-      const yPix = (q) => 20 + (qMax - q) / (qMax - qMin) * (plotH - 40);
-      const clampY = (q) => Math.max(qMin, Math.min(qMax, q));
-      const poly = (key) => {
-        if (!histLen) return '';
-        let out = '';
-        let started = false;
-        for (let i = 0; i < histLen; i++) {
-          const p = st.history[i];
-          if (p.t < tMin) continue;
-          out += (started ? 'L' : 'M') + xPix(p.t).toFixed(1) + ' ' + yPix(clampY(p[key])).toFixed(1) + ' ';
-          started = true;
-        }
-        return out;
-      };
+      const TAU_MAX_BAR = 60;
+      const ffPct = Math.min(1, ffMag/TAU_MAX_BAR);
+      const fbPct = Math.min(1, fbMag/TAU_MAX_BAR);
 
-      const callout = {
-        'ff-on-low':   'Feedforward predicts the torque the physics needs; feedback only mops up modelling residue. ‖τ_fb‖ stays small.',
-        'ff-off-low':  'Without feedforward, feedback alone must fight inertia, Coriolis and gravity. Error explodes — the lecture\u2019s punchline.',
-        'ff-off-high': 'Cranking PD gains brings error down, but ‖τ_fb‖ skyrockets and the loop is brittle near saturation.',
-        'ff-on-dist':  'External disturbance is what the model can\u2019t predict. τ_ff stays steady; τ_fb absorbs the unmodeled push.',
-      }[presetKey];
+      const q1Deg = (s.q1*180/Math.PI).toFixed(1);
+      const q1dDeg = (des.q1*180/Math.PI).toFixed(1);
+      const q2Deg = (s.q2*180/Math.PI).toFixed(1);
+      const q2dDeg = (des.q2*180/Math.PI).toFixed(1);
 
       return (
-        <div className="ctc-widget">
+        <div className="ctc-root">
           <style>{`
-            #computed-torque-loop .ctc-widget {
-              font-family: var(--font-body);
-              color: var(--ink);
-              background: var(--surface);
-              border: 1px solid var(--border);
-              border-radius: 12px;
-              padding: 18px 20px 20px;
-              max-width: 100%;
-              max-height: 1200px;
-              overflow: hidden;
-              box-shadow: 0 1px 0 rgba(0,0,0,0.02);
-            }
-            #computed-torque-loop .ctc-stages {
-              display: grid;
-              grid-template-columns: repeat(7, minmax(0,1fr));
-              gap: 5px;
-              margin-bottom: 14px;
-            }
-            #computed-torque-loop .ctc-stage {
-              border: 1px solid var(--border);
-              border-radius: 6px;
-              padding: 7px 8px;
-              font-size: 0.72rem;
-              line-height: 1.25;
-              background: var(--page-bg);
-              color: var(--ink);
-              transition: background 0.18s ease, color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
-              min-width: 0;
-            }
-            #computed-torque-loop .ctc-stage.active {
-              background: var(--accent);
-              color: #fff;
-              border-color: var(--accent);
-              transform: translateY(-2px);
-              box-shadow: 0 3px 8px rgba(200,68,42,0.28);
-            }
-            #computed-torque-loop .ctc-stage .sym {
-              font-family: var(--font-mono);
-              font-size: 0.7rem;
-              opacity: 0.85;
-              display: block;
-              margin-top: 3px;
-              white-space: nowrap;
-              overflow: hidden;
-              text-overflow: ellipsis;
-            }
-            #computed-torque-loop .ctc-row {
-              display: flex;
-              gap: 14px;
-              flex-wrap: wrap;
-            }
-            #computed-torque-loop .ctc-panel {
-              flex: 1 1 320px;
-              min-width: 280px;
-              border: 1px solid var(--border);
+            .ctc-root {
+              font-family: var(--font-body, system-ui, sans-serif);
+              color: var(--ink, #15202b);
+              background: var(--surface, #fff);
+              border: 1px solid var(--border, #d9d2c3);
               border-radius: 10px;
-              background: var(--page-bg);
-              padding: 12px;
-              box-sizing: border-box;
+              padding: 16px;
+              display: flex; flex-direction: column; gap: 12px;
             }
-            #computed-torque-loop .ctc-h {
-              font-family: var(--font-display);
-              font-size: 0.78rem;
-              margin: 0 0 8px;
-              color: var(--ink-soft);
-              text-transform: uppercase;
-              letter-spacing: 0.06em;
+            .ctc-row { display: flex; flex-wrap: wrap; gap: 12px; }
+            .ctc-controls { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+            .ctc-btn {
+              font-family: var(--font-body); font-size: 12px;
+              padding: 5px 11px; border-radius: 6px;
+              border: 1px solid var(--border, #d9d2c3);
+              background: var(--surface, #fff);
+              color: var(--ink, #15202b);
+              cursor: pointer; transition: all .12s;
             }
-            #computed-torque-loop .ctc-legend {
-              display: flex; flex-wrap: wrap; gap: 12px;
-              font-size: 0.74rem; color: var(--ink-soft); margin-top: 6px;
-              font-family: var(--font-mono);
+            .ctc-btn:hover { border-color: var(--accent, #c8442a); }
+            .ctc-btn.primary { background: var(--accent, #c8442a); color: #fff; border-color: var(--accent); }
+            .ctc-btn.ghost { color: var(--ink-soft, #5a6770); }
+            .ctc-preset.active { background: var(--accent-2, #1f4e6e); color: #fff; border-color: var(--accent-2); }
+            .ctc-panel {
+              flex: 1 1 280px; min-width: 240px;
+              background: var(--page-bg, #f4f1ea);
+              border-radius: 8px; padding: 12px;
             }
-            #computed-torque-loop .ctc-legend span { display: inline-flex; align-items: center; gap: 5px; }
-            #computed-torque-loop .ctc-legend i { width: 16px; height: 3px; display: inline-block; }
-            #computed-torque-loop .ctc-readouts {
-              display: grid;
-              grid-template-columns: repeat(3, minmax(0,1fr));
-              gap: 10px;
-              margin-top: 12px;
+            .ctc-h {
+              font-family: var(--font-display, sans-serif);
+              font-size: 11px; font-weight: 600;
+              text-transform: uppercase; letter-spacing: .08em;
+              color: var(--ink-soft, #5a6770);
+              margin: 0 0 8px 0;
             }
-            #computed-torque-loop .ctc-readout {
-              border: 1px solid var(--border);
-              border-radius: 8px;
-              padding: 10px 12px;
-              background: var(--page-bg);
+            .ctc-readout {
+              display: flex; justify-content: space-between; align-items: center;
+              font-family: var(--font-mono, monospace);
+              font-size: 12px; line-height: 1.7;
             }
-            #computed-torque-loop .ctc-readout .lbl {
-              font-size: 0.7rem; color: var(--ink-soft);
-              text-transform: uppercase; letter-spacing: 0.05em;
-              font-family: var(--font-body);
+            .ctc-readout .lbl { color: var(--ink-soft, #5a6770); }
+            .ctc-bar {
+              height: 7px; background: rgba(0,0,0,0.08);
+              border-radius: 4px; overflow: hidden;
+              margin-top: 3px; margin-bottom: 8px;
             }
-            #computed-torque-loop .ctc-readout .val {
-              font-family: var(--font-mono);
-              font-size: 1.05rem;
-              color: var(--ink);
-              margin-top: 3px;
+            .ctc-bar > div { height: 100%; transition: width .1s linear; }
+            .ctc-note {
+              font-size: 13px; color: var(--ink, #15202b);
+              line-height: 1.5;
+              padding: 10px 12px; background: rgba(31,78,110,0.07);
+              border-left: 3px solid var(--accent-2, #1f4e6e);
+              border-radius: 4px;
             }
-            #computed-torque-loop .ctc-readout .bar {
-              height: 6px; background: var(--border); border-radius: 3px;
-              margin-top: 7px; overflow: hidden;
+            .ctc-stage-list {
+              display: flex; flex-wrap: wrap; gap: 4px;
+              font-family: var(--font-mono, monospace);
+              font-size: 10px;
             }
-            #computed-torque-loop .ctc-readout .bar > div { height: 100%; transition: width 0.12s linear; }
-            #computed-torque-loop .ctc-controls {
-              display: flex; flex-wrap: wrap; gap: 8px;
-              margin-top: 14px; align-items: center;
+            .ctc-stage {
+              padding: 2px 6px; border-radius: 3px;
+              background: rgba(0,0,0,0.05);
+              color: var(--ink-soft, #5a6770);
             }
-            #computed-torque-loop .ctc-btn {
-              font-family: var(--font-body);
-              font-size: 0.85rem;
-              padding: 7px 14px;
-              border-radius: 6px;
-              border: 1px solid var(--border);
-              background: var(--surface);
-              color: var(--ink);
-              cursor: pointer;
-              transition: border-color 0.12s, color 0.12s, background 0.12s;
-            }
-            #computed-torque-loop .ctc-btn:hover { border-color: var(--accent); color: var(--accent); }
-            #computed-torque-loop .ctc-btn:focus-visible { outline: 2px solid var(--accent-2); outline-offset: 2px; }
-            #computed-torque-loop .ctc-btn.primary {
-              background: var(--accent); color: #fff; border-color: var(--accent);
-            }
-            #computed-torque-loop .ctc-btn.primary:hover {
-              background: var(--accent-2); border-color: var(--accent-2); color: #fff;
-            }
-            #computed-torque-loop .ctc-preset {
-              font-family: var(--font-body);
-              font-size: 0.78rem;
-              padding: 6px 10px;
-              border-radius: 6px;
-              border: 1px solid var(--border);
-              background: var(--surface);
-              color: var(--ink-soft);
-              cursor: pointer;
-            }
-            #computed-torque-loop .ctc-preset:hover { color: var(--ink); border-color: var(--ink-soft); }
-            #computed-torque-loop .ctc-preset.active {
-              background: var(--accent-2); color: #fff; border-color: var(--accent-2);
-            }
-            #computed-torque-loop .ctc-callout {
-              font-size: 0.85rem;
-              line-height: 1.45;
-              color: var(--ink);
-              margin-top: 12px;
-              padding: 9px 12px;
-              border-left: 3px solid var(--accent);
-              background: rgba(200,68,42,0.07);
-              border-radius: 0 6px 6px 0;
-            }
-            #computed-torque-loop .ctc-spacer { flex: 1 1 8px; }
+            .ctc-spacer { flex: 1; }
           `}</style>
 
-          <div className="ctc-stages" role="list" aria-label="Computed-torque pipeline stages">
-            {STAGES.map((s, i) => (
-              <div key={i}
-                   role="listitem"
-                   className={'ctc-stage' + (i === st.stage ? ' active' : '')}>
-                {s.label}
-                <span className="sym">{s.sym}</span>
-              </div>
-            ))}
-          </div>
-
-          <div className="ctc-row">
-            <div className="ctc-panel" style={{flex:'1 1 360px'}}>
-              <div className="ctc-h">2-DOF arm · desired (ghost) vs actual</div>
-              <svg viewBox="0 0 500 330" width="100%" style={{maxHeight: 320, display:'block'}}
-                   aria-label="Planar two-link arm showing desired and actual posture">
-                <defs>
-                  <marker id="ctc-arrhd" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
-                    <path d="M0,0 L6,3 L0,6 z" fill="var(--bad)"/>
-                  </marker>
-                  <marker id="ctc-garr" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
-                    <path d="M0,0 L6,3 L0,6 z" fill="var(--ink-soft)"/>
-                  </marker>
-                </defs>
-                <line x1="30" y1={cy} x2="470" y2={cy} stroke="var(--border)" strokeDasharray="3 4"/>
-                <circle cx={cx} cy={cy} r={scaleA*(L1+L2)} fill="none" stroke="var(--border)" strokeDasharray="2 5" opacity="0.45"/>
-                <line x1={cx} y1={cy} x2={aDes.x1} y2={aDes.y1} stroke="var(--accent-2)" strokeWidth="6" strokeOpacity="0.28" strokeLinecap="round"/>
-                <line x1={aDes.x1} y1={aDes.y1} x2={aDes.x2} y2={aDes.y2} stroke="var(--accent-2)" strokeWidth="5" strokeOpacity="0.28" strokeLinecap="round"/>
-                <circle cx={aDes.x1} cy={aDes.y1} r="5" fill="var(--accent-2)" fillOpacity="0.35"/>
-                <circle cx={aDes.x2} cy={aDes.y2} r="6" fill="var(--accent-2)" fillOpacity="0.35"/>
-                <line x1={cx} y1={cy} x2={aAct.x1} y2={aAct.y1} stroke="var(--ink)" strokeWidth="6" strokeLinecap="round"/>
-                <line x1={aAct.x1} y1={aAct.y1} x2={aAct.x2} y2={aAct.y2} stroke="var(--ink)" strokeWidth="5" strokeLinecap="round"/>
-                <circle cx={cx} cy={cy} r="9" fill="var(--accent)"/>
-                <circle cx={aAct.x1} cy={aAct.y1} r="6" fill="var(--accent)"/>
-                <circle cx={aAct.x2} cy={aAct.y2} r="6.5" fill="var(--accent)"/>
-                <line x1={aAct.x2} y1={aAct.y2} x2={aDes.x2} y2={aDes.y2}
-                      stroke="var(--bad)" strokeWidth="1.8" strokeDasharray="3 3"
-                      markerEnd="url(#ctc-arrhd)"/>
-                <line x1="445" y1="30" x2="445" y2="62" stroke="var(--ink-soft)" strokeWidth="1.5" markerEnd="url(#ctc-garr)"/>
-                <text x="450" y="50" fontSize="12" fill="var(--ink-soft)" fontFamily="var(--font-mono)">g</text>
-                <text x="40" y="28" fontSize="11.5" fill="var(--ink-soft)" fontFamily="var(--font-mono)">
-                  q\u2081 = {(st.q[0]*180/Math.PI).toFixed(1)}\u00B0   q\u2081_d = {(Tnow.q[0]*180/Math.PI).toFixed(1)}\u00B0
-                </text>
-                <text x="40" y="46" fontSize="11.5" fill="var(--ink-soft)" fontFamily="var(--font-mono)">
-                  q\u2082 = {(st.q[1]*180/Math.PI).toFixed(1)}\u00B0   q\u2082_d = {(Tnow.q[1]*180/Math.PI).toFixed(1)}\u00B0
-                </text>
-              </svg>
-              <div className="ctc-legend">
-                <span><i style={{background:'var(--ink)'}}/>actual q</span>
-                <span><i style={{background:'var(--accent-2)', opacity:0.45}}/>desired q_d</span>
-                <span><i style={{background:'var(--bad)'}}/>tracking error</span>
-              </div>
-            </div>
-
-            <div className="ctc-panel" style={{flex:'1 1 360px'}}>
-              <div className="ctc-h">Tracking · q vs q_d (rolling 3.5 s)</div>
-              <svg viewBox={'0 0 ' + plotW + ' ' + plotH} width="100%" style={{maxHeight: 280, display:'block'}}
-                   aria-label="Time-series plot of desired versus actual joint angles">
-                <line x1="50" y1="20" x2="50" y2={plotH-20} stroke="var(--border)"/>
-                <line x1="50" y1={plotH-20} x2={plotW-10} y2={plotH-20} stroke="var(--border)"/>
-                {[-2,-1,0,1,2].map(v => (
-                  <g key={v}>
-                    <line x1="50" y1={yPix(v)} x2={plotW-10} y2={yPix(v)} stroke="var(--border)" strokeDasharray="2 5" opacity="0.45"/>
-                    <text x="44" y={yPix(v)+4} fontSize="10.5" fill="var(--ink-soft)" textAnchor="end" fontFamily="var(--font-mono)">{v.toFixed(0)}</text>
-                  </g>
-                ))}
-                <path d={poly('q1d')} fill="none" stroke="var(--accent-2)" strokeWidth="2" strokeOpacity="0.45" strokeDasharray="5 3"/>
-                <path d={poly('q2d')} fill="none" stroke="var(--good)"     strokeWidth="2" strokeOpacity="0.45" strokeDasharray="5 3"/>
-                <path d={poly('q1')}  fill="none" stroke="var(--accent-2)" strokeWidth="2.2"/>
-                <path d={poly('q2')}  fill="none" stroke="var(--good)"     strokeWidth="2.2"/>
-                <text x={plotW/2} y={plotH-4} fontSize="11" fill="var(--ink-soft)" textAnchor="middle" fontFamily="var(--font-mono)">t (s)</text>
-                <text x="14" y={plotH/2} fontSize="11" fill="var(--ink-soft)" textAnchor="middle" fontFamily="var(--font-mono)" transform={'rotate(-90 14 ' + (plotH/2) + ')'}>q (rad)</text>
-              </svg>
-              <div className="ctc-legend">
-                <span><i style={{background:'var(--accent-2)'}}/>q\u2081</span>
-                <span><i style={{background:'var(--accent-2)', opacity:0.5}}/>q\u2081_d</span>
-                <span><i style={{background:'var(--good)'}}/>q\u2082</span>
-                <span><i style={{background:'var(--good)', opacity:0.5}}/>q\u2082_d</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="ctc-readouts">
-            <div className="ctc-readout">
-              <div className="lbl">‖\u03C4_ff‖  feedforward</div>
-              <div className="val">{tauFfMag.toFixed(2)} N\u00B7m</div>
-              <div className="bar"><div style={{width: Math.min(100, tauFfMag/2.5) + '%', background:'var(--accent-2)'}}/></div>
-            </div>
-            <div className="ctc-readout">
-              <div className="lbl">‖\u03C4_fb‖  feedback</div>
-              <div className="val">{tauFbMag.toFixed(2)} N\u00B7m</div>
-              <div className="bar"><div style={{width: Math.min(100, tauFbMag/2.5) + '%', background:'var(--accent)'}}/></div>
-            </div>
-            <div className="ctc-readout">
-              <div className="lbl">tracking error RMS</div>
-              <div className="val">{errRms.toFixed(4)} rad</div>
-              <div className="bar"><div style={{width: Math.min(100, errRms*180) + '%', background:'var(--bad)'}}/></div>
-            </div>
-          </div>
-
           <div className="ctc-controls">
-            <button className="ctc-btn primary" onClick={() => setRunning(r => !r)} aria-pressed={running}>
-              {running ? '\u23F8  Pause' : '\u25B6  Play'}
+            <button className="ctc-btn primary" onClick={() => setRunning(r => !r)}
+              aria-label={running ? 'Pause' : 'Play'}>
+              {running ? '⏸ Pause' : '▶ Play'}
             </button>
-            <button className="ctc-btn" onClick={reset}>\u21BA  Reset</button>
-            <div className="ctc-spacer"/>
-            {Object.entries(PRESETS).map(([k, v]) => (
-              <button key={k}
-                      className={'ctc-preset' + (k === presetKey ? ' active' : '')}
-                      onClick={() => { setPresetKey(k); reset(); }}
-                      aria-pressed={k === presetKey}>
-                {v.label}
+            <button className="ctc-btn ghost" onClick={reset} aria-label="Reset">↺ Reset</button>
+            <span className="ctc-spacer"/>
+            {Object.entries(PRESETS).map(([key, p]) => (
+              <button key={key}
+                className={'ctc-btn ctc-preset' + (key === presetKey ? ' active' : '')}
+                onClick={() => setPresetKey(key)}>
+                {p.label}
               </button>
             ))}
           </div>
 
-          <div className="ctc-callout">{callout}</div>
+          <div className="ctc-row">
+            <div className="ctc-panel" style={{flex:'0 0 280px'}}>
+              <p className="ctc-h">2-DOF arm · q (solid) vs q_d (ghost)</p>
+              <svg viewBox="0 0 260 260" style={{width:'100%', height:'auto'}}>
+                <line x1="20" y1={armCy} x2="240" y2={armCy}
+                  stroke="var(--border)" strokeWidth="1" strokeDasharray="3,3"/>
+                <line x1={armCx} y1={armCy} x2={dx1} y2={dy1}
+                  stroke="var(--ink-soft)" strokeWidth="6" strokeOpacity="0.22" strokeLinecap="round"/>
+                <line x1={dx1} y1={dy1} x2={dx2} y2={dy2}
+                  stroke="var(--ink-soft)" strokeWidth="6" strokeOpacity="0.22" strokeLinecap="round"/>
+                <circle cx={dx2} cy={dy2} r="5" fill="var(--ink-soft)" opacity="0.35"/>
+                <line x1={armCx} y1={armCy} x2={x1} y2={y1}
+                  stroke="var(--accent-2)" strokeWidth="7" strokeLinecap="round"/>
+                <line x1={x1} y1={y1} x2={x2} y2={y2}
+                  stroke="var(--accent)" strokeWidth="7" strokeLinecap="round"/>
+                <circle cx={armCx} cy={armCy} r="6" fill="var(--ink)"/>
+                <circle cx={x1} cy={y1} r="5" fill="var(--ink)"/>
+                <circle cx={x2} cy={y2} r="5" fill="var(--accent)"/>
+              </svg>
+              <div className="ctc-readout">
+                <span className="lbl">q₁ / q₁_d</span>
+                <span>{q1Deg}° / {q1dDeg}°</span>
+              </div>
+              <div className="ctc-readout">
+                <span className="lbl">q₂ / q₂_d</span>
+                <span>{q2Deg}° / {q2dDeg}°</span>
+              </div>
+              <div className="ctc-readout">
+                <span className="lbl">t</span>
+                <span>{s.t.toFixed(2)} s</span>
+              </div>
+            </div>
+
+            <div className="ctc-panel" style={{flex:'1 1 380px'}}>
+              <p className="ctc-h">Joint tracking · q vs q_d (rad)</p>
+              <svg viewBox={`0 0 ${plotW} ${plotH}`} style={{width:'100%', height:'auto'}}>
+                <line x1={plotPad} y1={ty(0)} x2={plotW-plotPad} y2={ty(0)}
+                  stroke="var(--border)" strokeWidth="0.5"/>
+                <line x1={plotPad} y1={plotPad} x2={plotPad} y2={plotH-plotPad}
+                  stroke="var(--border)" strokeWidth="1"/>
+                <line x1={plotPad} y1={plotH-plotPad} x2={plotW-plotPad} y2={plotH-plotPad}
+                  stroke="var(--border)" strokeWidth="1"/>
+                <path d={pathFor('q1d')} fill="none" stroke="var(--accent-2)"
+                  strokeWidth="1.5" strokeOpacity="0.55" strokeDasharray="4,3"/>
+                <path d={pathFor('q1')} fill="none" stroke="var(--accent-2)" strokeWidth="2"/>
+                <path d={pathFor('q2d')} fill="none" stroke="var(--accent)"
+                  strokeWidth="1.5" strokeOpacity="0.55" strokeDasharray="4,3"/>
+                <path d={pathFor('q2')} fill="none" stroke="var(--accent)" strokeWidth="2"/>
+                <text x={plotPad-4} y={ty(yMax)+4} fontSize="9" textAnchor="end" fill="var(--ink-soft)">+2.5</text>
+                <text x={plotPad-4} y={ty(0)+3} fontSize="9" textAnchor="end" fill="var(--ink-soft)">0</text>
+                <text x={plotPad-4} y={ty(yMin)} fontSize="9" textAnchor="end" fill="var(--ink-soft)">−2.5</text>
+                <text x={plotW-plotPad} y={plotH-plotPad+12} fontSize="9" textAnchor="end" fill="var(--ink-soft)">t (s)</text>
+                <g transform={`translate(${plotPad+6}, ${plotPad+4})`}>
+                  <line x1="0" y1="0" x2="14" y2="0" stroke="var(--accent-2)" strokeWidth="2"/>
+                  <text x="18" y="3" fontSize="9" fill="var(--ink)">q₁</text>
+                  <line x1="40" y1="0" x2="54" y2="0" stroke="var(--accent-2)"
+                    strokeWidth="1.5" strokeOpacity="0.55" strokeDasharray="4,3"/>
+                  <text x="58" y="3" fontSize="9" fill="var(--ink)">q₁_d</text>
+                  <line x1="92" y1="0" x2="106" y2="0" stroke="var(--accent)" strokeWidth="2"/>
+                  <text x="110" y="3" fontSize="9" fill="var(--ink)">q₂</text>
+                  <line x1="132" y1="0" x2="146" y2="0" stroke="var(--accent)"
+                    strokeWidth="1.5" strokeOpacity="0.55" strokeDasharray="4,3"/>
+                  <text x="150" y="3" fontSize="9" fill="var(--ink)">q₂_d</text>
+                </g>
+              </svg>
+            </div>
+
+            <div className="ctc-panel" style={{flex:'1 1 240px'}}>
+              <p className="ctc-h">Torque budget · ‖τ‖ (N·m)</p>
+              <div className="ctc-readout">
+                <span className="lbl">‖τ_ff‖ feedforward</span>
+                <span style={{color:'var(--good)', fontWeight:600}}>{ffMag.toFixed(2)}</span>
+              </div>
+              <div className="ctc-bar">
+                <div style={{width:(ffPct*100).toFixed(0)+'%', background:'var(--good)'}}/>
+              </div>
+              <div className="ctc-readout">
+                <span className="lbl">‖τ_fb‖ feedback</span>
+                <span style={{
+                  color: fbMag > 30 ? 'var(--bad)' : 'var(--accent)',
+                  fontWeight: 600
+                }}>{fbMag.toFixed(2)}</span>
+              </div>
+              <div className="ctc-bar">
+                <div style={{
+                  width:(fbPct*100).toFixed(0)+'%',
+                  background: fbMag > 30 ? 'var(--bad)' : 'var(--accent)'
+                }}/>
+              </div>
+              <div style={{height:6}}/>
+              <p className="ctc-h">Tracking error (RMS, since reset)</p>
+              <div className="ctc-readout">
+                <span className="lbl">RMS ‖e‖</span>
+                <span style={{
+                  color: rmsDeg > 15 ? 'var(--bad)' : (rmsDeg > 5 ? 'var(--accent)' : 'var(--good)'),
+                  fontWeight: 700
+                }}>{rmsDeg.toFixed(2)}°</span>
+              </div>
+              <div className="ctc-bar">
+                <div style={{
+                  width: Math.min(100, rmsDeg/30*100).toFixed(0)+'%',
+                  background: rmsDeg > 15 ? 'var(--bad)' : (rmsDeg > 5 ? 'var(--accent)' : 'var(--good)')
+                }}/>
+              </div>
+              <div className="ctc-stage-list" style={{marginTop:10}}>
+                <span className="ctc-stage">plan q_d, q̇_d, q̈_d</span>
+                <span className="ctc-stage">D·q̈_d + h + c → τ_ff</span>
+                <span className="ctc-stage">K_p·e + K_d·ė → τ_fb</span>
+                <span className="ctc-stage">τ_ff + τ_fb → plant</span>
+                <span className="ctc-stage">D⁻¹(τ − h − c) → q̈</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="ctc-note">{preset.note}</div>
         </div>
       );
     }
 
     const mount = document.getElementById('computed-torque-loop');
-    if (!mount) {
-      console.error('computed-torque-loop mount missing');
-    } else {
+    if (mount) {
       ReactDOM.createRoot(mount).render(<Widget />);
     }
   } catch (e) {
     const mount = document.getElementById('computed-torque-loop');
-    if (mount) mount.innerHTML = '<div class="widget-fail" style="padding:16px;color:#b3261e;font-family:system-ui,sans-serif">Widget failed to load</div>';
+    if (mount) mount.innerHTML = '<div class="widget-fail">Widget failed to load</div>';
     console.error(e);
   }
 })();
