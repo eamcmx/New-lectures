@@ -3574,394 +3574,495 @@ footer.endcap {
   }
 })();
 </script>
-<!-- widget: computed-torque-loop (animator) -->
+<!-- widget: computed-torque-loop · rebuilt 2026-05-23T21:16:34.570Z -->
 <script type="text/babel">
 (function () {
   try {
     const { useState, useEffect, useRef } = React;
 
-    // 2-DOF planar arm physics
-    const m1=1, m2=1, l1=1, l2=1, lc1=0.5, lc2=0.5;
-    const I1=1/12, I2=1/12, gAcc=9.81;
-    const A_c = m1*lc1*lc1 + m2*(l1*l1 + lc2*lc2) + I1 + I2;
-    const B_c = m2*l1*lc2;
-    const C_c = m2*lc2*lc2 + I2;
-
-    const inertia = (q) => {
-      const c2 = Math.cos(q[1]);
-      return [[A_c + 2*B_c*c2, C_c + B_c*c2],
-              [C_c + B_c*c2,   C_c]];
-    };
-    const coriolis = (q, qd) => {
-      const s2 = Math.sin(q[1]);
-      return [-B_c*s2*(2*qd[0]*qd[1] + qd[1]*qd[1]),
-              B_c*s2*qd[0]*qd[0]];
-    };
-    const gravityVec = (q) => {
-      const c1 = Math.cos(q[0]);
-      const c12 = Math.cos(q[0] + q[1]);
-      return [m1*gAcc*lc1*c1 + m2*gAcc*(l1*c1 + lc2*c12),
-              m2*gAcc*lc2*c12];
-    };
-    const solve2 = (M, b) => {
-      const det = M[0][0]*M[1][1] - M[0][1]*M[1][0];
-      return [( M[1][1]*b[0] - M[0][1]*b[1])/det,
-              (-M[1][0]*b[0] + M[0][0]*b[1])/det];
-    };
-
-    const omega = 1.4;
-    const A1 = 0.55, A2 = 0.65;
-    const q1_off = Math.PI*0.30, q2_off = -Math.PI*0.45;
-    const traj = (t) => {
-      const a1 = omega*t, a2 = omega*1.3*t;
-      return {
-        q:   [q1_off + A1*Math.sin(a1),                q2_off + A2*Math.sin(a2)],
-        qd:  [A1*omega*Math.cos(a1),                   A2*omega*1.3*Math.cos(a2)],
-        qdd: [-A1*omega*omega*Math.sin(a1),            -A2*omega*omega*1.69*Math.sin(a2)]
-      };
+    const PRESETS = {
+      'ff-on-low':   { label: 'FF on · gains low',     ff: true,  kp: 35,  kd: 8,  dist: 0 },
+      'ff-off-low':  { label: 'FF off · gains low',    ff: false, kp: 35,  kd: 8,  dist: 0 },
+      'ff-off-high': { label: 'FF off · gains high',   ff: false, kp: 400, kd: 40, dist: 0 },
+      'ff-on-dist':  { label: 'FF on · disturbance',   ff: true,  kp: 35,  kd: 8,  dist: 8 },
     };
 
     const STAGES = [
-      { lbl: 'Plan',        sub: 'q\u2099, q\u0307\u2099, q\u0308\u2099' },
-      { lbl: 'Inverse Dyn', sub: '\u03C4_ff = D q\u0308\u2099 + h + c' },
-      { lbl: 'Error',       sub: 'e = q\u2099 \u2212 q' },
-      { lbl: 'PD Feedback', sub: '\u03C4_fb = K\u209A e + K_d \u0117' },
-      { lbl: '\u03A3 Sum',  sub: '\u03C4 = \u03C4_ff + \u03C4_fb' },
-      { lbl: 'Plant',       sub: 'D(q) q\u0308 = \u03C4 \u2212 h \u2212 c' },
-      { lbl: 'Integrate',   sub: 'q\u0307, q \u2190 \u222B' }
+      { label: '1 · Plan trajectory',  sym: 'q_d, q\u0307_d, q\u0308_d' },
+      { label: '2 · Inverse dynamics', sym: '\u03C4_ff' },
+      { label: '3 · Tracking error',   sym: 'e = q_d \u2212 q' },
+      { label: '4 · PD feedback',      sym: '\u03C4_fb' },
+      { label: '5 · Sum torques',      sym: '\u03C4 = \u03C4_ff + \u03C4_fb' },
+      { label: '6 · Apply to plant',   sym: '\u03C4 \u2192 arm' },
+      { label: '7 · Forward dynamics', sym: 'q\u0308 = D\u207B\u00B9(\u03C4 \u2212 h \u2212 c)' },
     ];
 
-    const PRESETS = [
-      { name: 'FF on \u00B7 gains low',     ff: true,  kp: 50,  kd: 10, dist: false },
-      { name: 'FF off \u00B7 gains low',    ff: false, kp: 50,  kd: 10, dist: false },
-      { name: 'FF off \u00B7 gains high',   ff: false, kp: 450, kd: 42, dist: false },
-      { name: 'FF on \u00B7 disturbance',   ff: true,  kp: 50,  kd: 10, dist: true  }
-    ];
+    const L1 = 0.5, L2 = 0.4, M1 = 1.5, M2 = 1.0, G = 9.81;
+    const Q0 = [Math.PI / 3, -Math.PI / 3];
+    const AMP = [0.55, 0.65];
+    const OMEGA = 1.7;
+
+    function Dmat(q) {
+      const c2 = Math.cos(q[1]);
+      const d11 = M1 * L1 * L1 + M2 * (L1 * L1 + L2 * L2 + 2 * L1 * L2 * c2);
+      const d12 = M2 * (L2 * L2 + L1 * L2 * c2);
+      const d22 = M2 * L2 * L2;
+      return [[d11, d12], [d12, d22]];
+    }
+    function hVec(q, qd) {
+      const s2 = Math.sin(q[1]);
+      return [
+        -M2 * L1 * L2 * s2 * (2 * qd[0] * qd[1] + qd[1] * qd[1]),
+         M2 * L1 * L2 * s2 * qd[0] * qd[0],
+      ];
+    }
+    function cVec(q) {
+      return [
+        (M1 + M2) * G * L1 * Math.cos(q[0]) + M2 * G * L2 * Math.cos(q[0] + q[1]),
+        M2 * G * L2 * Math.cos(q[0] + q[1]),
+      ];
+    }
+    function inv2(M) {
+      const det = M[0][0] * M[1][1] - M[0][1] * M[1][0];
+      return [[M[1][1] / det, -M[0][1] / det], [-M[1][0] / det, M[0][0] / det]];
+    }
+    function mv(M, v) { return [M[0][0] * v[0] + M[0][1] * v[1], M[1][0] * v[0] + M[1][1] * v[1]]; }
+
+    function traj(t) {
+      return {
+        q:   [Q0[0] + AMP[0] * Math.sin(OMEGA * t),
+              Q0[1] + AMP[1] * Math.sin(OMEGA * t + 0.6)],
+        qd:  [AMP[0] * OMEGA * Math.cos(OMEGA * t),
+              AMP[1] * OMEGA * Math.cos(OMEGA * t + 0.6)],
+        qdd: [-AMP[0] * OMEGA * OMEGA * Math.sin(OMEGA * t),
+              -AMP[1] * OMEGA * OMEGA * Math.sin(OMEGA * t + 0.6)],
+      };
+    }
 
     function Widget() {
-      const [running, setRunning]   = useState(false);
-      const [ffOn,    setFfOn]      = useState(true);
-      const [kp,      setKp]        = useState(50);
-      const [kd,      setKd]        = useState(10);
-      const [disturb, setDisturb]   = useState(false);
-      const [stageIdx,setStageIdx]  = useState(0);
-      const [, setTick]             = useState(0);
+      const [presetKey, setPresetKey] = useState('ff-on-low');
+      const [running, setRunning] = useState(true);
+      const [, setTick] = useState(0);
 
-      const sim = useRef({
-        t: 0, q: [q1_off, q2_off], qd: [0, 0],
-        tauFf: [0,0], tauFb: [0,0], dist: [0,0],
-        hist: [], rms: 0
-      });
-      const rafRef = useRef(null);
-      const stageRef = useRef({ acc: 0, frame: 0 });
+      const presetRef = useRef(PRESETS[presetKey]);
+      useEffect(() => { presetRef.current = PRESETS[presetKey]; }, [presetKey]);
 
-      const reset = () => {
-        sim.current = { t: 0, q: [q1_off, q2_off], qd: [0, 0],
-                        tauFf:[0,0], tauFb:[0,0], dist:[0,0], hist: [], rms: 0 };
-        stageRef.current = { acc: 0, frame: 0 };
-        setStageIdx(0); setTick(t => t+1);
+      const stateRef = useRef(null);
+      const initState = () => {
+        const T0 = traj(0);
+        stateRef.current = {
+          t: 0,
+          q: [T0.q[0], T0.q[1]],
+          qd: [T0.qd[0], T0.qd[1]],
+          tauFf: [0, 0], tauFb: [0, 0], tauTot: [0, 0],
+          errSum: 0, errN: 0,
+          history: [],
+          stage: 0, stageT: 0,
+        };
       };
-      const applyPreset = (p) => {
-        setFfOn(p.ff); setKp(p.kp); setKd(p.kd); setDisturb(p.dist);
-        reset();
-      };
+      if (!stateRef.current) initState();
+
+      const reset = () => { initState(); setTick(x => x + 1); };
 
       useEffect(() => {
         if (!running) return;
-        let alive = true;
-        const dt = 0.004, sub = 5;
-        const loop = () => {
-          if (!alive) return;
-          const s = sim.current;
-          for (let i = 0; i < sub; i++) {
-            const tj = traj(s.t);
-            const D_d = inertia(tj.q), h_d = coriolis(tj.q, tj.qd), c_d = gravityVec(tj.q);
-            const tauFf = ffOn ? [
-              D_d[0][0]*tj.qdd[0] + D_d[0][1]*tj.qdd[1] + h_d[0] + c_d[0],
-              D_d[1][0]*tj.qdd[0] + D_d[1][1]*tj.qdd[1] + h_d[1] + c_d[1]
-            ] : [0,0];
-            const e  = [tj.q[0]-s.q[0],  tj.q[1]-s.q[1]];
-            const ed = [tj.qd[0]-s.qd[0], tj.qd[1]-s.qd[1]];
-            const tauFb = [kp*e[0] + kd*ed[0], kp*e[1] + kd*ed[1]];
-            const td = (disturb && s.t > 1.8 && s.t < 2.3)
-              ? [22*Math.sin((s.t-1.8)*40), 12] : [0,0];
-            const tau = [tauFf[0]+tauFb[0]+td[0], tauFf[1]+tauFb[1]+td[1]];
-            const Dp = inertia(s.q), hp = coriolis(s.q, s.qd), cp = gravityVec(s.q);
-            const qdd = solve2(Dp, [tau[0]-hp[0]-cp[0], tau[1]-hp[1]-cp[1]]);
-            s.qd[0] += qdd[0]*dt; s.qd[1] += qdd[1]*dt;
-            s.q[0]  += s.qd[0]*dt; s.q[1]  += s.qd[1]*dt;
-            s.t += dt;
-            s.tauFf = tauFf; s.tauFb = tauFb; s.dist = td;
-            s.hist.push({
-              t: s.t, q1: s.q[0], q2: s.q[1],
-              q1d: tj.q[0], q2d: tj.q[1],
-              ff: Math.hypot(tauFf[0],tauFf[1]),
-              fb: Math.hypot(tauFb[0],tauFb[1])
-            });
-            if (s.hist.length > 700) s.hist.shift();
+        let raf, last = performance.now();
+        const TMAX_TQ = 250;
+        const STAGE_DT = 0.32;
+
+        function frame(now) {
+          const dt = Math.min(0.05, (now - last) / 1000);
+          last = now;
+          const stepSize = 0.001;
+          const steps = Math.max(1, Math.round(dt / stepSize));
+          const st = stateRef.current;
+          const p = presetRef.current;
+
+          for (let i = 0; i < steps; i++) {
+            const T = traj(st.t);
+            const Dq = Dmat(st.q);
+            const h  = hVec(st.q, st.qd);
+            const c  = cVec(st.q);
+
+            let tauFf = [0, 0];
+            if (p.ff) {
+              const Dqdd = mv(Dq, T.qdd);
+              tauFf = [Dqdd[0] + h[0] + c[0], Dqdd[1] + h[1] + c[1]];
+            }
+            const e  = [T.q[0]  - st.q[0],  T.q[1]  - st.q[1]];
+            const ed = [T.qd[0] - st.qd[0], T.qd[1] - st.qd[1]];
+            const tauFb = [p.kp * e[0] + p.kd * ed[0], p.kp * e[1] + p.kd * ed[1]];
+
+            const dist = p.dist > 0
+              ? [p.dist * Math.sin(2.3 * st.t),
+                 p.dist * Math.cos(1.7 * st.t + 0.4)]
+              : [0, 0];
+
+            let tau = [tauFf[0] + tauFb[0] + dist[0], tauFf[1] + tauFb[1] + dist[1]];
+            tau[0] = Math.max(-TMAX_TQ, Math.min(TMAX_TQ, tau[0]));
+            tau[1] = Math.max(-TMAX_TQ, Math.min(TMAX_TQ, tau[1]));
+
+            const rhs = [tau[0] - h[0] - c[0], tau[1] - h[1] - c[1]];
+            const qdd = mv(inv2(Dq), rhs);
+
+            st.qd[0] = Math.max(-20, Math.min(20, st.qd[0] + qdd[0] * stepSize));
+            st.qd[1] = Math.max(-20, Math.min(20, st.qd[1] + qdd[1] * stepSize));
+            st.q[0] += st.qd[0] * stepSize;
+            st.q[1] += st.qd[1] * stepSize;
+
+            st.tauFf = tauFf; st.tauFb = tauFb; st.tauTot = tau;
+            st.errSum += e[0] * e[0] + e[1] * e[1];
+            st.errN += 1;
+            if (st.errN > 2000) { st.errSum *= 2000 / st.errN; st.errN = 2000; }
+
+            if (i === steps - 1) {
+              st.history.push({ t: st.t, q1: st.q[0], q2: st.q[1], q1d: T.q[0], q2d: T.q[1] });
+              if (st.history.length > 220) st.history.shift();
+            }
+            st.t += stepSize;
           }
-          const win = s.hist.slice(-200);
-          let ss = 0;
-          for (const p of win) ss += (p.q1-p.q1d)**2 + (p.q2-p.q2d)**2;
-          s.rms = win.length ? Math.sqrt(ss/win.length) : 0;
 
-          const sr = stageRef.current;
-          sr.acc += 1;
-          if (sr.acc >= 8) { sr.acc = 0; sr.frame = (sr.frame+1) % STAGES.length; setStageIdx(sr.frame); }
+          st.stageT += dt;
+          if (st.stageT > STAGE_DT) { st.stageT = 0; st.stage = (st.stage + 1) % 7; }
+          setTick(x => (x + 1) & 0xff);
+          raf = requestAnimationFrame(frame);
+        }
+        raf = requestAnimationFrame(frame);
+        return () => cancelAnimationFrame(raf);
+      }, [running]);
 
-          setTick(t => t+1);
-          rafRef.current = requestAnimationFrame(loop);
-        };
-        rafRef.current = requestAnimationFrame(loop);
-        return () => { alive = false; cancelAnimationFrame(rafRef.current); };
-      }, [running, ffOn, kp, kd, disturb]);
+      const st = stateRef.current;
+      const tauFfMag = Math.hypot(st.tauFf[0], st.tauFf[1]);
+      const tauFbMag = Math.hypot(st.tauFb[0], st.tauFb[1]);
+      const errRms = st.errN ? Math.sqrt(st.errSum / st.errN) : 0;
 
-      const s = sim.current;
-      const hist = s.hist;
-
-      const bdW = 900, bdH = 120;
-      const boxW = (bdW - 60) / STAGES.length - 8;
-      const boxes = STAGES.map((st, i) => ({ ...st, x: 30 + i*((bdW-60)/STAGES.length), w: boxW, i }));
-
-      const armScale = 78;
-      const armCx = 170, armCy = 195;
-      const armPt = (q) => {
-        const x1 = armCx + l1*armScale*Math.cos(q[0]);
-        const y1 = armCy - l1*armScale*Math.sin(q[0]);
-        const x2 = x1   + l2*armScale*Math.cos(q[0]+q[1]);
-        const y2 = y1   - l2*armScale*Math.sin(q[0]+q[1]);
+      const scaleA = 175, cx = 250, cy = 215;
+      const armPts = (q) => {
+        const x1 = cx + scaleA * L1 * Math.cos(q[0]);
+        const y1 = cy - scaleA * L1 * Math.sin(q[0]);
+        const x2 = x1 + scaleA * L2 * Math.cos(q[0] + q[1]);
+        const y2 = y1 - scaleA * L2 * Math.sin(q[0] + q[1]);
         return { x1, y1, x2, y2 };
       };
-      const tjN = traj(s.t);
-      const armA = armPt(s.q);
-      const armD = armPt(tjN.q);
+      const Tnow = traj(st.t);
+      const aDes = armPts(Tnow.q);
+      const aAct = armPts(st.q);
 
-      const plotW = 380, plotH = 130;
-      const tMin = hist.length ? hist[0].t : 0;
-      const tMax = hist.length ? hist[hist.length-1].t : 1;
-      const span = Math.max(0.5, tMax - tMin);
-      const px_ = (t) => 8 + ((t - tMin)/span)*(plotW-16);
-      const yR  = [q1_off - A1*1.4, q1_off + A1*1.4];
-      const py_ = (v) => plotH - 8 - ((v - yR[0])/(yR[1]-yR[0]))*(plotH-16);
-      const pathQd = hist.map((p,i) => (i?'L':'M') + px_(p.t).toFixed(1) + ',' + py_(p.q1d).toFixed(1)).join(' ');
-      const pathQa = hist.map((p,i) => (i?'L':'M') + px_(p.t).toFixed(1) + ',' + py_(p.q1 ).toFixed(1)).join(' ');
+      const plotW = 500, plotH = 260;
+      const histLen = st.history.length;
+      const tMax = histLen ? st.history[histLen - 1].t : 1;
+      const tMin = histLen ? Math.max(0, tMax - 3.5) : 0;
+      const tRange = Math.max(0.01, tMax - tMin);
+      const qMin = -2.2, qMax = 2.2;
+      const xPix = (t) => 50 + (t - tMin) / tRange * (plotW - 60);
+      const yPix = (q) => 20 + (qMax - q) / (qMax - qMin) * (plotH - 40);
+      const clampY = (q) => Math.max(qMin, Math.min(qMax, q));
+      const poly = (key) => {
+        if (!histLen) return '';
+        let out = '';
+        let started = false;
+        for (let i = 0; i < histLen; i++) {
+          const p = st.history[i];
+          if (p.t < tMin) continue;
+          out += (started ? 'L' : 'M') + xPix(p.t).toFixed(1) + ' ' + yPix(clampY(p[key])).toFixed(1) + ' ';
+          started = true;
+        }
+        return out;
+      };
 
-      const maxTau = 90;
-      const ffMag = Math.hypot(s.tauFf[0], s.tauFf[1]);
-      const fbMag = Math.hypot(s.tauFb[0], s.tauFb[1]);
-      const e1 = tjN.q[0] - s.q[0], e2 = tjN.q[1] - s.q[1];
-      const fbWarn = fbMag > 35;
-      const rmsBad = s.rms > 0.06;
-
-      const note = !ffOn
-        ? 'Feedforward is OFF \u2014 PD is doing all the work. Watch \u03C4_fb saturate and tracking error grow.'
-        : (disturb && s.t > 1.7 && s.t < 2.4)
-          ? 'External disturbance injected \u2014 feedback corrects the unmodelled spike.'
-          : 'Feedforward cancels predictable D q\u0308 + h + c; feedback only mops up the residual.';
+      const callout = {
+        'ff-on-low':   'Feedforward predicts the torque the physics needs; feedback only mops up modelling residue. ‖τ_fb‖ stays small.',
+        'ff-off-low':  'Without feedforward, feedback alone must fight inertia, Coriolis and gravity. Error explodes — the lecture\u2019s punchline.',
+        'ff-off-high': 'Cranking PD gains brings error down, but ‖τ_fb‖ skyrockets and the loop is brittle near saturation.',
+        'ff-on-dist':  'External disturbance is what the model can\u2019t predict. τ_ff stays steady; τ_fb absorbs the unmodeled push.',
+      }[presetKey];
 
       return (
-        <div className="ctc-widget" role="region" aria-label="Computed-torque control loop animator">
+        <div className="ctc-widget">
           <style>{`
-            .ctc-widget { font-family: var(--font-body); color: var(--ink); padding: 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; max-width: 960px; box-sizing: border-box; }
-            .ctc-widget h4 { font-family: var(--font-display); margin: 0 0 6px; font-size: 11px; color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600; }
-            .ctc-note { font-family: var(--font-mono); font-size: 11px; color: var(--ink-soft); margin: 6px 2px 10px; min-height: 14px; }
-            .ctc-controls { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; margin-top: 10px; padding: 10px 12px; background: var(--page-bg); border: 1px solid var(--border); border-radius: 8px; }
-            .ctc-controls button { font-family: var(--font-display); font-size: 12px; padding: 6px 12px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--ink); cursor: pointer; transition: all .15s; }
-            .ctc-controls button:hover { border-color: var(--accent); color: var(--accent); }
-            .ctc-controls button.primary { background: var(--accent); color: white; border-color: var(--accent); }
-            .ctc-controls button.primary:hover { background: var(--ink); border-color: var(--ink); color: white; }
-            .ctc-controls label { font-size: 12px; display: inline-flex; align-items: center; gap: 6px; color: var(--ink-soft); font-family: var(--font-mono); }
-            .ctc-controls input[type=range] { width: 110px; accent-color: var(--accent); }
-            .ctc-presets { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
-            .ctc-presets button { font-family: var(--font-mono); font-size: 11px; padding: 4px 9px; border: 1px solid var(--border); background: var(--surface); border-radius: 5px; color: var(--ink-soft); cursor: pointer; }
-            .ctc-presets button:hover { border-color: var(--accent-2); color: var(--accent-2); background: var(--page-bg); }
-            .ctc-grid { display: grid; grid-template-columns: 1fr 1.05fr; gap: 12px; margin-top: 10px; }
-            @media (max-width: 720px) { .ctc-grid { grid-template-columns: 1fr; } }
-            .ctc-panel { background: var(--page-bg); border: 1px solid var(--border); border-radius: 8px; padding: 10px; }
-            .ctc-pill { display: inline-block; padding: 2px 7px; border-radius: 99px; font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.04em; margin-left: 6px; vertical-align: middle; }
-            .ctc-pill.on  { background: var(--good); color: white; }
-            .ctc-pill.off { background: var(--bad);  color: white; }
-            .widget-fail { padding: 14px; color: var(--bad); font-family: var(--font-mono); }
+            #computed-torque-loop .ctc-widget {
+              font-family: var(--font-body);
+              color: var(--ink);
+              background: var(--surface);
+              border: 1px solid var(--border);
+              border-radius: 12px;
+              padding: 18px 20px 20px;
+              max-width: 100%;
+              max-height: 1200px;
+              overflow: hidden;
+              box-shadow: 0 1px 0 rgba(0,0,0,0.02);
+            }
+            #computed-torque-loop .ctc-stages {
+              display: grid;
+              grid-template-columns: repeat(7, minmax(0,1fr));
+              gap: 5px;
+              margin-bottom: 14px;
+            }
+            #computed-torque-loop .ctc-stage {
+              border: 1px solid var(--border);
+              border-radius: 6px;
+              padding: 7px 8px;
+              font-size: 0.72rem;
+              line-height: 1.25;
+              background: var(--page-bg);
+              color: var(--ink);
+              transition: background 0.18s ease, color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+              min-width: 0;
+            }
+            #computed-torque-loop .ctc-stage.active {
+              background: var(--accent);
+              color: #fff;
+              border-color: var(--accent);
+              transform: translateY(-2px);
+              box-shadow: 0 3px 8px rgba(200,68,42,0.28);
+            }
+            #computed-torque-loop .ctc-stage .sym {
+              font-family: var(--font-mono);
+              font-size: 0.7rem;
+              opacity: 0.85;
+              display: block;
+              margin-top: 3px;
+              white-space: nowrap;
+              overflow: hidden;
+              text-overflow: ellipsis;
+            }
+            #computed-torque-loop .ctc-row {
+              display: flex;
+              gap: 14px;
+              flex-wrap: wrap;
+            }
+            #computed-torque-loop .ctc-panel {
+              flex: 1 1 320px;
+              min-width: 280px;
+              border: 1px solid var(--border);
+              border-radius: 10px;
+              background: var(--page-bg);
+              padding: 12px;
+              box-sizing: border-box;
+            }
+            #computed-torque-loop .ctc-h {
+              font-family: var(--font-display);
+              font-size: 0.78rem;
+              margin: 0 0 8px;
+              color: var(--ink-soft);
+              text-transform: uppercase;
+              letter-spacing: 0.06em;
+            }
+            #computed-torque-loop .ctc-legend {
+              display: flex; flex-wrap: wrap; gap: 12px;
+              font-size: 0.74rem; color: var(--ink-soft); margin-top: 6px;
+              font-family: var(--font-mono);
+            }
+            #computed-torque-loop .ctc-legend span { display: inline-flex; align-items: center; gap: 5px; }
+            #computed-torque-loop .ctc-legend i { width: 16px; height: 3px; display: inline-block; }
+            #computed-torque-loop .ctc-readouts {
+              display: grid;
+              grid-template-columns: repeat(3, minmax(0,1fr));
+              gap: 10px;
+              margin-top: 12px;
+            }
+            #computed-torque-loop .ctc-readout {
+              border: 1px solid var(--border);
+              border-radius: 8px;
+              padding: 10px 12px;
+              background: var(--page-bg);
+            }
+            #computed-torque-loop .ctc-readout .lbl {
+              font-size: 0.7rem; color: var(--ink-soft);
+              text-transform: uppercase; letter-spacing: 0.05em;
+              font-family: var(--font-body);
+            }
+            #computed-torque-loop .ctc-readout .val {
+              font-family: var(--font-mono);
+              font-size: 1.05rem;
+              color: var(--ink);
+              margin-top: 3px;
+            }
+            #computed-torque-loop .ctc-readout .bar {
+              height: 6px; background: var(--border); border-radius: 3px;
+              margin-top: 7px; overflow: hidden;
+            }
+            #computed-torque-loop .ctc-readout .bar > div { height: 100%; transition: width 0.12s linear; }
+            #computed-torque-loop .ctc-controls {
+              display: flex; flex-wrap: wrap; gap: 8px;
+              margin-top: 14px; align-items: center;
+            }
+            #computed-torque-loop .ctc-btn {
+              font-family: var(--font-body);
+              font-size: 0.85rem;
+              padding: 7px 14px;
+              border-radius: 6px;
+              border: 1px solid var(--border);
+              background: var(--surface);
+              color: var(--ink);
+              cursor: pointer;
+              transition: border-color 0.12s, color 0.12s, background 0.12s;
+            }
+            #computed-torque-loop .ctc-btn:hover { border-color: var(--accent); color: var(--accent); }
+            #computed-torque-loop .ctc-btn:focus-visible { outline: 2px solid var(--accent-2); outline-offset: 2px; }
+            #computed-torque-loop .ctc-btn.primary {
+              background: var(--accent); color: #fff; border-color: var(--accent);
+            }
+            #computed-torque-loop .ctc-btn.primary:hover {
+              background: var(--accent-2); border-color: var(--accent-2); color: #fff;
+            }
+            #computed-torque-loop .ctc-preset {
+              font-family: var(--font-body);
+              font-size: 0.78rem;
+              padding: 6px 10px;
+              border-radius: 6px;
+              border: 1px solid var(--border);
+              background: var(--surface);
+              color: var(--ink-soft);
+              cursor: pointer;
+            }
+            #computed-torque-loop .ctc-preset:hover { color: var(--ink); border-color: var(--ink-soft); }
+            #computed-torque-loop .ctc-preset.active {
+              background: var(--accent-2); color: #fff; border-color: var(--accent-2);
+            }
+            #computed-torque-loop .ctc-callout {
+              font-size: 0.85rem;
+              line-height: 1.45;
+              color: var(--ink);
+              margin-top: 12px;
+              padding: 9px 12px;
+              border-left: 3px solid var(--accent);
+              background: rgba(200,68,42,0.07);
+              border-radius: 0 6px 6px 0;
+            }
+            #computed-torque-loop .ctc-spacer { flex: 1 1 8px; }
           `}</style>
 
-          <h4>
-            Computed-torque control loop
-            <span className={'ctc-pill ' + (ffOn ? 'on' : 'off')}>FF {ffOn ? 'ON' : 'OFF'}</span>
-            {disturb && <span className="ctc-pill off">DIST</span>}
-          </h4>
+          <div className="ctc-stages" role="list" aria-label="Computed-torque pipeline stages">
+            {STAGES.map((s, i) => (
+              <div key={i}
+                   role="listitem"
+                   className={'ctc-stage' + (i === st.stage ? ' active' : '')}>
+                {s.label}
+                <span className="sym">{s.sym}</span>
+              </div>
+            ))}
+          </div>
 
-          <svg viewBox={'0 0 ' + bdW + ' ' + bdH} style={{width:'100%', height:'auto', display:'block'}} aria-hidden="true">
-            <defs>
-              <marker id="ctc-arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
-                <path d="M0,0 L10,5 L0,10 z" fill="var(--ink-soft)" />
-              </marker>
-              <marker id="ctc-arr-fb" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
-                <path d="M0,0 L10,5 L0,10 z" fill="var(--accent-2)" />
-              </marker>
-            </defs>
-            {boxes.map((b, i) => {
-              const active = (i === stageIdx);
-              const dim = (i === 1 && !ffOn);
-              const fill = dim ? 'var(--page-bg)' : (active ? 'var(--accent)' : 'var(--surface)');
-              const stk  = dim ? 'var(--border)' : (active ? 'var(--accent)' : 'var(--border)');
-              const txt  = dim ? 'var(--ink-soft)' : (active ? 'white' : 'var(--ink)');
-              const sub  = dim ? 'var(--ink-soft)' : (active ? 'white' : 'var(--ink-soft)');
-              return (
-                <g key={i} opacity={dim ? 0.55 : 1}>
-                  {i < boxes.length-1 && (
-                    <line x1={b.x+b.w} y1={56} x2={boxes[i+1].x} y2={56}
-                          stroke="var(--ink-soft)" strokeWidth="1.4" markerEnd="url(#ctc-arr)" />
-                  )}
-                  <rect x={b.x} y={30} width={b.w} height={54} rx={6}
-                        fill={fill} stroke={stk} strokeWidth={active ? 2 : 1} />
-                  <text x={b.x+b.w/2} y={50} textAnchor="middle"
-                        fontFamily="var(--font-display)" fontSize="11.5" fontWeight="700" fill={txt}>{b.lbl}</text>
-                  <text x={b.x+b.w/2} y={66} textAnchor="middle"
-                        fontFamily="var(--font-mono)" fontSize="9" fill={sub}>{b.sub}</text>
-                  {dim && (
-                    <text x={b.x+b.w/2} y={78} textAnchor="middle" fontFamily="var(--font-mono)"
-                          fontSize="8" fontWeight="700" fill="var(--bad)">disabled</text>
-                  )}
-                </g>
-              );
-            })}
-            <path d={'M ' + (boxes[6].x+boxes[6].w/2) + ' 90 L ' + (boxes[6].x+boxes[6].w/2) + ' 106 L ' +
-                    (boxes[2].x+boxes[2].w/2) + ' 106 L ' + (boxes[2].x+boxes[2].w/2) + ' 88'}
-                  fill="none" stroke="var(--accent-2)" strokeWidth="1.3"
-                  strokeDasharray="4,3" markerEnd="url(#ctc-arr-fb)" />
-            <text x={(boxes[3].x + boxes[4].x)/2} y={117}
-                  textAnchor="middle" fontFamily="var(--font-mono)" fontSize="9" fill="var(--accent-2)">
-              measured q, q&#x0307; feed back
-            </text>
-          </svg>
-
-          <div className="ctc-note">{note}</div>
-
-          <div className="ctc-grid">
-            <div className="ctc-panel">
-              <h4>2-DOF arm \u00B7 desired (ghost) vs actual</h4>
-              <svg viewBox="0 0 340 290" style={{width:'100%', height:'auto', display:'block'}}>
+          <div className="ctc-row">
+            <div className="ctc-panel" style={{flex:'1 1 360px'}}>
+              <div className="ctc-h">2-DOF arm · desired (ghost) vs actual</div>
+              <svg viewBox="0 0 500 330" width="100%" style={{maxHeight: 320, display:'block'}}
+                   aria-label="Planar two-link arm showing desired and actual posture">
                 <defs>
-                  <pattern id="ctc-grid-pat" width="20" height="20" patternUnits="userSpaceOnUse">
-                    <path d="M 20 0 L 0 0 0 20" fill="none" stroke="var(--border)" strokeWidth="0.5"/>
-                  </pattern>
+                  <marker id="ctc-arrhd" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+                    <path d="M0,0 L6,3 L0,6 z" fill="var(--bad)"/>
+                  </marker>
+                  <marker id="ctc-garr" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+                    <path d="M0,0 L6,3 L0,6 z" fill="var(--ink-soft)"/>
+                  </marker>
                 </defs>
-                <rect width="340" height="290" fill="url(#ctc-grid-pat)" />
-                <line x1="0" y1={armCy} x2="340" y2={armCy} stroke="var(--ink-soft)" strokeWidth="0.5" opacity="0.4" />
-                <rect x={armCx-26} y={armCy} width="52" height="14" fill="var(--ink-soft)" />
-                <path d={'M ' + (armCx-26) + ' ' + (armCy+14) + ' l 6 8 l 40 0 l 6 -8'} fill="none" stroke="var(--ink-soft)" strokeWidth="0.8" />
-
-                <line x1={armCx} y1={armCy} x2={armD.x1} y2={armD.y1}
-                      stroke="var(--accent-2)" strokeWidth="7" opacity="0.22" strokeLinecap="round" />
-                <line x1={armD.x1} y1={armD.y1} x2={armD.x2} y2={armD.y2}
-                      stroke="var(--accent-2)" strokeWidth="7" opacity="0.22" strokeLinecap="round" />
-                <circle cx={armD.x1} cy={armD.y1} r="5" fill="var(--accent-2)" opacity="0.35" />
-                <circle cx={armD.x2} cy={armD.y2} r="6" fill="var(--accent-2)" opacity="0.45" />
-
-                <line x1={armA.x2} y1={armA.y2} x2={armD.x2} y2={armD.y2}
-                      stroke={rmsBad ? 'var(--bad)' : 'var(--ink-soft)'}
-                      strokeWidth="1.5" strokeDasharray="3,2" />
-
-                <line x1={armCx} y1={armCy} x2={armA.x1} y2={armA.y1}
-                      stroke="var(--accent)" strokeWidth="5" strokeLinecap="round" />
-                <line x1={armA.x1} y1={armA.y1} x2={armA.x2} y2={armA.y2}
-                      stroke="var(--accent)" strokeWidth="5" strokeLinecap="round" />
-                <circle cx={armCx}    cy={armCy}    r="5" fill="var(--ink)" />
-                <circle cx={armA.x1}  cy={armA.y1}  r="4" fill="var(--ink)" />
-                <circle cx={armA.x2}  cy={armA.y2}  r="6" fill="var(--accent)" stroke="white" strokeWidth="1.5"/>
-
-                <g transform="translate(214, 14)">
-                  <rect x="0" y="0" width="118" height="46" fill="var(--surface)" stroke="var(--border)" rx="4" />
-                  <line x1="8" y1="16" x2="26" y2="16" stroke="var(--accent-2)" strokeWidth="5" opacity="0.35"/>
-                  <text x="32" y="19" fontSize="10" fontFamily="var(--font-mono)" fill="var(--ink)">desired q\u2099</text>
-                  <line x1="8" y1="34" x2="26" y2="34" stroke="var(--accent)" strokeWidth="5"/>
-                  <text x="32" y="37" fontSize="10" fontFamily="var(--font-mono)" fill="var(--ink)">actual q</text>
-                </g>
-                <text x="10" y="282" fontSize="10" fontFamily="var(--font-mono)" fill="var(--ink-soft)">
-                  e\u2081 = {e1.toFixed(3)}  \u00B7  e\u2082 = {e2.toFixed(3)} rad
+                <line x1="30" y1={cy} x2="470" y2={cy} stroke="var(--border)" strokeDasharray="3 4"/>
+                <circle cx={cx} cy={cy} r={scaleA*(L1+L2)} fill="none" stroke="var(--border)" strokeDasharray="2 5" opacity="0.45"/>
+                <line x1={cx} y1={cy} x2={aDes.x1} y2={aDes.y1} stroke="var(--accent-2)" strokeWidth="6" strokeOpacity="0.28" strokeLinecap="round"/>
+                <line x1={aDes.x1} y1={aDes.y1} x2={aDes.x2} y2={aDes.y2} stroke="var(--accent-2)" strokeWidth="5" strokeOpacity="0.28" strokeLinecap="round"/>
+                <circle cx={aDes.x1} cy={aDes.y1} r="5" fill="var(--accent-2)" fillOpacity="0.35"/>
+                <circle cx={aDes.x2} cy={aDes.y2} r="6" fill="var(--accent-2)" fillOpacity="0.35"/>
+                <line x1={cx} y1={cy} x2={aAct.x1} y2={aAct.y1} stroke="var(--ink)" strokeWidth="6" strokeLinecap="round"/>
+                <line x1={aAct.x1} y1={aAct.y1} x2={aAct.x2} y2={aAct.y2} stroke="var(--ink)" strokeWidth="5" strokeLinecap="round"/>
+                <circle cx={cx} cy={cy} r="9" fill="var(--accent)"/>
+                <circle cx={aAct.x1} cy={aAct.y1} r="6" fill="var(--accent)"/>
+                <circle cx={aAct.x2} cy={aAct.y2} r="6.5" fill="var(--accent)"/>
+                <line x1={aAct.x2} y1={aAct.y2} x2={aDes.x2} y2={aDes.y2}
+                      stroke="var(--bad)" strokeWidth="1.8" strokeDasharray="3 3"
+                      markerEnd="url(#ctc-arrhd)"/>
+                <line x1="445" y1="30" x2="445" y2="62" stroke="var(--ink-soft)" strokeWidth="1.5" markerEnd="url(#ctc-garr)"/>
+                <text x="450" y="50" fontSize="12" fill="var(--ink-soft)" fontFamily="var(--font-mono)">g</text>
+                <text x="40" y="28" fontSize="11.5" fill="var(--ink-soft)" fontFamily="var(--font-mono)">
+                  q\u2081 = {(st.q[0]*180/Math.PI).toFixed(1)}\u00B0   q\u2081_d = {(Tnow.q[0]*180/Math.PI).toFixed(1)}\u00B0
+                </text>
+                <text x="40" y="46" fontSize="11.5" fill="var(--ink-soft)" fontFamily="var(--font-mono)">
+                  q\u2082 = {(st.q[1]*180/Math.PI).toFixed(1)}\u00B0   q\u2082_d = {(Tnow.q[1]*180/Math.PI).toFixed(1)}\u00B0
                 </text>
               </svg>
+              <div className="ctc-legend">
+                <span><i style={{background:'var(--ink)'}}/>actual q</span>
+                <span><i style={{background:'var(--accent-2)', opacity:0.45}}/>desired q_d</span>
+                <span><i style={{background:'var(--bad)'}}/>tracking error</span>
+              </div>
             </div>
 
-            <div className="ctc-panel">
-              <h4>q\u2081 tracking \u00B7 q\u2099 (dashed) vs q (solid)</h4>
-              <svg viewBox={'0 0 ' + plotW + ' ' + plotH} style={{width:'100%', height:'auto', display:'block'}}>
-                <rect width={plotW} height={plotH} fill="var(--surface)" stroke="var(--border)" />
-                <line x1="0" y1={py_(q1_off)} x2={plotW} y2={py_(q1_off)} stroke="var(--border)" strokeDasharray="2,4" />
-                <text x="6" y="14" fontSize="9" fontFamily="var(--font-mono)" fill="var(--ink-soft)">{yR[1].toFixed(2)}</text>
-                <text x="6" y={plotH-4} fontSize="9" fontFamily="var(--font-mono)" fill="var(--ink-soft)">{yR[0].toFixed(2)}</text>
-                <path d={pathQd} fill="none" stroke="var(--accent-2)" strokeWidth="1.6" strokeDasharray="4,3" />
-                <path d={pathQa} fill="none" stroke="var(--accent)"   strokeWidth="2" />
+            <div className="ctc-panel" style={{flex:'1 1 360px'}}>
+              <div className="ctc-h">Tracking · q vs q_d (rolling 3.5 s)</div>
+              <svg viewBox={'0 0 ' + plotW + ' ' + plotH} width="100%" style={{maxHeight: 280, display:'block'}}
+                   aria-label="Time-series plot of desired versus actual joint angles">
+                <line x1="50" y1="20" x2="50" y2={plotH-20} stroke="var(--border)"/>
+                <line x1="50" y1={plotH-20} x2={plotW-10} y2={plotH-20} stroke="var(--border)"/>
+                {[-2,-1,0,1,2].map(v => (
+                  <g key={v}>
+                    <line x1="50" y1={yPix(v)} x2={plotW-10} y2={yPix(v)} stroke="var(--border)" strokeDasharray="2 5" opacity="0.45"/>
+                    <text x="44" y={yPix(v)+4} fontSize="10.5" fill="var(--ink-soft)" textAnchor="end" fontFamily="var(--font-mono)">{v.toFixed(0)}</text>
+                  </g>
+                ))}
+                <path d={poly('q1d')} fill="none" stroke="var(--accent-2)" strokeWidth="2" strokeOpacity="0.45" strokeDasharray="5 3"/>
+                <path d={poly('q2d')} fill="none" stroke="var(--good)"     strokeWidth="2" strokeOpacity="0.45" strokeDasharray="5 3"/>
+                <path d={poly('q1')}  fill="none" stroke="var(--accent-2)" strokeWidth="2.2"/>
+                <path d={poly('q2')}  fill="none" stroke="var(--good)"     strokeWidth="2.2"/>
+                <text x={plotW/2} y={plotH-4} fontSize="11" fill="var(--ink-soft)" textAnchor="middle" fontFamily="var(--font-mono)">t (s)</text>
+                <text x="14" y={plotH/2} fontSize="11" fill="var(--ink-soft)" textAnchor="middle" fontFamily="var(--font-mono)" transform={'rotate(-90 14 ' + (plotH/2) + ')'}>q (rad)</text>
               </svg>
+              <div className="ctc-legend">
+                <span><i style={{background:'var(--accent-2)'}}/>q\u2081</span>
+                <span><i style={{background:'var(--accent-2)', opacity:0.5}}/>q\u2081_d</span>
+                <span><i style={{background:'var(--good)'}}/>q\u2082</span>
+                <span><i style={{background:'var(--good)', opacity:0.5}}/>q\u2082_d</span>
+              </div>
+            </div>
+          </div>
 
-              <h4 style={{marginTop:10}}>Torque magnitude \u00B7 \u2016\u03C4_ff\u2016 vs \u2016\u03C4_fb\u2016</h4>
-              <svg viewBox="0 0 380 88" style={{width:'100%', height:'auto', display:'block'}}>
-                <rect width="380" height="88" fill="var(--surface)" stroke="var(--border)"/>
-                <text x="8" y="20" fontSize="11" fontFamily="var(--font-mono)" fill="var(--ink-soft)">\u03C4_ff</text>
-                <rect x="44" y="11" width="280" height="14" fill="var(--page-bg)" stroke="var(--border)" strokeWidth="0.5" />
-                <rect x="44" y="11" width={Math.min(280, (ffMag/maxTau)*280)} height="14" fill="var(--accent-2)" />
-                <text x="372" y="21" fontSize="10" fontFamily="var(--font-mono)" textAnchor="end" fill="var(--ink)">{ffMag.toFixed(1)} N\u00B7m</text>
-
-                <text x="8" y="46" fontSize="11" fontFamily="var(--font-mono)" fill="var(--ink-soft)">\u03C4_fb</text>
-                <rect x="44" y="37" width="280" height="14" fill="var(--page-bg)" stroke="var(--border)" strokeWidth="0.5" />
-                <rect x="44" y="37" width={Math.min(280, (fbMag/maxTau)*280)} height="14"
-                      fill={fbWarn ? 'var(--bad)' : 'var(--accent)'} />
-                <text x="372" y="47" fontSize="10" fontFamily="var(--font-mono)" textAnchor="end"
-                      fill={fbWarn ? 'var(--bad)' : 'var(--ink)'} fontWeight={fbWarn ? 700 : 400}>
-                  {fbMag.toFixed(1)} N\u00B7m{fbWarn ? '  \u26A0 saturating' : ''}
-                </text>
-
-                <line x1="44" y1="60" x2="324" y2="60" stroke="var(--border)" strokeWidth="0.5" />
-                <text x="8"   y="78" fontSize="10" fontFamily="var(--font-mono)" fill="var(--ink-soft)">RMS err</text>
-                <text x="60"  y="78" fontSize="10" fontFamily="var(--font-mono)" fontWeight="700"
-                      fill={rmsBad ? 'var(--bad)' : 'var(--good)'}>{s.rms.toFixed(4)} rad</text>
-                <text x="160" y="78" fontSize="10" fontFamily="var(--font-mono)" fill="var(--ink-soft)">
-                  t = {s.t.toFixed(2)} s   \u00B7   K\u209A={kp}, K_d={kd}
-                </text>
-              </svg>
+          <div className="ctc-readouts">
+            <div className="ctc-readout">
+              <div className="lbl">‖\u03C4_ff‖  feedforward</div>
+              <div className="val">{tauFfMag.toFixed(2)} N\u00B7m</div>
+              <div className="bar"><div style={{width: Math.min(100, tauFfMag/2.5) + '%', background:'var(--accent-2)'}}/></div>
+            </div>
+            <div className="ctc-readout">
+              <div className="lbl">‖\u03C4_fb‖  feedback</div>
+              <div className="val">{tauFbMag.toFixed(2)} N\u00B7m</div>
+              <div className="bar"><div style={{width: Math.min(100, tauFbMag/2.5) + '%', background:'var(--accent)'}}/></div>
+            </div>
+            <div className="ctc-readout">
+              <div className="lbl">tracking error RMS</div>
+              <div className="val">{errRms.toFixed(4)} rad</div>
+              <div className="bar"><div style={{width: Math.min(100, errRms*180) + '%', background:'var(--bad)'}}/></div>
             </div>
           </div>
 
           <div className="ctc-controls">
-            <button className="primary" onClick={() => setRunning(r => !r)} aria-pressed={running}>
-              {running ? '\u23F8 Pause' : '\u25B6 Play'}
+            <button className="ctc-btn primary" onClick={() => setRunning(r => !r)} aria-pressed={running}>
+              {running ? '\u23F8  Pause' : '\u25B6  Play'}
             </button>
-            <button onClick={() => { setRunning(false); reset(); }}>\u21BA Reset</button>
-            <label>
-              <input type="checkbox" checked={ffOn} onChange={e => setFfOn(e.target.checked)} />
-              feedforward \u03C4_ff
-            </label>
-            <label>
-              <input type="checkbox" checked={disturb} onChange={e => setDisturb(e.target.checked)} />
-              disturbance @ t\u22482s
-            </label>
-            <label>
-              K\u209A
-              <input type="range" min="0" max="500" step="5" value={kp} onChange={e => setKp(+e.target.value)} aria-label="Proportional gain" />
-              <span style={{minWidth:34, display:'inline-block', textAlign:'right', color:'var(--ink)'}}>{kp}</span>
-            </label>
-            <label>
-              K_d
-              <input type="range" min="0" max="60" step="1" value={kd} onChange={e => setKd(+e.target.value)} aria-label="Derivative gain" />
-              <span style={{minWidth:24, display:'inline-block', textAlign:'right', color:'var(--ink)'}}>{kd}</span>
-            </label>
-          </div>
-
-          <div className="ctc-presets" role="group" aria-label="Presets">
-            {PRESETS.map((p, i) => (
-              <button key={i} onClick={() => applyPreset(p)}>{p.name}</button>
+            <button className="ctc-btn" onClick={reset}>\u21BA  Reset</button>
+            <div className="ctc-spacer"/>
+            {Object.entries(PRESETS).map(([k, v]) => (
+              <button key={k}
+                      className={'ctc-preset' + (k === presetKey ? ' active' : '')}
+                      onClick={() => { setPresetKey(k); reset(); }}
+                      aria-pressed={k === presetKey}>
+                {v.label}
+              </button>
             ))}
           </div>
+
+          <div className="ctc-callout">{callout}</div>
         </div>
       );
     }
 
-    const mountEl = document.getElementById('computed-torque-loop');
-    if (!mountEl) throw new Error('mount missing');
-    ReactDOM.createRoot(mountEl).render(<Widget />);
+    const mount = document.getElementById('computed-torque-loop');
+    if (!mount) {
+      console.error('computed-torque-loop mount missing');
+    } else {
+      ReactDOM.createRoot(mount).render(<Widget />);
+    }
   } catch (e) {
     const mount = document.getElementById('computed-torque-loop');
-    if (mount) mount.innerHTML = '<div class="widget-fail">Widget failed to load</div>';
+    if (mount) mount.innerHTML = '<div class="widget-fail" style="padding:16px;color:#b3261e;font-family:system-ui,sans-serif">Widget failed to load</div>';
     console.error(e);
   }
 })();
