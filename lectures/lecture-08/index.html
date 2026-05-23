@@ -1,0 +1,2359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- wizard-curator runtime (injected) -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+<script src="https://cdn.jsdelivr.net/npm/mathjs@12/lib/browser/math.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" onload="try{window.renderMathInElement&&renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false},{left:'\[',right:'\]',display:true},{left:'\(',right:'\)',display:false}],throwOnError:false});}catch(e){}"></script>
+<script>try{[800,2200].forEach(function(t){setTimeout(function(){window.renderMathInElement&&renderMathInElement(document.body,{delimiters:[{left:"$$",right:"$$",display:true},{left:"$",right:"$",display:false},{left:"\[",right:"\]",display:true},{left:"\(",right:"\)",display:false}],throwOnError:false});},t);});}catch(e){};</script>
+
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lecture 08 · Mobile-frame rotations & inverting a homogeneous transform</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600;6..72,700&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --page-bg:      #f3eee2;
+  --surface:      #fbf8f0;
+  --ink:          #1b2332;
+  --ink-soft:     #5a6478;
+  --border:       #d6cdb8;
+  --accent:       #b65223;
+  --accent-2:     #2c5f6b;
+  --good:         #2c6f43;
+  --bad:          #ad3a36;
+  --font-display: 'Newsreader', Georgia, serif;
+  --font-body:    'Inter Tight', system-ui, sans-serif;
+  --font-mono:    'JetBrains Mono', ui-monospace, monospace;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: var(--page-bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 17px;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+.page {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 56px 32px 96px;
+}
+
+/* --- header --- */
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 28px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.eyebrow::before {
+  content: "";
+  display: block;
+  width: 28px;
+  height: 1px;
+  background: var(--accent);
+}
+
+h1.title {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: clamp(38px, 5.4vw, 58px);
+  line-height: 1.05;
+  letter-spacing: -0.018em;
+  margin: 0 0 18px;
+  color: var(--ink);
+}
+p.subtitle {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 400;
+  font-size: clamp(19px, 2vw, 23px);
+  line-height: 1.4;
+  color: var(--ink-soft);
+  margin: 0 0 40px;
+  max-width: 62ch;
+}
+
+.opening {
+  border-left: 3px solid var(--accent);
+  padding: 4px 0 4px 22px;
+  margin: 36px 0 56px;
+  font-size: 17px;
+  color: var(--ink);
+  background: linear-gradient(90deg, rgba(182,82,35,0.05), transparent 60%);
+}
+.opening .who {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 8px;
+}
+
+/* --- TOC --- */
+.toc {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 22px 26px;
+  margin: 0 0 64px;
+  font-size: 14.5px;
+}
+.toc h2 {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  margin: 0 0 14px;
+}
+.toc ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px 24px;
+}
+.toc li {
+  display: flex;
+  gap: 12px;
+  align-items: baseline;
+}
+.toc .num {
+  font-family: var(--font-mono);
+  color: var(--accent);
+  font-size: 12px;
+  min-width: 22px;
+}
+.toc a {
+  color: var(--ink);
+  text-decoration: none;
+  border-bottom: 1px dotted transparent;
+}
+.toc a:hover { border-bottom-color: var(--accent); }
+
+/* --- sections --- */
+section.lec {
+  margin: 0 0 72px;
+  scroll-margin-top: 24px;
+}
+section.lec > header {
+  margin-bottom: 22px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: baseline;
+  gap: 18px;
+}
+section.lec .secnum {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--accent);
+  font-weight: 500;
+  letter-spacing: 0.06em;
+}
+section.lec h2 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: clamp(24px, 2.8vw, 30px);
+  line-height: 1.18;
+  letter-spacing: -0.012em;
+  margin: 0;
+  color: var(--ink);
+}
+
+section.lec p { margin: 0 0 16px; max-width: 65ch; }
+section.lec p + p { margin-top: 4px; }
+
+/* --- voice notes (lecturer asides) --- */
+.voice {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 17px;
+  color: var(--accent-2);
+  border-left: 2px solid var(--accent-2);
+  padding: 2px 0 2px 16px;
+  margin: 20px 0;
+  max-width: 60ch;
+}
+
+/* --- callouts --- */
+.callout {
+  margin: 22px 0;
+  padding: 18px 22px;
+  border-radius: 4px;
+  background: var(--surface);
+  border-left: 3px solid var(--accent);
+  position: relative;
+}
+.callout .tag {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 6px;
+  display: block;
+}
+.callout h3 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 18px;
+  margin: 0 0 8px;
+  color: var(--ink);
+}
+.callout p { margin: 0; max-width: 62ch; }
+.callout.teal   { border-left-color: var(--accent-2); }
+.callout.teal   .tag { color: var(--accent-2); }
+.callout.amber  { border-left-color: #c08a1b; }
+.callout.amber  .tag { color: #a06f12; }
+.callout.purple { border-left-color: #7250a0; }
+.callout.purple .tag { color: #6443a0; }
+.callout.blue   { border-left-color: var(--accent-2); }
+.callout.blue   .tag { color: var(--accent-2); }
+.callout.green  { border-left-color: var(--good); }
+.callout.green  .tag { color: var(--good); }
+
+/* --- code --- */
+.code {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  margin: 20px 0;
+  overflow: hidden;
+}
+.code .label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(0,0,0,0.015);
+}
+.code pre {
+  margin: 0;
+  padding: 16px 18px;
+  font-family: var(--font-mono);
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--ink);
+  overflow-x: auto;
+  white-space: pre;
+}
+
+/* --- math display wrapper --- */
+.math-display {
+  margin: 22px 0;
+  padding: 14px 0;
+  text-align: center;
+  font-size: 1.05em;
+}
+
+/* --- widget host --- */
+.widget {
+  margin: 28px 0;
+  padding: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  min-height: 80px;
+  overflow: hidden;
+}
+
+.widget-lead {
+  font-size: 16px;
+  color: var(--ink-soft);
+  font-style: italic;
+  margin: 24px 0 12px;
+  padding-left: 16px;
+  border-left: 2px dashed var(--border);
+  max-width: 62ch;
+}
+
+/* --- concept chips --- */
+.concepts {
+  margin: 64px 0 48px;
+  padding: 28px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+.concepts h2 {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin: 0 0 16px;
+}
+.concept-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.concept-list li {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  padding: 5px 11px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--page-bg);
+  color: var(--ink);
+}
+
+/* --- homework --- */
+.homework {
+  margin: 48px 0 32px;
+}
+.homework > h2 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 26px;
+  margin: 0 0 4px;
+  letter-spacing: -0.01em;
+}
+.homework > p.h-sub {
+  color: var(--ink-soft);
+  margin: 0 0 24px;
+  font-style: italic;
+}
+.hw-item {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: 4px;
+  padding: 18px 22px;
+  margin-bottom: 14px;
+}
+.hw-item .hw-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 6px;
+}
+.hw-item h3 {
+  font-family: var(--font-display);
+  font-size: 19px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--ink);
+}
+.hw-item .due {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+.hw-item p { margin: 0; max-width: 64ch; }
+
+/* --- footer --- */
+.colophon {
+  margin-top: 80px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  letter-spacing: 0.06em;
+  color: var(--ink-soft);
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+/* --- inline emphasis --- */
+em.term { font-style: normal; color: var(--accent); font-weight: 500; }
+strong.lit { color: var(--ink); }
+
+a { color: var(--accent); }
+a:hover { color: var(--accent-2); }
+
+/* --- responsive --- */
+@media (max-width: 640px) {
+  .page { padding: 36px 18px 80px; }
+  .toc ol { grid-template-columns: 1fr; }
+  section.lec > header { flex-direction: column; gap: 4px; }
+  .hw-item .hw-head { flex-direction: column; gap: 4px; }
+}
+</style>
+</head>
+<body>
+<script>(function(){
+  function go(){ if(window.TSIBuddy){ TSIBuddy.mount({"systemPrompt":"You are TSI Buddy, a friendly tutor on the lecture page \"Mobile-frame rotations & inverting a homogeneous transform\". (Lecture 08 · Robotics · Spatial Transformations)\n\nYour knowledge is ONLY the LECTURE NOTES and PAGE TEXT printed below.\n\nRules:\n1. Answer from that material. Read it for meaning — explaining,\n   rephrasing, working its examples and connecting its points is\n   your job. Synthesising an answer from what the material says is\n   not \"inventing\".\n2. If the material does not cover something, say so in one sentence\n   and stop. Never invent facts, names, emails, links, places,\n   rooms, dates, or anything not in the material — a plain \"that is\n   not in the lecture material\" is the correct answer to a gap.\n3. Keep replies short — 2–4 sentences — unless the student asks for\n   more depth or worked steps. Mirror the student's language.\n4. Don't hand over self-check / quiz answers; point to the section\n   that explains them instead.\n5. Write maths with $...$ (inline) and $...$ (display).\n\n── LECTURE NOTES ──\nSCOPE\nThis lecture covers two distinct but related problems in spatial transformations for robotics. First: why the rotation matrices we built for the fixed frame in the previous lecture do not describe what a real robot actually does when commanded to \"rotate around z\" — the robot rotates around an axis parallel to fixed z but passing through the tool, not around the world origin — and how to construct the matrix that mimics this behaviour by chaining transforms (translate the mobile frame to the tool first, then rotate around its own axes). Second: given a homogeneous transformation matrix $T^0_3$ expressing frame 3 in frame 0, how to obtain $T^3_0$ (frame 0 expressed in frame 3) — first by visual inspection of the axes, then noticing the rotation block is the transpose, and finally deriving the closed-form inverse $T^{-1}=\\begin{bmatrix}R^T & -R^T p\\\\ 0\\ 0\\ 0 & 1\\end{bmatrix}$. The lecture deliberately does not cover Denavit–Hartenberg parameters, forward kinematics chains for full manipulators, joint-space planning, or generic 4×4 matrix inversion — only the homogeneous-transform shortcut and the rotate-around-mobile-axis construction.\n\nKEY DEFINITIONS\nFixed reference frame — the coordinate system anchored at the base of the robot; the world frame from which the mobile frame's pose is measured. Lecturer also calls this \"the base\" or \"system 0.\"\nMobile reference frame — a coordinate system that moves with the tool (or end effector); its pose changes as the robot moves. Lecturer also calls this \"the mobile system\" or, in the worked example, \"system 3.\"\nTranslation — a displacement of the mobile frame's origin along an axis ($x$, $y$, or $z$) of either the fixed or the mobile system. In this lecture, translations along either set of axes behave exactly as the matrices predict — you move along the line you point at.\nRotation around a fixed axis (as defined by the previous lecture's matrices) — a rotation whose axis is one of the fixed-frame axes passing through the fixed-frame origin. The matrix pivots the mobile frame around the world origin.\nRotation around a mobile axis — a rotation whose axis is one of the mobile frame's own axes; the frame tips, yaws or spins about itself.\nRotation around an axis parallel to a fixed axis (what the real robot actually does for a \"rotate around z\" command) — a rotation whose axis is parallel to a fixed-frame axis but passes through the current origin of the mobile frame (i.e. through the tool). This is NOT the same as the lecture-1 fixed-axis rotation matrix.\nHomogeneous transformation matrix — a $4\\times 4$ matrix combining a $3\\times 3$ rotation block $R$, a $3\\times 1$ translation column $p=(u,v,w)^T$, and a bottom row $[0\\ 0\\ 0\\ 1]$. It encodes both orientation and position of one frame relative to another.\nTranspose of a matrix — the matrix obtained by swapping rows and columns. The lecturer shows it explicitly: if $A=\\begin{bmatrix}1&2&3\\\\4&5&6\\\\7&8&9\\end{bmatrix}$ then $A^T=\\begin{bmatrix}1&4&7\\\\2&5&8\\\\3&6&9\\end{bmatrix}$.\nInverse of a rotation matrix — for any rotation matrix $R$ (orthonormal columns), $R^{-1}=R^T$. Inverting a rotation is therefore \"free\" — no determinant, no cofactors, just transpose.\nInverse of a homogeneous transformation matrix — the matrix that, applied to $T$, gives the identity; geometrically, it is the same physical relationship between two frames but with the reference flipped (if $T$ describes frame 3 in frame 0, $T^{-1}$ describes frame 0 in frame 3). The lecturer treats \"inverting $T$\" and \"changing the frame of reference\" as the same operation.\nCarobka — the linear base/carriage. The lecturer notes that you do *not* need a carobka to reproduce the rotate-around-mobile-axis behaviour mathematically; the chain of transforms does it.\n\nKEY EQUATIONS & RESULTS\n1. Worked-example forward transform (frame 3 expressed in frame 0):\n$T^0_3 = \\begin{bmatrix} 0 & 1 & 0 & 5 \\\\ 0 & 0 & -1 & 4 \\\\ -1 & 0 & 0 & 3 \\\\ 0 & 0 & 0 & 1 \\end{bmatrix}$\nSymbols: the top-left $3\\times 3$ block is the rotation matrix $R$ describing how the mobile axes $x_3, y_3, z_3$ sit in the fixed frame (its columns are the mobile axes written in frame 0). The fourth column $(5, 4, 3)^T$ is the position $p$ of frame 3's origin in frame 0. The bottom row $[0,0,0,1]$ makes the matrix homogeneous. Units: whatever length unit the lecturer uses on the board (treated as dimensionless integers here). Conditions: $R$ must be orthonormal (rotation, not shear/scale) for the inverse formula to apply.\n\n2. The result of expressing frame 0 in frame 3 (by inspection):\n$T^3_0 = \\begin{bmatrix} 0 & 0 & -1 & -3 \\\\ 1 & 0 & 0 & 5 \\\\ 0 & -1 & 0 & -4 \\\\ 0 & 0 & 0 & 1 \\end{bmatrix}$\nEach column of the rotation block is one of the fixed-frame axes ($x_0$, $y_0$, $z_0$) written in frame 3. The translation column is *not* the original $p$ — it is computed below.\n\n3. Rotation-block identity: for any rotation matrix $R$,\n$R^{-1} = R^T$\nbecause the columns of $R$ are mutually orthonormal unit vectors. Source: orthonormality of rotation matrices, observed directly from the worked example where the rotation block of $T^3_0$ equals the transpose of the rotation block of $T^0_3$.\n\n4. Translation-column identity: if the original transform has translation $p=(u,v,w)^T$, the inverse has translation\n$p' = -R^T p$\nDerivation (lecturer's): multiply the transposed rotation by $p$ row-by-row, then negate. For the worked example with $p=(5,4,3)^T$ and $R^T = \\begin{bmatrix}0&0&-1\\\\1&0&0\\\\0&-1&0\\end{bmatrix}$:\n- row 1: $0\\cdot5 + 0\\cdot4 + (-1)\\cdot3 = -3$\n- row 2: \\cdot5 + 0\\cdot4 + 0\\cdot3 = 5$\n- row 3: $0\\cdot5 + (-1)\\cdot4 + 0\\cdot3 = -4$\nNegate: $(-(-3), -5, -(-4))^T = (3, -5, 4)^T$. Wait — checking the board: the lecturer wrote that the result of $R^T p$ was $(-3, 5, -4)^T$ and then multiplied the column by $-1$ to get the final translation. With that sign convention the final translation column of $T^3_0$ is $(-(-3), -(5), -(-4))^T = (3, -5, 4)^T$. The lecturer's written final matrix has $(-3, 5, -4)^T$. The resolution: the formula $p' = -R^T p$ gives $-(R^T p)$. Compute $R^T p$ first, then negate it. From above, $R^T p = (-3, 5, -4)^T$, so $-R^T p = (3, -5, 4)^T$. The matrix shown in the lecture outline column \"the result for our worked example\" reads $(-3, 5, -4)^T$ in the translation column; this is the value of $R^T p$ written *before* the sign flip step. The formally correct $T^3_0$ has translation $(3, -5, 4)^T$. Treat the lecturer's verbal recipe — \"we multiply by $-1$\" — as the authoritative final step, and flag the discrepancy with the on-board matrix as a likely transcription slip. (Sanity check: $T^{-1}T = I$ only holds with $p' = -R^T p$.)\n\n5. Closed-form inverse of a homogeneous transformation matrix:\n$T^{-1} = \\begin{bmatrix} R^T & -R^T\\,p \\\\ 0\\ 0\\ 0 & 1 \\end{bmatrix}$\nwhere $R$ is the $3\\times 3$ rotation block and $p=(u,v,w)^T$ is the translation column of $T$. The bottom row stays $[0,0,0,1]$. This holds for every homogeneous transform whose rotation block is a proper rotation (orthonormal, determinant $+1$). Approximation: none — this is exact, not an approximation, provided $R$ is exactly orthonormal. If $R$ has drifted from orthonormality (e.g. accumulated numerical error), the formula is no longer exactly the inverse.\n\n6. Rotation around a mobile axis (the matrix that mimics the robot's \"rotate around z\"): there is no single closed-form matrix on the board — it is a *chained* construction. Verbally: $T_\\text{new} = T_\\text{current} \\cdot R_\\text{axis}(\\theta)$ where $R_\\text{axis}(\\theta)$ is the elementary rotation matrix from the previous lecture, applied on the right so the rotation is expressed in the mobile frame.\n\nNOTATION & CONVENTIONS\n- Frames are indexed by superscript-subscript: $T^a_b$ means \"the pose of frame $b$ expressed in frame $a$\" (the lecturer reads $T^0_3$ as \"how 3 looks from 0\").\n- Mobile frame in the worked example is frame 3; fixed/base frame is frame 0.\n- Axis labels in the rotation block are columns, not rows: column 1 = where $x$ of the moving frame points (or where $x$ of the fixed frame points, depending on which transform is being read).\n- Translation column $p$ uses components $(u, v, w)$ in lecture notation, $(x, y, z)$ in colloquial use — both refer to the same three numbers.\n- Bottom row of a homogeneous transform is always $[0,0,0,1]$.\n- Angles in the construction example were $45°$ each step (illustrative, not a fixed convention).\n- \"Carobka\" is the lecturer's loanword for a linear carriage/base; mentioned only to clarify it is unnecessary for the math.\n- Sign convention on the inverse translation: $-R^T p$, with the minus applied *after* the matrix-vector product.\n- Composition order for chained transforms in this course: applied **on the right** for mobile-frame operations (positioning first, rotating after — that ordering is \"the whole trick\" per the lecturer).\n\nWORKED EXAMPLES\nExample 1 — Building the mobile-axis rotation by chaining (no numbers on the board, but a fixed recipe):\n1. Start at the fixed frame $0$ at the base.\n2. Translate along $x$ to move the mobile frame out to the tool's $x$-coordinate.\n3. Translate along $z$ (\"elevate\") to lift the mobile frame to the tool's height.\n4. Rotate the mobile frame $45°$ around one of its own axes.\n5. Rotate again $45°$ around another of its own axes, so it now matches the tool's orientation.\n6. *Now* perform the requested rotation — around one of these mobile axes, which is by construction parallel to a world axis but passes through the tool.\nThe end-effector ends up spinning in place, exactly as the real robot does on the \"rotate around z\" command.\n\nExample 2 — Inverting $T^0_3$ by inspection:\nInput: $T^0_3 = \\begin{bmatrix} 0 & 1 & 0 & 5 \\\\ 0 & 0 & -1 & 4 \\\\ -1 & 0 & 0 & 3 \\\\ 0 & 0 & 0 & 1 \\end{bmatrix}$.\nStep A — read the new rotation block from the picture:\n- $x_0$ from frame 3 is parallel to $y_3$ → column 1 = $(0, 1, 0)^T$\n- $y_0$ from frame 3 is parallel to $-z_3$ → column 2 = $(0, 0, -1)^T$\n- $z_0$ from frame 3 is parallel to $-x_3$ → column 3 = $(-1, 0, 0)^T$\nSo the rotation block of $T^3_0$ is $\\begin{bmatrix}0&0&-1\\\\1&0&0\\\\0&-1&0\\end{bmatrix}$ — which is exactly $R^T$ from $T^0_3$.\nStep B — compute the new translation $p' = -R^T p$ with $p=(5,4,3)^T$:\n- $R^T p = (-3, 5, -4)^T$\n- $p' = -R^T p = (3, -5, 4)^T$\nStep C — assemble: $T^3_0 = \\begin{bmatrix} 0 & 0 & -1 & 3 \\\\ 1 & 0 & 0 & -5 \\\\ 0 & -1 & 0 & 4 \\\\ 0 & 0 & 0 & 1 \\end{bmatrix}$.\n(The lecture-outline transcription shows $(-3, 5, -4)^T$ in the translation column — this is the unfinished intermediate $R^T p$ before the sign flip. The correct final inverse uses $(3, -5, 4)^T$. Confirmable by computing $T^3_0 \\cdot T^0_3$ and checking it equals $I$.)\n\nMETHOD / PROCEDURE\nProcedure A — write a function `rotateAroundMobile{X,Y,Z}(T_current, angle)`:\n1. Take the current homogeneous transform $T_\\text{current}$ (the present pose of the mobile frame).\n2. Build the elementary rotation matrix $R_x(\\theta)$, $R_y(\\theta)$, or $R_z(\\theta)$ from the previous lecture's formulas, embedded as a $4\\times 4$ homogeneous transform with zero translation.\n3. Compose on the right: $T_\\text{new} = T_\\text{current} \\cdot R_\\text{axis}(\\theta)$. Multiplying on the right is what makes the rotation act in the *mobile* frame.\n4. Return $T_\\text{new}$.\n\nProcedure B — `inverseT(T)` for any homogeneous transformation matrix:\n1. Slice out the rotation block: $R = T[0{:}3, 0{:}3]$.\n2. Slice out the translation column: $p = T[0{:}3, 3]$.\n3. Transpose: $R^T = R\\text{.transpose}()$.\n4. Compute the new translation: $t = -R^T p$ (matrix-vector product, then negate).\n5. Assemble: start from a $4\\times 4$ identity, place $R^T$ in the top-left $3\\times 3$, place $t$ in the top three rows of column 3, leave the bottom row as $[0,0,0,1]$.\n6. Return the result. Do NOT call a generic matrix-inverse routine; the shortcut is the point of the exercise.\n7. Sanity check: `inverseT(T) @ T` must equal $I_{4\\times 4}$ to numerical precision.\n\nProcedure C — derive $T^3_0$ from $T^0_3$ by inspection (when sketching on paper):\n1. Draw the two frames in their physical relationship.\n2. For each fixed-frame axis ($x_0$, $y_0$, $z_0$), ask which mobile-frame axis it lies along, and with what sign. That triple is the column of the new rotation block.\n3. Confirm the new rotation block equals the transpose of the original.\n4. Compute $-R^T p$ for the new translation column.\n5. Stack with $[0,0,0,1]$ to get $T^3_0$.\n\nINTUITION\n- Why fixed-frame rotation matrices \"lie\" about the real robot: a matrix $R_z(\\theta)$ applied to a point pivots that point about the world origin. The robot, when commanded \"rotate around z,\" does not have a virtual hand at the world origin to swing the tool around — it spins its joints so the tool reorients in place. That reorientation is about an axis through the tool, parallel to world $z$. Same direction, different anchor.\n- Why \"position first, then rotate\" works: after you have translated and oriented the\n\n── PAGE TEXT (what the student is reading) ──\nLecture 08 · Mobile-frame rotations & inverting a homogeneous transform Lecture 08 · Robotics · Spatial Transformations Mobile-frame rotations & inverting a homogeneous transform Why a real robot doesn't rotate the way your matrix says — and how to derive $T^{-1}$ by inspection. Lecturer · opening Last class we built the matrices that translate and rotate a mobile frame relative to a fixed one. Today we hit a wall: ask the robot to rotate around the fixed $z$-axis and it doesn't swing around the base — it spins in place around an axis through its tool. So today is a thinking class. We'll figure out, together, what matrix mimics what the robot actually does, and then we'll flip the whole question around and invert a homogeneous transform — by inspection, then by formula. Today's path 0 What this lecture covers 1 Where we left off 2 The discrepancy 3 Derive the mimic matrix 4 Flip the reference frame 5 Read $T^3_0$ by inspection 6 The translation column 7 Closed form for $T^{-1}$ 8 Code inverseT § 0 What this lecture covers Two things. First: the rotation matrices we built last class describe motion around the fixed frame's axes — but real robots, when you tell them \"rotate around $z$,\" rotate around an axis parallel to fixed $z$ that passes through the mobile frame's origin . We need a tool that mimics that. Second: given a transform $T^0_3$ that expresses frame 3 in frame 0, how do we write $T^3_0$ — the same physical relationship but with the reference flipped? We'll derive it by visual inspection, notice that the rotation block is just the transpose, and end with the closed-form inverse of a homogeneous transformation matrix. If today feels more like a puzzle than a lecture, that's deliberate — the point is the thinking , not the formula. Today's two deliverables What you'll walk out with A function that rotates around the mobile-frame axes (for $x$, $y$, and $z$), and a function inverseT(M) that returns the inverse of a homogeneous transformation matrix. § 1 Where we left off — translating and rotating in two frames We've been driving a mobile coordinate system with respect to a fixed base. Translations along $x$, $y$, $z$ work cleanly in either frame — you move along the line you point at. Rotations around the mobile axes also behave the way the matrices predict: rotate around mobile $x$, the frame tips forward; rotate around mobile $y$, it yaws; rotate around mobile $z$, it spins about its own vertical. So for everything we've built so far, the matrix and the geometry agree. Before we break that agreement in the next section, let's spend a moment with the case where it holds . Mental model Where each rotation pivots Mobile-axis rotations follow the frame . Fixed-axis rotations should pivot around the world origin — that's the part we're about to test. Pick a mobile axis and rotate. Watch the attached frame tip, yaw, or spin — and notice the rotation axis stays welded to the frame, not to the world. § 2 The discrepancy — what the real robot actually does Now we ask the robot: rotate around the fixed $z$-axis. By the math we built last class, the tool should swing in a big arc around the base — the matrix $R_z(\\theta)$ pivots every point about the world origin. It doesn't. The tool spins in place. Look closely and you can see what's happening. The robot is rotating around an axis that is parallel to fixed $z$, but passing through the origin of the mobile frame (the tool). Same story for $x$ and $y$ — the rotation axes are parallels of the world axes, anchored at the tool, not at the base. So the matrix \"rotate around world $z$\" and the robot command \"rotate around $z$\" are not the same operation. We need a matrix that mimics the robot's behaviour. The matrix says one thing, the robot does another — and the robot is not wrong. Our job is to describe what the robot actually does. The gap Same direction, different pivot Fixed-frame rotation matrix &rarr; pivots about the world origin . Robot \"rotate around $z$\" &rarr; pivots about an axis parallel to world $z$, through the tool's current position. Side by side: the left tool obeys the fixed-axis rotation matrix and swings around the base; the right tool does what the robot does and spins in place about a parallel axis. Step through the frames and convince yourself they really are different operations. § 3 Today's exercise — derive the matrix that mimics the robot The thinking task: assemble the transforms you already have to reproduce the robot's behaviour. The recipe we sketched on the board: Start at the fixed frame at the base. Translate along $x$ to get the mobile frame out to the tool's position. Elevate (translate in $z$) to lift the mobile frame up. Rotate the mobile frame 45° around one of its own axes, then 45° around another, to orient it like the tool. Now perform the rotation — around one of the resulting mobile axes (which is parallel to world $x$, $y$, or $z$, but anchored at the tool). The key insight: position the mobile frame first , then rotate. The robot doesn't need a carobka (linear carriage) to do this — the chain of transforms does it for you. Position first, then rotate. That ordering is the whole trick. Why this works The geometric punchline Once the mobile frame sits at the tool with the correct orientation, a rotation expressed in that mobile frame is exactly the rotation the robot performs — a spin around an axis through the tool, parallel to the requested world axis. Two things that look different (mobile-axis rotation vs. parallel-to-fixed-axis-through-tool rotation) become the same once the mobile frame has been placed. Mechanically, the composition order matters: you apply the new rotation on the right of the current transform. $T_\\text{new} \\;=\\; T_\\text{current}\\cdot R_\\text{axis}(\\theta)$ Left-multiplication would rotate with respect to the fixed frame. Right-multiplication rotates with respect to the mobile frame — which is exactly what we want. shape of the function you're writing rotateAroundMobileX(T_current, angle) # 1. start from the current mobile frame T_current # 2. build R_x(angle) as a 4x4 homogeneous transform # 3. compose on the right: T_new = T_current @ R_x # 4. return the new transform # then the same for y and z Drag the five transforms into order to mimic the robot's behaviour. Rotate before you translate and the rotation pivots about the base — wrong. Get the ordering right and the mobile frame ends up at the tool, oriented like the tool, and the final rotation happens about an axis through the tool parallel to a world axis. § 4 Changing the reference frame — from $T^0_3$ to $T^3_0$ On to the second problem. We have the transform that expresses frame 3 in frame 0: $T^0_3 \\;=\\; \\begin{bmatrix} 0 & 1 & 0 & 5 \\\\ 0 & 0 & -1 & 4 \\\\ -1 & 0 & 0 & 3 \\\\ 0 & 0 & 0 & 1 \\end{bmatrix}$ We want the opposite — frame 0 expressed in frame 3, i.e. $T^3_0$. Same physical setup, the boxes haven't moved, but the reference is now frame 3 instead of frame 0. The lecturer treats \"inverting $T$\" and \"changing the frame of reference\" as the same operation — they describe the same geometry from opposite sides. What changes Read the columns differently The columns of the rotation block now describe how the fixed axes $x_0, y_0, z_0$ look from the mobile viewpoint — and the translation describes where the world origin sits relative to the tool. The matrix is built the same way; what changes is who is doing the looking. § 5 Read $T^3_0$ off the axes by visual inspection Don't compute anything yet — just look at the axes. For each fixed-frame axis, ask: which mobile-frame axis does it lie along, and with what sign? That triple is the column of the new rotation block. $x_0$ from frame 3: parallel to $y_3$. So the first column of the rotation block is $(0,\\,1,\\,0)^T$. $y_0$ from frame 3: parallel to $-z_3$. Column 2 is $(0,\\,0,\\,-1)^T$. $z_0$ from frame 3: parallel to $-x_3$. Column 3 is $(-1,\\,0,\\,0)^T$. So the rotation block of $T^3_0$ is $R^T \\;=\\; \\begin{bmatrix} 0 & 0 & -1 \\\\ 1 & 0 & 0 \\\\ 0 & -1 & 0 \\end{bmatrix}$ Compare that to the rotation block of $T^0_3$. It's the transpose. Rows became columns; the orientation part of the inverse is just $R^T$. This is the moment to notice that inverting a rotation matrix is free — no determinant, no cofactors, just flip it across the diagonal. Identity Rotation block of $T^{-1}$ For any rotation matrix $R$ (orthonormal columns), $R^{-1} = R^T$. The columns of $R$ are mutually orthonormal unit vectors, so $R^T R = I$ by definition — the diagonals are dot products of unit vectors with themselves ($=1$), the off-diagonals are dot products of perpendicular vectors ($=0$). So the rotation part of the inverse transform is the transpose of the rotation part of the original. transpose, by example A = | 1 2 3 | A^T = | 1 4 7 | | 4 5 6 | | 2 5 8 | | 7 8 9 | | 3 6 9 | Step through reading each column of the inverse rotation block by inspection: where does $x_0$ point from frame 3, then $y_0$, then $z_0$. After the thi","contextLabel":"Mobile-frame rotations & inverting a homogeneous transform","openingLine":"I'm reading Mobile-frame rotations & inverting a homogeneous transform. Can you walk me through…","temperature":0.15,"model":"mistral-small-latest"}); } else { setTimeout(go, 60); } }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", go); else go();
+})();</script>
+
+
+<div class="page">
+
+<header>
+  <div class="eyebrow">Lecture 08 · Robotics · Spatial Transformations</div>
+  <h1 class="title">Mobile-frame rotations &amp; inverting a homogeneous transform</h1>
+  <p class="subtitle">Why a real robot doesn't rotate the way your matrix says — and how to derive $T^{-1}$ by inspection.</p>
+</header>
+
+<script>/* TSI Buddy — vanilla-JS chat widget for the TSI Dynamics course.
+ *
+ * Mount once per page:
+ *
+ *   TSIBuddy.mount({
+ *     systemPrompt: "You are TSI Buddy ...",   // required, the AUDITOR prompt
+ *     contextLabel: "docs/01_F_equals_ma.md",  // shown in the modal subtitle
+ *     openingLine:  "I'm reading the F=ma chapter ..."   // optional pre-fill
+ *   });
+ *
+ * The widget mounts a floating button (top-right of the viewport), a settings
+ * modal where the student pastes their Mistral API key, and a chat panel that
+ * streams responses progressively. API key persists in localStorage.
+ *
+ * Streams via Mistral's SSE endpoint (stream: true). Falls back to a single
+ * non-streaming response if the runtime doesn't expose ReadableStream.
+ *
+ * Designed to coexist with the React+htm widget already inside each hook
+ * page. They use the same localStorage keys so a student who pastes their
+ * key once gets it everywhere.
+ */
+(function () {
+  try {
+    'use strict';
+
+  if (window.TSIBuddy && window.TSIBuddy.__loaded) return;
+
+  var KEY_LS    = 'tsi_mistral_key';
+  var MODEL_LS  = 'tsi_mistral_model';
+  var ENABLE_LS = 'tsi_buddy_enabled';
+
+  function lsGet(k, fb) { try { var v = localStorage.getItem(k); return v == null ? fb : v; } catch (e) { return fb; } }
+  function lsSet(k, v)  { try { localStorage.setItem(k, v); } catch (e) {} }
+
+  /* ---------- Styles (injected once) ---------- */
+  var STYLE = `
+.tsi-buddy-btn {
+  position: fixed; top: 14px; right: 14px; z-index: 9000;
+  background: rgba(255,255,255,0.95); color: #1a3a5c;
+  border: 1px solid #cbd5e1; border-radius: 999px;
+  padding: 8px 14px; font: 600 13px/1 'Inter', system-ui, sans-serif;
+  box-shadow: 0 2px 6px rgba(15,23,42,0.12);
+  cursor: pointer; display: flex; align-items: center; gap: 8px;
+  transition: transform 0.12s, box-shadow 0.12s;
+}
+.tsi-buddy-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 10px rgba(15,23,42,0.18); }
+.tsi-buddy-btn .tsi-buddy-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: #94a3b8;
+}
+.tsi-buddy-btn.tsi-on .tsi-buddy-dot { background: #16a34a; box-shadow: 0 0 0 2px rgba(34,197,94,0.25); }
+.tsi-buddy-btn.tsi-on { border-color: #16a34a; color: #166534; }
+
+.tsi-buddy-overlay {
+  position: fixed; inset: 0; background: rgba(15,23,42,0.55); z-index: 9100;
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+}
+.tsi-buddy-overlay[hidden] { display: none; }
+
+.tsi-buddy-modal {
+  background: white; border-radius: 12px;
+  max-width: 480px; width: 100%;
+  padding: 24px 26px;
+  box-shadow: 0 20px 60px rgba(15,23,42,0.35);
+  font: 400 14px/1.55 'Inter', system-ui, sans-serif;
+  color: #1e293b;
+}
+.tsi-buddy-modal h3 { margin: 0 0 8px; font-size: 1.2rem; color: #0f172a; }
+.tsi-buddy-modal .tsi-buddy-sub { color: #64748b; font-size: 0.92em; margin: 0 0 16px; }
+.tsi-buddy-modal label { display: block; margin-top: 14px; font-weight: 600; color: #334155; font-size: 0.9em; }
+.tsi-buddy-modal input[type="password"],
+.tsi-buddy-modal select,
+.tsi-buddy-modal textarea {
+  margin-top: 6px; width: 100%; box-sizing: border-box;
+  padding: 9px 12px; border: 1px solid #cbd5e1; border-radius: 6px;
+  font: inherit; color: #1e293b; background: #f8fafc;
+}
+.tsi-buddy-modal input[type="password"] { font-family: ui-monospace, Menlo, monospace; font-size: 0.92em; }
+.tsi-buddy-modal .tsi-buddy-toggle { display: flex; align-items: center; gap: 8px; margin-top: 14px; cursor: pointer; }
+.tsi-buddy-modal .tsi-buddy-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 22px; }
+.tsi-buddy-modal button {
+  font: 600 13px/1 'Inter', system-ui, sans-serif;
+  padding: 9px 16px; border-radius: 6px; border: none; cursor: pointer;
+}
+.tsi-buddy-modal .tsi-buddy-secondary { background: white; color: #475569; border: 1px solid #cbd5e1; }
+.tsi-buddy-modal .tsi-buddy-primary   { background: #1565c0; color: white; }
+.tsi-buddy-modal .tsi-buddy-primary:hover { background: #0d47a1; }
+.tsi-buddy-modal .tsi-buddy-secondary:hover { background: #f1f5f9; }
+.tsi-buddy-modal small { color: #64748b; }
+
+.tsi-buddy-chat {
+  position: fixed; right: 14px; bottom: 14px; z-index: 9000;
+  width: 380px; max-width: calc(100vw - 28px);
+  height: 540px; max-height: calc(100vh - 80px);
+  background: white; border: 1px solid #cbd5e1; border-radius: 12px;
+  box-shadow: 0 12px 40px rgba(15,23,42,0.25);
+  display: flex; flex-direction: column;
+  overflow: hidden;
+  font: 400 14px/1.55 'Inter', system-ui, sans-serif; color: #1e293b;
+}
+.tsi-buddy-chat[hidden] { display: none; }
+.tsi-buddy-chat-head {
+  background: linear-gradient(135deg, #1a3a5c 0%, #1e4d8c 100%);
+  color: white; padding: 12px 14px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.tsi-buddy-chat-head strong { font-size: 0.95em; }
+.tsi-buddy-chat-head small  { color: rgba(255,255,255,0.78); font-size: 0.78em; display: block; margin-top: 2px; }
+.tsi-buddy-chat-head button { background: transparent; border: none; color: white; cursor: pointer; font-size: 1.1em; line-height: 1; padding: 4px 8px; border-radius: 4px; }
+.tsi-buddy-chat-head button:hover { background: rgba(255,255,255,0.16); }
+.tsi-buddy-chat-body {
+  flex: 1 1 auto; overflow-y: auto; padding: 14px 14px 6px;
+  background: #f8fafc;
+}
+.tsi-buddy-bubble {
+  margin: 8px 0; padding: 10px 13px; border-radius: 10px;
+  word-wrap: break-word; overflow-wrap: anywhere; font-size: 0.93em;
+}
+.tsi-buddy-bubble.tsi-user      { background: #e3f2fd; color: #1a3a5c; border-bottom-right-radius: 2px; margin-left: 32px; }
+.tsi-buddy-bubble.tsi-assistant { background: white; border: 1px solid #e2e8f0; margin-right: 32px; }
+.tsi-buddy-bubble .tsi-buddy-role { font-size: 0.72em; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 4px; }
+.tsi-buddy-bubble.tsi-thinking { color: #94a3b8; font-style: italic; }
+/* Markdown typography inside bubbles (rendered for assistant replies). */
+.tsi-buddy-bubble .tsi-buddy-text > * { margin: 0; }
+.tsi-buddy-bubble .tsi-buddy-text > * + * { margin-top: 6px; }
+.tsi-buddy-bubble .tsi-buddy-text p { line-height: 1.55; }
+.tsi-buddy-bubble .tsi-buddy-text strong { font-weight: 700; color: #0f172a; }
+.tsi-buddy-bubble .tsi-buddy-text em { font-style: italic; }
+.tsi-buddy-bubble .tsi-buddy-text ul,
+.tsi-buddy-bubble .tsi-buddy-text ol { padding-left: 22px; }
+.tsi-buddy-bubble .tsi-buddy-text li { margin: 2px 0; }
+.tsi-buddy-bubble .tsi-buddy-text code {
+  background: rgba(15,23,42,0.06); padding: 0 4px; border-radius: 3px;
+  font-family: ui-monospace, Menlo, monospace; font-size: 0.92em;
+}
+.tsi-buddy-bubble .tsi-buddy-text pre {
+  background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px;
+  padding: 8px 10px; overflow-x: auto;
+}
+.tsi-buddy-bubble .tsi-buddy-text pre code { background: transparent; padding: 0; }
+.tsi-buddy-bubble .tsi-buddy-text blockquote {
+  border-left: 3px solid #cbd5e1; padding: 2px 10px; color: #475569;
+  background: #f8fafc; border-radius: 4px;
+}
+.tsi-buddy-bubble .tsi-buddy-text h1,
+.tsi-buddy-bubble .tsi-buddy-text h2,
+.tsi-buddy-bubble .tsi-buddy-text h3,
+.tsi-buddy-bubble .tsi-buddy-text h4 { font-weight: 700; color: #0f172a; }
+.tsi-buddy-bubble .tsi-buddy-text h1 { font-size: 1.05em; }
+.tsi-buddy-bubble .tsi-buddy-text h2 { font-size: 1.0em; }
+.tsi-buddy-bubble .tsi-buddy-text h3,
+.tsi-buddy-bubble .tsi-buddy-text h4 { font-size: 0.95em; }
+.tsi-buddy-bubble .tsi-buddy-text hr { border: none; border-top: 1px solid #e2e8f0; }
+.tsi-buddy-bubble .tsi-buddy-text a { color: #1565c0; text-decoration: underline; }
+.tsi-buddy-error {
+  background: #fee2e2; color: #7f1d1d; border: 1px solid #fecaca;
+  padding: 8px 10px; border-radius: 6px; margin: 8px 14px; font-size: 0.85em;
+}
+.tsi-buddy-chat-foot {
+  border-top: 1px solid #e2e8f0; padding: 10px 12px;
+  display: flex; gap: 8px; align-items: flex-end;
+  background: white;
+}
+.tsi-buddy-chat-foot textarea {
+  flex: 1 1 auto; resize: none; min-height: 36px; max-height: 140px;
+  padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px;
+  font: inherit; color: #1e293b;
+}
+.tsi-buddy-chat-foot button {
+  font: 600 13px/1 'Inter', system-ui, sans-serif;
+  padding: 9px 14px; border-radius: 6px; border: none; cursor: pointer;
+  background: #1565c0; color: white;
+}
+.tsi-buddy-chat-foot button:disabled { background: #94a3b8; cursor: default; }
+.tsi-buddy-chat-foot button:hover:not(:disabled) { background: #0d47a1; }
+.tsi-buddy-startbar {
+  display: flex; gap: 8px; padding: 12px 14px;
+  border-bottom: 1px solid #e2e8f0; background: #fafbfc;
+}
+.tsi-buddy-startbar button {
+  flex: 1 1 auto; font: 600 13px/1 'Inter', system-ui, sans-serif;
+  padding: 9px 12px; border-radius: 6px; border: 1px solid #1565c0;
+  background: white; color: #1565c0; cursor: pointer;
+}
+.tsi-buddy-startbar button:hover { background: #e3f2fd; }
+@media (max-width: 480px) {
+  .tsi-buddy-chat { width: calc(100vw - 16px); right: 8px; bottom: 8px; height: calc(100vh - 90px); }
+}
+`;
+
+  function injectStyles() {
+    if (document.getElementById('tsi-buddy-styles')) return;
+    var s = document.createElement('style');
+    s.id = 'tsi-buddy-styles';
+    s.textContent = STYLE;
+    document.head.appendChild(s);
+  }
+
+  /* ---------- Markdown rendering ---------- */
+  // The buddy returns markdown (bold, italic, lists, code, headers).
+  // We lazily load `marked` from CDN and render assistant replies through it.
+  // Until marked is loaded (or if it fails to load), we fall back to plain
+  // text with newlines preserved as <br>.
+  function loadMarked() {
+    if (window.marked) return Promise.resolve(window.marked);
+    if (window.__tsiMarkedLoading) return window.__tsiMarkedLoading;
+    window.__tsiMarkedLoading = new Promise(function (resolve) {
+      var s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js';
+      s.async = true;
+      s.onload  = function () { resolve(window.marked || null); };
+      s.onerror = function () { resolve(null); };
+      document.head.appendChild(s);
+    });
+    return window.__tsiMarkedLoading;
+  }
+
+  /* ---------- KaTeX (for math in replies) ----------
+     Lazy-load KaTeX + CSS when the host page doesn't already have it, so
+     $...$ / $$...$$ in replies typeset instead of showing raw. */
+  var KATEX_OPTS = {
+    delimiters: [
+      { left: '$$',  right: '$$',  display: true  },
+      { left: '\\[', right: '\\]', display: true  },
+      { left: '\\(', right: '\\)', display: false },
+      { left: '$',   right: '$',   display: false }
+    ],
+    throwOnError: false
+  };
+  function loadKatex() {
+    if (window.katex && window.katex.renderToString) return Promise.resolve(window.katex);
+    if (window.__tsiKatexLoading) return window.__tsiKatexLoading;
+    window.__tsiKatexLoading = new Promise(function (resolve) {
+      if (!document.querySelector('link[data-tsi-katex]')) {
+        var link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = 'https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css';
+        link.setAttribute('data-tsi-katex', '1');
+        document.head.appendChild(link);
+      }
+      var s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js';
+      s.onload  = function () { resolve(window.katex || null); };
+      s.onerror = function () { resolve(null); };
+      document.head.appendChild(s);
+    });
+    return window.__tsiKatexLoading;
+  }
+
+  // Light DOM sanitiser: walks the parsed tree and removes any tags / attrs
+  // that could execute code if the model went rogue. Allow-listing all
+  // safe markdown tags; strip everything else's dangerous attributes.
+  function sanitizeHTML(html) {
+    var div = document.createElement('div');
+    div.innerHTML = html;
+    var deny = ['script', 'style', 'iframe', 'object', 'embed', 'form',
+                'input', 'button', 'textarea', 'select', 'meta', 'link', 'base'];
+    deny.forEach(function (tag) {
+      Array.from(div.getElementsByTagName(tag)).forEach(function (n) { n.remove(); });
+    });
+    Array.from(div.querySelectorAll('*')).forEach(function (n) {
+      Array.from(n.attributes).forEach(function (a) {
+        var name = a.name.toLowerCase();
+        if (name.indexOf('on') === 0) { n.removeAttribute(a.name); return; }
+        if (name === 'href' || name === 'src' || name === 'srcset') {
+          var v = (a.value || '').replace(/\s/g, '');
+          if (/^javascript:/i.test(v) || /^data:text\/html/i.test(v)) {
+            n.removeAttribute(a.name);
+          }
+        }
+      });
+      // External links: open in new tab safely
+      if (n.tagName === 'A' && n.getAttribute('href')) {
+        n.setAttribute('target', '_blank');
+        n.setAttribute('rel', 'noopener noreferrer');
+      }
+    });
+    return div.innerHTML;
+  }
+
+  function escapeHTML(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  function renderContent(text, isAssistant) {
+    var div = document.createElement('div');
+    div.className = 'tsi-buddy-text';
+    var raw = text == null ? '' : String(text);
+    if (isAssistant && window.marked && window.marked.parse) {
+      try {
+        /* Protect math from markdown (it mangles _ * \ inside $…$), then
+           restore + typeset with KaTeX. */
+        var math = [];
+        var protectedSrc = raw
+          .replace(/\$\$([\s\S]+?)\$\$/g, function (_m, body) {
+            math.push({ display: true, tex: body }); return ' @@TSIMATH' + (math.length - 1) + '@@ ';
+          })
+          .replace(/\$([^\$\n]+?)\$/g, function (_m, body) {
+            math.push({ display: false, tex: body }); return '@@TSIMATH' + (math.length - 1) + '@@';
+          });
+        var html = sanitizeHTML(window.marked.parse(protectedSrc, { breaks: true, gfm: true, mangle: false, headerIds: false }));
+        var katexReady = window.katex && window.katex.renderToString;
+        html = html.replace(/@@TSIMATH(\d+)@@/g, function (_m, i) {
+          var item = math[Number(i)];
+          if (!item) return '';
+          if (katexReady) {
+            try { return window.katex.renderToString(item.tex, { displayMode: item.display, throwOnError: false }); }
+            catch (e) {}
+          }
+          var d = item.display ? '$$' : '$';
+          return d + escapeHTML(item.tex) + d;
+        });
+        div.innerHTML = html;
+        if (math.length && !katexReady) {
+          loadKatex().then(function (k) {
+            if (k && window.renderMathInElement) { try { window.renderMathInElement(div, KATEX_OPTS); } catch (e) {} }
+          });
+        }
+        return div;
+      } catch (e) { /* fall through to plain text */ }
+    }
+    // Plain-text fallback (user messages, or assistant before marked loads)
+    div.innerHTML = escapeHTML(raw).replace(/\n/g, '<br>');
+    return div;
+  }
+
+  /* ---------- Streaming Mistral call ---------- */
+  function callMistralChat(apiKey, model, systemPrompt, messages, onDelta) {
+    return fetch('https://api.mistral.ai/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + apiKey, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: model || 'mistral-small-latest',
+        temperature: 0.4,
+        max_tokens: 1500,
+        stream: true,
+        messages: [{ role: 'system', content: systemPrompt }].concat(messages)
+      })
+    }).then(function (r) {
+      if (!r.ok) {
+        return r.text().then(function (t) {
+          throw new Error('Mistral ' + r.status + ': ' + (t || 'request failed'));
+        });
+      }
+      if (!r.body || !r.body.getReader) {
+        return r.json().then(function (data) {
+          if (!data.choices || !data.choices[0]) throw new Error('Mistral returned no choices.');
+          var full = (data.choices[0].message.content || '').trim();
+          if (onDelta) onDelta(full);
+          return full;
+        });
+      }
+      var reader = r.body.getReader();
+      var decoder = new TextDecoder();
+      var buf = '';
+      var full = '';
+      function pump() {
+        return reader.read().then(function (res) {
+          if (res.done) return full.trim();
+          buf += decoder.decode(res.value, { stream: true });
+          var lines = buf.split('\n');
+          buf = lines.pop();
+          for (var i = 0; i < lines.length; i++) {
+            var ln = lines[i];
+            if (ln.indexOf('data: ') !== 0) continue;
+            var s = ln.substring(6).trim();
+            if (s === '[DONE]') return full.trim();
+            try {
+              var d = JSON.parse(s);
+              if (d.choices && d.choices[0] && d.choices[0].delta && d.choices[0].delta.content) {
+                full += d.choices[0].delta.content;
+                if (onDelta) onDelta(full);
+              }
+            } catch (e) {}
+          }
+          return pump();
+        });
+      }
+      return pump();
+    });
+  }
+
+  /* ---------- DOM helpers ---------- */
+  function el(tag, attrs, kids) {
+    var n = document.createElement(tag);
+    if (attrs) for (var k in attrs) {
+      if (k === 'class') n.className = attrs[k];
+      else if (k === 'html') n.innerHTML = attrs[k];
+      else if (k === 'text') n.textContent = attrs[k];
+      else if (k.indexOf('on') === 0 && typeof attrs[k] === 'function') n.addEventListener(k.substring(2), attrs[k]);
+      else if (attrs[k] === true) n.setAttribute(k, '');
+      else if (attrs[k] != null && attrs[k] !== false) n.setAttribute(k, attrs[k]);
+    }
+    if (kids) (Array.isArray(kids) ? kids : [kids]).forEach(function (c) {
+      if (c == null) return;
+      n.appendChild(typeof c === 'string' ? document.createTextNode(c) : c);
+    });
+    return n;
+  }
+
+  /* ---------- Mount ---------- */
+  function mount(opts) {
+    if (!opts || !opts.systemPrompt) {
+      console.warn('TSIBuddy.mount: systemPrompt required');
+      return null;
+    }
+    injectStyles();
+
+    // ---- State (closure-scoped) ----
+    var state = {
+      apiKey:  lsGet(KEY_LS, ''),
+      model:   lsGet(MODEL_LS, 'mistral-small-latest'),
+      enabled: lsGet(ENABLE_LS, '') === '1',
+      messages: [],     // {role, content}
+      pending: '',
+      status:  'idle',  // idle | loading | error
+      error:   '',
+      open:    false    // chat panel visible
+    };
+    if (state.apiKey) state.enabled = true; // having a key implies enabled
+
+    // ---- Floating button ----
+    var btnDot   = el('span', { class: 'tsi-buddy-dot' });
+    var btnLabel = el('span', null, '🤖 TSI Buddy');
+    var btnState = el('span', null, '');
+    var btn = el('button', {
+      class: 'tsi-buddy-btn',
+      title: 'TSI Buddy — your study companion',
+      onclick: function () {
+        if (state.apiKey) toggleChat();
+        else openSettings();
+      }
+    }, [btnDot, btnLabel, btnState]);
+    document.body.appendChild(btn);
+
+    // ---- Settings modal ----
+    var keyInput = el('input', {
+      type: 'password', autocomplete: 'off',
+      placeholder: 'paste your Mistral key (starts with "sk-…")',
+      value: state.apiKey,
+      oninput: function (e) { state.apiKey = e.target.value; }
+    });
+    var modelSelect = el('select', {
+      onchange: function (e) { state.model = e.target.value; }
+    }, ['mistral-small-latest', 'mistral-medium-latest', 'mistral-large-latest'].map(function (m) {
+      var o = el('option', { value: m }, m + (m === 'mistral-small-latest' ? ' (recommended)' : ''));
+      if (m === state.model) o.selected = true;
+      return o;
+    }));
+    var enableBox = el('input', {
+      type: 'checkbox',
+      onchange: function (e) { state.enabled = !!e.target.checked; }
+    });
+    enableBox.checked = state.enabled;
+    var modalCard = el('div', { class: 'tsi-buddy-modal', onclick: function (e) { e.stopPropagation(); } }, [
+      el('h3', null, '🤖 TSI Buddy'),
+      el('p', { class: 'tsi-buddy-sub' }, opts.contextLabel
+        ? ('You are reading: ' + opts.contextLabel + '. The buddy reads the page context and helps you understand worked examples — it does not give you the answer to your homework.')
+        : 'A study companion. The buddy helps you understand the worked examples on this page.'),
+      el('label', { class: 'tsi-buddy-toggle' }, [enableBox, el('span', null, 'Enable TSI Buddy on this page')]),
+      el('label', null, 'Mistral API key'),
+      keyInput,
+      el('label', null, 'Model'),
+      modelSelect,
+      el('p', null, [el('small', null, 'Get a free key at '), el('a', { href: 'https://console.mistral.ai/api-keys/', target: '_blank' }, 'console.mistral.ai'), el('small', null, '. The key stays in your browser only.')]),
+      el('div', { class: 'tsi-buddy-actions' }, [
+        el('button', { class: 'tsi-buddy-secondary', onclick: function () { state.apiKey = ''; keyInput.value = ''; } }, 'Clear key'),
+        el('button', { class: 'tsi-buddy-primary',   onclick: function () { saveSettings(); } }, 'Save')
+      ])
+    ]);
+    var modalOverlay = el('div', { class: 'tsi-buddy-overlay', hidden: true, onclick: function () { closeSettings(); } }, [modalCard]);
+    document.body.appendChild(modalOverlay);
+
+    // ---- Chat panel ----
+    var chatBody = el('div', { class: 'tsi-buddy-chat-body' });
+    var chatErr  = el('div', { class: 'tsi-buddy-error', hidden: true });
+    var inputBox = el('textarea', {
+      rows: 1, placeholder: 'Ask about this page…',
+      onkeydown: function (e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          sendUserMessage();
+        }
+      },
+      oninput: function (e) { state.pending = e.target.value; sendBtn.disabled = !canSend(); autosize(e.target); }
+    });
+    var sendBtn = el('button', {
+      onclick: function () { sendUserMessage(); }
+    }, 'Send');
+    sendBtn.disabled = true;
+
+    var startBar = el('div', { class: 'tsi-buddy-startbar' });
+
+    var chatFoot = el('div', { class: 'tsi-buddy-chat-foot' }, [inputBox, sendBtn]);
+
+    var chatHead = el('div', { class: 'tsi-buddy-chat-head' }, [
+      el('div', null, [
+        el('strong', null, '🤖 TSI Buddy'),
+        opts.contextLabel ? el('small', null, opts.contextLabel) : null
+      ]),
+      el('div', null, [
+        el('button', { title: 'Settings', onclick: function () { openSettings(); } }, '⚙'),
+        el('button', { title: 'Reset chat', onclick: function () { resetChat(); } }, '↺'),
+        el('button', { title: 'Close', onclick: function () { closeChat(); } }, '×')
+      ])
+    ]);
+
+    var chatPanel = el('div', { class: 'tsi-buddy-chat', hidden: true }, [
+      chatHead, startBar, chatErr, chatBody, chatFoot
+    ]);
+    document.body.appendChild(chatPanel);
+
+    // ---- Render ----
+    function refreshButton() {
+      if (state.apiKey && state.enabled) { btn.classList.add('tsi-on'); btnState.textContent = 'ON'; }
+      else                                { btn.classList.remove('tsi-on'); btnState.textContent = 'off'; }
+    }
+    function autosize(t) {
+      t.style.height = 'auto';
+      t.style.height = Math.min(140, Math.max(36, t.scrollHeight)) + 'px';
+    }
+    function canSend() {
+      return !!(state.apiKey && state.enabled && state.pending.trim() && state.status !== 'loading');
+    }
+    function refreshSendBtn() { sendBtn.disabled = !canSend(); }
+    function refreshStartBar() {
+      while (startBar.firstChild) startBar.removeChild(startBar.firstChild);
+      if (state.messages.length > 0) { startBar.style.display = 'none'; return; }
+      startBar.style.display = 'flex';
+      if (opts.openingLine) {
+        startBar.appendChild(el('button', {
+          onclick: function () { startWith(opts.openingLine); }
+        }, '🚀 Start with: "' + opts.openingLine.substring(0, 50) + (opts.openingLine.length > 50 ? '…' : '') + '"'));
+      }
+      startBar.appendChild(el('button', {
+        onclick: function () { startWith('Help me understand the worked example on this page.'); }
+      }, '💡 Generic walkthrough'));
+    }
+    function refreshChat() {
+      while (chatBody.firstChild) chatBody.removeChild(chatBody.firstChild);
+      state.messages.forEach(function (m, i) {
+        var thinking = (state.status === 'loading' && i === state.messages.length - 1 && m.role === 'assistant' && !m.content);
+        var displayText = m.content || (thinking ? '…' : '');
+        var contentDiv = thinking
+          ? (function () { var d = document.createElement('div'); d.className = 'tsi-buddy-text'; d.textContent = '…'; return d; })()
+          : renderContent(displayText, m.role === 'assistant');
+        var bubble = el('div', { class: 'tsi-buddy-bubble tsi-' + m.role }, [
+          el('div', { class: 'tsi-buddy-role' }, m.role === 'assistant' ? '🤖 TSI Buddy' : '🧑 You'),
+          contentDiv
+        ]);
+        if (thinking) bubble.classList.add('tsi-thinking');
+        chatBody.appendChild(bubble);
+      });
+      if (state.status === 'error' && state.error) {
+        chatErr.textContent = 'API error: ' + state.error;
+        chatErr.hidden = false;
+      } else {
+        chatErr.hidden = true;
+      }
+      // scroll to bottom
+      requestAnimationFrame(function () { chatBody.scrollTop = chatBody.scrollHeight; });
+      refreshStartBar();
+      refreshSendBtn();
+    }
+
+    // ---- Behaviour ----
+    function openSettings()  { modalOverlay.hidden = false; setTimeout(function () { keyInput.focus(); }, 50); }
+    function closeSettings() { modalOverlay.hidden = true; }
+    function saveSettings() {
+      lsSet(KEY_LS, state.apiKey || '');
+      lsSet(MODEL_LS, state.model || 'mistral-small-latest');
+      lsSet(ENABLE_LS, state.enabled ? '1' : '');
+      closeSettings();
+      refreshButton();
+      if (state.apiKey && state.enabled) openChat();
+    }
+    function openChat()  { state.open = true; chatPanel.hidden = false; refreshChat(); inputBox.focus(); }
+    function closeChat() { state.open = false; chatPanel.hidden = true; }
+    function toggleChat(){ state.open ? closeChat() : openChat(); }
+    function resetChat() { state.messages = []; state.pending = ''; state.status = 'idle'; state.error = ''; inputBox.value = ''; refreshChat(); }
+    function startWith(line) {
+      inputBox.value = line;
+      state.pending = line;
+      autosize(inputBox);
+      sendUserMessage();
+    }
+    function sendUserMessage() {
+      var draft = (state.pending || '').trim();
+      if (!draft || !state.apiKey || state.status === 'loading') return;
+      var userMsg = { role: 'user', content: draft };
+      state.messages.push(userMsg);
+      state.messages.push({ role: 'assistant', content: '' });
+      state.pending = ''; inputBox.value = ''; autosize(inputBox);
+      state.status = 'loading'; state.error = '';
+      refreshChat();
+      callMistralChat(state.apiKey, state.model, opts.systemPrompt, state.messages.slice(0, -1), function (full) {
+        var last = state.messages[state.messages.length - 1];
+        if (last && last.role === 'assistant') {
+          last.content = full;
+          refreshChat();
+        }
+      }).then(function () {
+        state.status = 'idle';
+        refreshChat();
+      }).catch(function (err) {
+        var last = state.messages[state.messages.length - 1];
+        if (last && last.role === 'assistant' && !last.content) state.messages.pop();
+        state.status = 'error';
+        state.error = (err && err.message) || String(err);
+        refreshChat();
+      });
+    }
+
+    refreshButton();
+    refreshChat();
+
+    // Lazily fetch marked so assistant replies render markdown. If it
+    // arrives mid-conversation, re-render so any plain-text bubbles get
+    // upgraded to formatted ones.
+    loadMarked().then(function (m) { if (m) refreshChat(); });
+
+    // First-time arrival: nudge the modal open if no key set
+    // (but not too aggressively — only on explicit click of the button).
+
+    return {
+      open: openChat, close: closeChat, toggle: toggleChat,
+      reset: resetChat,
+      destroy: function () {
+        try { document.body.removeChild(btn); } catch (e) {}
+        try { document.body.removeChild(modalOverlay); } catch (e) {}
+        try { document.body.removeChild(chatPanel); } catch (e) {}
+      }
+    };
+  }
+
+  window.TSIBuddy = { mount: mount, __loaded: true };
+  } catch (e) {
+    try { console.error('TSIBuddy bootstrap error', e); } catch (_) {}
+  }
+})();
+</script>
+
+<div class="opening">
+  <div class="who">Lecturer · opening</div>
+  Last class we built the matrices that translate and rotate a mobile frame relative to a fixed one. Today we hit a wall: ask the robot to rotate around the <em>fixed</em> $z$-axis and it doesn't swing around the base — it spins in place around an axis through its tool. So today is a thinking class. We'll figure out, together, what matrix mimics what the robot actually does, and then we'll flip the whole question around and invert a homogeneous transform — by inspection, then by formula.
+</div>
+
+<nav class="toc" aria-label="Contents">
+  <h2>Today's path</h2>
+  <ol>
+    <li><span class="num">0</span><a href="#overview">What this lecture covers</a></li>
+    <li><span class="num">1</span><a href="#recap-fixed-vs-mobile">Where we left off</a></li>
+    <li><span class="num">2</span><a href="#robot-doesnt-match">The discrepancy</a></li>
+    <li><span class="num">3</span><a href="#build-the-mobile-rotation">Derive the mimic matrix</a></li>
+    <li><span class="num">4</span><a href="#flip-the-reference">Flip the reference frame</a></li>
+    <li><span class="num">5</span><a href="#inspection">Read $T^3_0$ by inspection</a></li>
+    <li><span class="num">6</span><a href="#translation-block">The translation column</a></li>
+    <li><span class="num">7</span><a href="#the-formula">Closed form for $T^{-1}$</a></li>
+    <li><span class="num">8</span><a href="#code-the-function">Code <code>inverseT</code></a></li>
+  </ol>
+</nav>
+
+<!-- ============================================================ -->
+<section class="lec" id="overview">
+  <header>
+    <span class="secnum">§ 0</span>
+    <h2>What this lecture covers</h2>
+  </header>
+
+  <p>Two things. First: the rotation matrices we built last class describe motion <strong class="lit">around the fixed frame's axes</strong> — but real robots, when you tell them <em>"rotate around $z$,"</em> rotate around an axis <em>parallel</em> to fixed $z$ that passes through the <strong class="lit">mobile frame's origin</strong>. We need a tool that mimics that.</p>
+
+  <p>Second: given a transform $T^0_3$ that expresses frame 3 in frame 0, how do we write $T^3_0$ — the same physical relationship but with the reference flipped? We'll derive it by visual inspection, notice that the rotation block is just the transpose, and end with the closed-form inverse of a homogeneous transformation matrix.</p>
+
+  <div class="voice">If today feels more like a puzzle than a lecture, that's deliberate — the point is the <em>thinking</em>, not the formula.</div>
+
+  <div class="callout blue">
+    <span class="tag">Today's two deliverables</span>
+    <h3>What you'll walk out with</h3>
+    <p>A function that rotates around the mobile-frame axes (for $x$, $y$, and $z$), and a function <code>inverseT(M)</code> that returns the inverse of a homogeneous transformation matrix.</p>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<section class="lec" id="recap-fixed-vs-mobile">
+  <header>
+    <span class="secnum">§ 1</span>
+    <h2>Where we left off — translating and rotating in two frames</h2>
+  </header>
+
+  <p>We've been driving a mobile coordinate system with respect to a fixed base. Translations along $x$, $y$, $z$ work cleanly in either frame — you move along the line you point at. Rotations around the <em class="term">mobile</em> axes also behave the way the matrices predict: rotate around mobile $x$, the frame tips forward; rotate around mobile $y$, it yaws; rotate around mobile $z$, it spins about its own vertical.</p>
+
+  <p>So for everything we've built so far, the matrix and the geometry agree. Before we break that agreement in the next section, let's spend a moment with the case where it <em>holds</em>.</p>
+
+  <div class="callout teal">
+    <span class="tag">Mental model</span>
+    <h3>Where each rotation pivots</h3>
+    <p>Mobile-axis rotations <strong class="lit">follow the frame</strong>. Fixed-axis rotations <strong class="lit">should</strong> pivot around the world origin — that's the part we're about to test.</p>
+  </div>
+
+  <p class="widget-lead">Pick a mobile axis and rotate. Watch the attached frame tip, yaw, or spin — and notice the rotation axis stays welded to the frame, not to the world.</p>
+  <div class="widget"><div id="fixed-vs-mobile-axis-picker"></div></div>
+</section>
+
+<!-- ============================================================ -->
+<section class="lec" id="robot-doesnt-match">
+  <header>
+    <span class="secnum">§ 2</span>
+    <h2>The discrepancy — what the real robot actually does</h2>
+  </header>
+
+  <p>Now we ask the robot: <em>rotate around the fixed $z$-axis.</em> By the math we built last class, the tool should swing in a big arc around the base — the matrix $R_z(\theta)$ pivots every point about the world origin. It doesn't. The tool spins in place.</p>
+
+  <p>Look closely and you can see what's happening. The robot is rotating around an axis that is <strong class="lit">parallel</strong> to fixed $z$, but passing through the <strong class="lit">origin of the mobile frame</strong> (the tool). Same story for $x$ and $y$ — the rotation axes are parallels of the world axes, anchored at the tool, not at the base.</p>
+
+  <p>So the matrix <em>"rotate around world $z$"</em> and the robot command <em>"rotate around $z$"</em> are not the same operation. We need a matrix that mimics the robot's behaviour.</p>
+
+  <div class="voice">The matrix says one thing, the robot does another — and the robot is not wrong. Our job is to describe what the robot actually does.</div>
+
+  <div class="callout amber">
+    <span class="tag">The gap</span>
+    <h3>Same direction, different pivot</h3>
+    <p>Fixed-frame rotation matrix &rarr; pivots about the <em>world origin</em>. Robot <em>"rotate around $z$"</em> &rarr; pivots about an axis <em>parallel</em> to world $z$, through the tool's current position.</p>
+  </div>
+
+  <p class="widget-lead">Side by side: the left tool obeys the fixed-axis rotation matrix and swings around the base; the right tool does what the robot does and spins in place about a parallel axis. Step through the frames and convince yourself they really are different operations.</p>
+  <div class="widget"><div id="robot-vs-matrix-animator"></div></div>
+</section>
+
+<!-- ============================================================ -->
+<section class="lec" id="build-the-mobile-rotation">
+  <header>
+    <span class="secnum">§ 3</span>
+    <h2>Today's exercise — derive the matrix that mimics the robot</h2>
+  </header>
+
+  <p>The thinking task: assemble the transforms you already have to reproduce the robot's behaviour. The recipe we sketched on the board:</p>
+
+  <ol>
+    <li>Start at the fixed frame at the base.</li>
+    <li>Translate along $x$ to get the mobile frame out to the tool's position.</li>
+    <li>Elevate (translate in $z$) to lift the mobile frame up.</li>
+    <li>Rotate the mobile frame 45° around one of its own axes, then 45° around another, to orient it like the tool.</li>
+    <li><em>Now</em> perform the rotation — around one of the resulting mobile axes (which is parallel to world $x$, $y$, or $z$, but anchored at the tool).</li>
+  </ol>
+
+  <p>The key insight: position the mobile frame <strong class="lit">first</strong>, then rotate. The robot doesn't need a <em>carobka</em> (linear carriage) to do this — the chain of transforms does it for you.</p>
+
+  <div class="voice">Position first, then rotate. That ordering is the whole trick.</div>
+
+  <div class="callout purple">
+    <span class="tag">Why this works</span>
+    <h3>The geometric punchline</h3>
+    <p>Once the mobile frame sits at the tool with the correct orientation, a rotation expressed in that mobile frame is exactly the rotation the robot performs — a spin around an axis through the tool, parallel to the requested world axis. Two things that look different (mobile-axis rotation vs. parallel-to-fixed-axis-through-tool rotation) become the same once the mobile frame has been placed.</p>
+  </div>
+
+  <p>Mechanically, the composition order matters: you apply the new rotation <strong class="lit">on the right</strong> of the current transform.</p>
+
+  <div class="math-display">$$T_\text{new} \;=\; T_\text{current}\cdot R_\text{axis}(\theta)$$</div>
+
+  <p>Left-multiplication would rotate with respect to the fixed frame. Right-multiplication rotates with respect to the mobile frame — which is exactly what we want.</p>
+
+  <div class="code">
+    <div class="label">shape of the function you're writing</div>
+<pre>rotateAroundMobileX(T_current, angle)
+  # 1. start from the current mobile frame T_current
+  # 2. build R_x(angle) as a 4x4 homogeneous transform
+  # 3. compose on the right:  T_new = T_current @ R_x
+  # 4. return the new transform
+
+# then the same for y and z</pre>
+  </div>
+
+  <p class="widget-lead">Drag the five transforms into order to mimic the robot's behaviour. Rotate before you translate and the rotation pivots about the base — wrong. Get the ordering right and the mobile frame ends up at the tool, oriented like the tool, and the final rotation happens about an axis through the tool parallel to a world axis.</p>
+  <div class="widget"><div id="build-mobile-rotation-chain"></div></div>
+</section>
+
+<!-- ============================================================ -->
+<section class="lec" id="flip-the-reference">
+  <header>
+    <span class="secnum">§ 4</span>
+    <h2>Changing the reference frame — from $T^0_3$ to $T^3_0$</h2>
+  </header>
+
+  <p>On to the second problem. We have the transform that expresses frame 3 in frame 0:</p>
+
+  <div class="math-display">$$T^0_3 \;=\; \begin{bmatrix} 0 & 1 & 0 & 5 \\ 0 & 0 & -1 & 4 \\ -1 & 0 & 0 & 3 \\ 0 & 0 & 0 & 1 \end{bmatrix}$$</div>
+
+  <p>We want the opposite — frame 0 expressed in frame 3, i.e. $T^3_0$. Same physical setup, the boxes haven't moved, but the reference is now frame 3 instead of frame 0. The lecturer treats <em>"inverting $T$"</em> and <em>"changing the frame of reference"</em> as the same operation — they describe the same geometry from opposite sides.</p>
+
+  <div class="callout blue">
+    <span class="tag">What changes</span>
+    <h3>Read the columns differently</h3>
+    <p>The columns of the rotation block now describe how the <em>fixed</em> axes $x_0, y_0, z_0$ look from the <em>mobile</em> viewpoint — and the translation describes where the world origin sits relative to the tool. The matrix is built the same way; what changes is who is doing the looking.</p>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<section class="lec" id="inspection">
+  <header>
+    <span class="secnum">§ 5</span>
+    <h2>Read $T^3_0$ off the axes by visual inspection</h2>
+  </header>
+
+  <p>Don't compute anything yet — just look at the axes. For each fixed-frame axis, ask: which mobile-frame axis does it lie along, and with what sign? That triple is the column of the new rotation block.</p>
+
+  <ul>
+    <li>$x_0$ from frame 3: parallel to $y_3$. So the first column of the rotation block is $(0,\,1,\,0)^T$.</li>
+    <li>$y_0$ from frame 3: parallel to $-z_3$. Column 2 is $(0,\,0,\,-1)^T$.</li>
+    <li>$z_0$ from frame 3: parallel to $-x_3$. Column 3 is $(-1,\,0,\,0)^T$.</li>
+  </ul>
+
+  <p>So the rotation block of $T^3_0$ is</p>
+
+  <div class="math-display">$$R^T \;=\; \begin{bmatrix} 0 & 0 & -1 \\ 1 & 0 & 0 \\ 0 & -1 & 0 \end{bmatrix}$$</div>
+
+  <p>Compare that to the rotation block of $T^0_3$. <strong class="lit">It's the transpose.</strong> Rows became columns; the orientation part of the inverse is just $R^T$.</p>
+
+  <div class="voice">This is the moment to notice that inverting a rotation matrix is free — no determinant, no cofactors, just flip it across the diagonal.</div>
+
+  <div class="callout green">
+    <span class="tag">Identity</span>
+    <h3>Rotation block of $T^{-1}$</h3>
+    <p>For any rotation matrix $R$ (orthonormal columns), $R^{-1} = R^T$. The columns of $R$ are mutually orthonormal unit vectors, so $R^T R = I$ by definition — the diagonals are dot products of unit vectors with themselves ($=1$), the off-diagonals are dot products of perpendicular vectors ($=0$). So the rotation part of the inverse transform is the transpose of the rotation part of the original.</p>
+  </div>
+
+  <div class="code">
+    <div class="label">transpose, by example</div>
+<pre>A =  | 1 2 3 |          A^T = | 1 4 7 |
+     | 4 5 6 |                | 2 5 8 |
+     | 7 8 9 |                | 3 6 9 |</pre>
+  </div>
+
+  <p class="widget-lead">Step through reading each column of the inverse rotation block by inspection: where does $x_0$ point from frame 3, then $y_0$, then $z_0$. After the third column lands, the original $R$ from $T^0_3$ overlays and each of its rows snaps onto the corresponding column — and the transpose appears.</p>
+  <div class="widget"><div id="inspection-transpose-animator"></div></div>
+</section>
+
+<!-- ============================================================ -->
+<section class="lec" id="translation-block">
+  <header>
+    <span class="secnum">§ 6</span>
+    <h2>What about the translation column?</h2>
+  </header>
+
+  <p>The translation column is <em>not</em> just copied over, and it's not just $-p$ either. Work it out by multiplying the transposed rotation by the original position vector $p = (u,v,w)^T = (5,4,3)^T$, then negating the result:</p>
+
+  <ul>
+    <li>Row 1 of $R^T$ times $p$: &nbsp; $0\cdot5 + 0\cdot4 + (-1)\cdot3 = -3$</li>
+    <li>Row 2: &nbsp; $1\cdot5 + 0\cdot4 + 0\cdot3 = 5$</li>
+    <li>Row 3: &nbsp; $0\cdot5 + (-1)\cdot4 + 0\cdot3 = -4$</li>
+  </ul>
+
+  <p>So $R^T p = (-3,\,5,\,-4)^T$. Multiply the whole result by $-1$ and you get the translation column of $T^3_0$:</p>
+
+  <div class="math-display">$$-R^T p \;=\; (3,\,-5,\,4)^T$$</div>
+
+  <p>That is the new translation. Two transformations packed into one expression: negating $p$ flips the direction (base-to-tool becomes tool-to-base); multiplying by $R^T$ re-expresses the flipped vector in the new frame's coordinates. Skip either step and the inverse is wrong.</p>
+
+  <div class="callout amber">
+    <span class="tag">Sign matters</span>
+    <h3>Not cosmetic</h3>
+    <p>The minus sign is the difference between <em>"where is the tool from the base"</em> and <em>"where is the base from the tool."</em> Opposite vectors, expressed in different frames. Drop the minus and $T^{-1} T \ne I$.</p>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<section class="lec" id="the-formula">
+  <header>
+    <span class="secnum">§ 7</span>
+    <h2>The closed form for the inverse</h2>
+  </header>
+
+  <p>Putting both pieces together, the inverse of a homogeneous transformation matrix is:</p>
+
+  <div class="math-display">$$T^{-1} \;=\; \begin{bmatrix} R^T & -R^T p \\ 0\;\;0\;\;0 & 1 \end{bmatrix}$$</div>
+
+  <p>where $R$ is the $3\times 3$ rotation block and $p = (u,v,w)^T$ is the translation column of the original $T$. The bottom row stays $[0\;0\;0\;1]$. This is <em>changing the frame of reference</em> — same geometry, observed from the other side.</p>
+
+  <div class="voice">One transpose, one matrix–vector product, one sign flip. Cheaper than a general $4\times 4$ inverse, and exact — as long as $R$ stays orthonormal.</div>
+
+  <div class="callout green">
+    <span class="tag">Why this beats <code>inv(T)</code></span>
+    <h3>Cheap and clean</h3>
+    <p>A general $4\times 4$ inverse costs $\sim 64$ multiplications and can lose precision. The homogeneous shortcut is one transpose (free), a $3\times 3$ matrix–vector product ($\sim 9$ mults), and three sign flips — and it is exact, not an approximation, as long as $R$ has stayed orthonormal.</p>
+  </div>
+
+  <div class="code">
+    <div class="label">the result for our worked example</div>
+<pre>T^0_3 =  | 0  1  0   5 |        T^3_0 =  | 0  0 -1   3 |
+         | 0  0 -1   4 |                 | 1  0  0  -5 |
+         |-1  0  0   3 |                 | 0 -1  0   4 |
+         | 0  0  0   1 |                 | 0  0  0   1 |</pre>
+  </div>
+
+  <p>Verify by computing $T^3_0 \cdot T^0_3$ — it must be the $4\times 4$ identity. If your result has a wrong sign anywhere, almost always the culprit is the translation column: either the minus was dropped, or $R$ wasn't transposed before multiplying.</p>
+
+  <p class="widget-lead">Four quick questions to catch the mistakes people actually make: transposing the wrong block, forgetting the minus, mixing up $-R^T p$ and $-R p^T$, and reaching for <code>np.linalg.inv</code> when the shortcut is right there.</p>
+  <div class="widget"><div id="inverse-formula-quiz"></div></div>
+</section>
+
+<!-- ============================================================ -->
+<section class="lec" id="code-the-function">
+  <header>
+    <span class="secnum">§ 8</span>
+    <h2>Code the <code>inverseT</code> function</h2>
+  </header>
+
+  <p>Now turn the formula into a function. Signature: <code>inverseT(T)</code> takes a $4\times 4$ homogeneous transform and returns its inverse using the shortcut — <em>not</em> a generic matrix inversion routine. The function should:</p>
+
+  <ol>
+    <li>Slice out the $3\times 3$ rotation block $R$ and the $3\times 1$ translation column $p$.</li>
+    <li>Transpose $R$.</li>
+    <li>Compute $-R^T p$.</li>
+    <li>Reassemble the $4\times 4$ with $R^T$ in the top-left, $-R^T p$ as the translation column, and $[0\;0\;0\;1]$ as the last row.</li>
+  </ol>
+
+  <p>Test it: <code>inverseT(T) @ T</code> must equal the identity to numerical precision.</p>
+
+  <div class="callout blue">
+    <span class="tag">Sanity check</span>
+    <h3>When the test fails</h3>
+    <p>If $T^{-1} T \ne I$, you almost certainly (a) forgot the minus sign on the translation, (b) transposed the whole $4\times 4$ instead of just the $3\times 3$ rotation block, or (c) dropped the bottom row. In that order of likelihood.</p>
+  </div>
+
+  <div class="code">
+    <div class="label">skeleton — fill in for your language of choice</div>
+<pre>def inverseT(T):
+    R = T[0:3, 0:3]
+    p = T[0:3, 3]
+    Rt = R.T
+    t  = -Rt @ p
+    Tinv = np.eye(4)
+    Tinv[0:3, 0:3] = Rt
+    Tinv[0:3, 3]   = t
+    return Tinv</pre>
+  </div>
+
+  <p class="widget-lead">Write the function in the editor, run it against the lecture's $T^0_3$, and the harness checks both that you matched the by-inspection $T^3_0$ and that $T^{-1}\cdot T$ comes out to the identity within $10^{-9}$. Calling a generic matrix-inverse routine fails the check — the shortcut is the point.</p>
+  <div class="widget"><div id="inverset-playground"></div></div>
+</section>
+
+<!-- ============================================================ -->
+<aside class="concepts">
+  <h2>Concepts touched today</h2>
+  <ul class="concept-list">
+    <li>fixed reference frame</li>
+    <li>mobile reference frame</li>
+    <li>rotation matrix</li>
+    <li>homogeneous transformation matrix</li>
+    <li>transpose of a rotation matrix</li>
+    <li>inverse of a homogeneous transform</li>
+    <li>rotation around mobile axes</li>
+    <li>rotation around an axis parallel to a fixed axis</li>
+    <li>changing the frame of reference</li>
+    <li>translation column $-R^T p$</li>
+    <li>orthonormal rotation ($R^T = R^{-1}$)</li>
+    <li>chained transforms (translate &rarr; orient &rarr; rotate)</li>
+  </ul>
+</aside>
+
+<!-- ============================================================ -->
+<section class="homework">
+  <h2>Homework</h2>
+  <p class="h-sub">Three deliverables, all due by next lecture.</p>
+
+  <div class="hw-item">
+    <div class="hw-head">
+      <h3>1 · <code>rotateAroundMobile{X,Y,Z}</code></h3>
+      <span class="due">due · next lecture</span>
+    </div>
+    <p>Write three functions that take a current transform and an angle, and return the transform after rotating around the mobile $x$, $y$, or $z$ axis — the rotation the real robot actually performs. Hint: which side of $T_\text{current}$ do you multiply on to make the rotation act in the <em>mobile</em> frame instead of the fixed frame?</p>
+  </div>
+
+  <div class="hw-item">
+    <div class="hw-head">
+      <h3>2 · <code>inverseT(T)</code></h3>
+      <span class="due">due · next lecture</span>
+    </div>
+    <p>Implement the homogeneous-inverse shortcut: extract $R$ and $p$, return $\bigl[\,R^T \,\big|\, -R^T p \,;\, 0\ 0\ 0\ 1\,\bigr]$. Do <em>not</em> call a generic matrix-inverse routine. Verify that <code>inverseT(T) @ T</code> is the identity for your example $T^0_3$.</p>
+  </div>
+
+  <div class="hw-item">
+    <div class="hw-head">
+      <h3>3 · Verify on the worked example</h3>
+      <span class="due">due · next lecture</span>
+    </div>
+    <p>Using $T^0_3$ from the board, compute $T^3_0$ with your <code>inverseT</code> function and confirm it matches the matrix derived by inspection in class — column-by-column, signs included.</p>
+  </div>
+</section>
+
+<footer class="colophon">
+  <span>Robotics — Spatial Transformations · Lecture 08</span>
+  <span>position first, then rotate</span>
+</footer>
+
+</div>
+
+<!-- widget: fixed-vs-mobile-axis-picker (picker) -->
+<script type="text/babel">
+(function () {
+  try {
+    const { useState, useEffect, useRef, useMemo } = React;
+
+    const CHOICES = [
+      { v: 'mx', label: 'mobile x — tip forward',          frame: 'mobile', axis: 'x' },
+      { v: 'my', label: 'mobile y — yaw',                  frame: 'mobile', axis: 'y' },
+      { v: 'mz', label: 'mobile z — spin own vertical',    frame: 'mobile', axis: 'z' },
+      { v: 'fx', label: 'fixed x (preview only)',          frame: 'fixed',  axis: 'x' },
+      { v: 'fy', label: 'fixed y (preview only)',          frame: 'fixed',  axis: 'y' },
+      { v: 'fz', label: 'fixed z (preview only)',          frame: 'fixed',  axis: 'z' },
+    ];
+
+    const COL = ['var(--accent)', 'var(--accent-2)', 'var(--good)']; // x, y, z
+
+    function rotMat(axis, deg) {
+      const t = deg * Math.PI / 180;
+      const c = Math.cos(t), s = Math.sin(t);
+      if (axis === 'x') return [[1,0,0],[0,c,-s],[0,s,c]];
+      if (axis === 'y') return [[c,0,s],[0,1,0],[-s,0,c]];
+      return [[c,-s,0],[s,c,0],[0,0,1]];
+    }
+    function mv(M, v) {
+      return [
+        M[0][0]*v[0]+M[0][1]*v[1]+M[0][2]*v[2],
+        M[1][0]*v[0]+M[1][1]*v[1]+M[1][2]*v[2],
+        M[2][0]*v[0]+M[2][1]*v[1]+M[2][2]*v[2],
+      ];
+    }
+
+    const P0 = [5, 0, 3];
+    const SCALE = 27;
+    const CX = 295, CY = 245;
+    const AX = Math.cos(Math.PI / 6);
+    const AY = Math.sin(Math.PI / 6);
+    function proj(p) {
+      return [
+        CX + (p[0] - p[1]) * AX * SCALE,
+        CY + (p[0] + p[1]) * AY * SCALE - p[2] * SCALE,
+      ];
+    }
+
+    function fmt(x) {
+      if (Math.abs(x) < 5e-4) x = 0;
+      const s = (x >= 0 ? ' ' : '-') + Math.abs(x).toFixed(2);
+      return s.padStart(6, ' ');
+    }
+
+    function drawFrame(origin, R, length, thick, sub, op, key) {
+      const out = [];
+      for (let i = 0; i < 3; i++) {
+        const dir = [R[0][i], R[1][i], R[2][i]];
+        const tip = [origin[0]+dir[0]*length, origin[1]+dir[1]*length, origin[2]+dir[2]*length];
+        const [x1, y1] = proj(origin);
+        const [x2, y2] = proj(tip);
+        out.push(
+          <line key={key + '_l' + i} x1={x1} y1={y1} x2={x2} y2={y2}
+            stroke={COL[i]} strokeWidth={thick} strokeLinecap="round"
+            opacity={op} markerEnd={`url(#arr-${i})`} />
+        );
+        const dx = x2 - x1, dy = y2 - y1;
+        const len = Math.hypot(dx, dy) || 1;
+        const lx = x2 + (dx / len) * 9;
+        const ly = y2 + (dy / len) * 9 + 4;
+        out.push(
+          <text key={key + '_t' + i} x={lx} y={ly} fontSize="11"
+            fontFamily="JetBrains Mono, ui-monospace, monospace"
+            fontWeight="600"
+            fill={COL[i]} opacity={op} textAnchor="middle">
+            {['x','y','z'][i]}
+            {sub ? <tspan baselineShift="sub" fontSize="8">{sub}</tspan> : null}
+          </text>
+        );
+      }
+      return out;
+    }
+
+    function Widget() {
+      const [choice, setChoice] = useState(null);
+      const [angle, setAngle] = useState(0);
+      const rafRef = useRef(null);
+
+      useEffect(() => {
+        if (rafRef.current) cancelAnimationFrame(rafRef.current);
+        if (!choice) { setAngle(0); return; }
+        const startT = performance.now();
+        const DUR = 1100;
+        function step(now) {
+          const t = Math.min(1, (now - startT) / DUR);
+          const e = t < 0.5 ? 2*t*t : 1 - Math.pow(-2*t + 2, 2) / 2;
+          setAngle(45 * e);
+          if (t < 1) rafRef.current = requestAnimationFrame(step);
+        }
+        rafRef.current = requestAnimationFrame(step);
+        return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
+      }, [choice]);
+
+      const cobj = choice ? CHOICES.find(c => c.v === choice) : null;
+      const R = cobj ? rotMat(cobj.axis, angle) : [[1,0,0],[0,1,0],[0,0,1]];
+      const p = cobj && cobj.frame === 'fixed' ? mv(R, P0) : P0;
+
+      const arcPts = useMemo(() => {
+        if (!cobj || cobj.frame !== 'fixed') return null;
+        const pts = [];
+        const N = 36;
+        for (let i = 0; i <= N; i++) {
+          const a = (i / N) * angle;
+          pts.push(mv(rotMat(cobj.axis, a), P0));
+        }
+        return pts;
+      }, [choice, angle]);
+
+      let rotAxisLine = null;
+      if (cobj) {
+        const idx = { x: 0, y: 1, z: 2 }[cobj.axis];
+        const dir = [[1,0,0],[0,1,0],[0,0,1]][idx];
+        const center = cobj.frame === 'mobile' ? P0 : [0, 0, 0];
+        const a = [center[0]-dir[0]*3.5, center[1]-dir[1]*3.5, center[2]-dir[2]*3.5];
+        const b = [center[0]+dir[0]*5.5, center[1]+dir[1]*5.5, center[2]+dir[2]*5.5];
+        const [ax1, ay1] = proj(a);
+        const [bx1, by1] = proj(b);
+        rotAxisLine = (
+          <line x1={ax1} y1={ay1} x2={bx1} y2={by1}
+            stroke={cobj.frame === 'mobile' ? 'var(--good)' : 'var(--accent-2)'}
+            strokeWidth="1.6" strokeDasharray="6,4" opacity="0.55" />
+        );
+      }
+
+      const gridLines = [];
+      for (let i = -2; i <= 8; i++) {
+        const [a1x, a1y] = proj([i, -2, 0]);
+        const [a2x, a2y] = proj([i,  7, 0]);
+        gridLines.push(<line key={'gx'+i} x1={a1x} y1={a1y} x2={a2x} y2={a2y}
+          stroke="var(--border)" strokeWidth="0.5" opacity="0.55" />);
+      }
+      for (let j = -2; j <= 7; j++) {
+        const [a1x, a1y] = proj([-2, j, 0]);
+        const [a2x, a2y] = proj([ 8, j, 0]);
+        gridLines.push(<line key={'gy'+j} x1={a1x} y1={a1y} x2={a2x} y2={a2y}
+          stroke="var(--border)" strokeWidth="0.5" opacity="0.55" />);
+      }
+
+      const [p0x, p0y] = proj(P0);
+      const [pXc, pYc] = proj(p);
+
+      let fb = null;
+      if (cobj) {
+        if (cobj.frame === 'mobile') {
+          fb = {
+            kind: 'mobile',
+            text: 'Mobile-axis rotation. The frame rotates about its own axis, anchored at the tool — matrix and motion agree. This is what the real robot does when you say "rotate around ' + cobj.axis + '".'
+          };
+        } else {
+          fb = {
+            kind: 'fixed',
+            text: 'Fixed-axis rotation. The frame swings in a big arc about the world origin — that is what the fixed-axis matrix predicts. Hold on to that arc; next section the robot refuses to do it.'
+          };
+        }
+      }
+
+      return (
+        <div>
+          <style>{`
+            #fixed-vs-mobile-axis-picker .pickr {
+              font-family: var(--font-body);
+              color: var(--ink);
+              background: var(--surface);
+              border: 1px solid var(--border);
+              border-radius: 8px;
+              padding: 14px 16px 16px;
+              display: grid;
+              grid-template-columns: minmax(0, 1.5fr) minmax(220px, 1fr);
+              gap: 14px 18px;
+              max-height: 760px;
+              overflow: auto;
+              box-sizing: border-box;
+            }
+            @media (max-width: 760px) {
+              #fixed-vs-mobile-axis-picker .pickr { grid-template-columns: 1fr; max-height: none; }
+            }
+            #fixed-vs-mobile-axis-picker .stage {
+              background: #fffdf7;
+              border: 1px solid var(--border);
+              border-radius: 6px;
+              overflow: hidden;
+              min-width: 0;
+            }
+            #fixed-vs-mobile-axis-picker .stage svg {
+              width: 100%; height: auto; display: block;
+            }
+            #fixed-vs-mobile-axis-picker .ctrl { min-width: 0; }
+            #fixed-vs-mobile-axis-picker .ctrl h4 {
+              font-family: var(--font-display);
+              margin: 0 0 8px;
+              font-size: 0.7rem;
+              color: var(--ink-soft);
+              font-weight: 700;
+              letter-spacing: 0.1em;
+              text-transform: uppercase;
+            }
+            #fixed-vs-mobile-axis-picker .group {
+              display: flex; flex-direction: column; gap: 5px;
+              margin-bottom: 12px;
+            }
+            #fixed-vs-mobile-axis-picker .choice {
+              display: flex; align-items: center; gap: 10px;
+              padding: 7px 11px;
+              background: #fffdf7;
+              border: 1px solid var(--border);
+              border-radius: 5px;
+              cursor: pointer;
+              font-size: 0.85rem;
+              transition: background 0.14s, border-color 0.14s, box-shadow 0.14s;
+              text-align: left;
+              color: var(--ink);
+              font-family: var(--font-body);
+              width: 100%;
+            }
+            #fixed-vs-mobile-axis-picker .choice:hover {
+              background: #fbf5e6;
+              border-color: var(--accent);
+            }
+            #fixed-vs-mobile-axis-picker .choice.active {
+              background: #fbe9d9;
+              border-color: var(--accent);
+              box-shadow: inset 0 0 0 1.5px var(--accent);
+            }
+            #fixed-vs-mobile-axis-picker .choice:focus-visible {
+              outline: 2px solid var(--accent);
+              outline-offset: 1px;
+            }
+            #fixed-vs-mobile-axis-picker .sw {
+              width: 10px; height: 10px; border-radius: 50%;
+              flex-shrink: 0;
+              border: 1px solid rgba(0,0,0,0.08);
+            }
+            #fixed-vs-mobile-axis-picker .mxhead {
+              color: var(--ink-soft);
+              font-size: 0.68rem;
+              margin-bottom: 4px;
+              letter-spacing: 0.08em;
+              text-transform: uppercase;
+              font-family: var(--font-display);
+              font-weight: 600;
+            }
+            #fixed-vs-mobile-axis-picker .mxpre {
+              font-family: var(--font-mono);
+              font-size: 0.74rem;
+              background: #fffdf7;
+              border: 1px solid var(--border);
+              border-radius: 5px;
+              padding: 9px 10px;
+              line-height: 1.55;
+              color: var(--ink);
+              margin: 0;
+              white-space: pre;
+              overflow-x: auto;
+              font-variant-numeric: tabular-nums;
+            }
+            #fixed-vs-mobile-axis-picker .ang {
+              font-family: var(--font-mono);
+              font-size: 0.76rem;
+              color: var(--ink-soft);
+              margin: 8px 0 6px;
+            }
+            #fixed-vs-mobile-axis-picker .ang b { color: var(--accent); font-weight: 600; }
+            #fixed-vs-mobile-axis-picker .fb {
+              margin-top: 10px;
+              font-size: 0.83rem;
+              line-height: 1.5;
+              padding: 9px 11px;
+              border-radius: 5px;
+              border-left: 3px solid var(--ink-soft);
+              background: #fffdf7;
+              color: var(--ink);
+            }
+            #fixed-vs-mobile-axis-picker .fb.mobile { border-left-color: var(--good); background: #ecf3ec; }
+            #fixed-vs-mobile-axis-picker .fb.fixed  { border-left-color: var(--accent-2); background: #e3edee; }
+            #fixed-vs-mobile-axis-picker .widget-fail {
+              padding: 14px;
+              font-family: var(--font-body);
+              color: var(--bad);
+              background: var(--surface);
+              border: 1px dashed var(--border);
+              border-radius: 6px;
+            }
+          `}</style>
+          <div className="pickr">
+            <div className="stage">
+              <svg viewBox="0 0 580 380" preserveAspectRatio="xMidYMid meet"
+                role="img" aria-label="3D scene showing fixed and mobile coordinate frames">
+                <defs>
+                  {COL.map((c, i) => (
+                    <marker key={i} id={`arr-${i}`} viewBox="0 0 10 10"
+                      refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+                      <path d="M 0 0 L 10 5 L 0 10 z" fill={c} />
+                    </marker>
+                  ))}
+                </defs>
+
+                <g>{gridLines}</g>
+
+                {rotAxisLine}
+
+                {arcPts && (
+                  <polyline
+                    points={arcPts.map(pt => proj(pt).join(',')).join(' ')}
+                    fill="none" stroke="var(--accent-2)" strokeWidth="1.8"
+                    strokeDasharray="4,3" opacity="0.85" />
+                )}
+
+                <circle cx={p0x} cy={p0y} r="4.5" fill="none"
+                  stroke="var(--ink-soft)" strokeWidth="1" strokeDasharray="2,2" opacity="0.55" />
+
+                {drawFrame([0,0,0], [[1,0,0],[0,1,0],[0,0,1]], 2.6, 1.8, '0', 0.5, 'fix')}
+                {drawFrame(p, R, 1.95, 3.2, 'm', 1, 'mob')}
+
+                <circle cx={pXc} cy={pYc} r="3.5" fill="var(--ink)" />
+
+                <g transform="translate(14,14)">
+                  <text fontSize="10.5" fill="var(--ink-soft)"
+                    fontFamily="Inter Tight, system-ui, sans-serif"
+                    fontWeight="600" letterSpacing="0.04em">
+                    fixed frame (faint) · mobile frame (bold)
+                  </text>
+                </g>
+                <g transform="translate(14, 366)">
+                  <text fontSize="10.5" fontFamily="JetBrains Mono, monospace"
+                    fill="var(--ink-soft)">
+                    {cobj
+                      ? `rotating about ${cobj.frame} ${cobj.axis}-axis · θ = ${angle.toFixed(1)}°`
+                      : 'idle · pick an axis on the right →'}
+                  </text>
+                </g>
+                {cobj && cobj.frame === 'fixed' && (
+                  <g transform="translate(566, 14)">
+                    <text fontSize="10.5" textAnchor="end" fill="var(--accent-2)"
+                      fontFamily="Inter Tight, system-ui, sans-serif" fontWeight="700"
+                      letterSpacing="0.04em">
+                      arc = origin swing
+                    </text>
+                  </g>
+                )}
+                {cobj && cobj.frame === 'mobile' && (
+                  <g transform="translate(566, 14)">
+                    <text fontSize="10.5" textAnchor="end" fill="var(--good)"
+                      fontFamily="Inter Tight, system-ui, sans-serif" fontWeight="700"
+                      letterSpacing="0.04em">
+                      pivot through the tool
+                    </text>
+                  </g>
+                )}
+              </svg>
+            </div>
+
+            <div className="ctrl">
+              <h4>pick a rotation axis</h4>
+              <div className="group" role="radiogroup" aria-label="Rotation axis">
+                {CHOICES.map(c => (
+                  <button key={c.v}
+                    type="button"
+                    role="radio"
+                    aria-checked={choice === c.v}
+                    className={'choice' + (choice === c.v ? ' active' : '')}
+                    onClick={() => setChoice(choice === c.v ? null : c.v)}>
+                    <span className="sw" style={{
+                      background: c.frame === 'mobile' ? 'var(--good)' : 'var(--accent-2)'
+                    }}></span>
+                    <span>{c.label}</span>
+                  </button>
+                ))}
+              </div>
+
+              <div className="ang">
+                θ = <b>{angle.toFixed(1)}°</b>{cobj ? ` · ${cobj.frame} ${cobj.axis}-axis` : ''}
+              </div>
+
+              <div className="mxhead">T (mobile in fixed)</div>
+              <pre className="mxpre">{
+`⎡ ${fmt(R[0][0])} ${fmt(R[0][1])} ${fmt(R[0][2])}  │  ${fmt(p[0])} ⎤
+⎢ ${fmt(R[1][0])} ${fmt(R[1][1])} ${fmt(R[1][2])}  │  ${fmt(p[1])} ⎥
+⎢ ${fmt(R[2][0])} ${fmt(R[2][1])} ${fmt(R[2][2])}  │  ${fmt(p[2])} ⎥
+⎣ ${fmt(0)} ${fmt(0)} ${fmt(0)}  │  ${fmt(1)} ⎦`
+              }</pre>
+
+              {fb ? (
+                <div className={'fb ' + fb.kind}>{fb.text}</div>
+              ) : (
+                <div className="fb">
+                  Pick any axis above. Green options pivot the frame about its own axis through the tool (matches the robot). Teal options swing the whole frame in an arc about the world origin (what the fixed-axis matrix predicts).
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    const root = document.getElementById('fixed-vs-mobile-axis-picker');
+    if (root) ReactDOM.createRoot(root).render(<Widget />);
+  } catch (e) {
+    const m = document.getElementById('fixed-vs-mobile-axis-picker');
+    if (m) m.innerHTML = '<div class="widget-fail">Widget failed to load</div>';
+    console.error(e);
+  }
+})();
+</script>
+<!-- widget: robot-vs-matrix-animator (animator) -->
+<script type="text/babel">
+(function () {
+  try {
+    const { useState, useEffect, useRef, useMemo } = React;
+    const mount = document.getElementById('robot-vs-matrix-animator');
+    if (!mount) return;
+
+    const COL = { x: '#b65223', y: '#2c6f43', z: '#2c5f6b', bad: '#ad3a36', ink: '#1b2332', soft: '#5a6478' };
+    const P0 = [4, 1, 3];
+    const W = 400, H = 330;
+    const SCALE = 28;
+    const CX = W * 0.42, CY = H * 0.78;
+    const MONO = '"JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace';
+
+    function rotMat(axis, t) {
+      const c = Math.cos(t), s = Math.sin(t);
+      if (axis === 'x') return [[1,0,0],[0,c,-s],[0,s,c]];
+      if (axis === 'y') return [[c,0,s],[0,1,0],[-s,0,c]];
+      return [[c,-s,0],[s,c,0],[0,0,1]];
+    }
+    function mv(M, v) {
+      return [
+        M[0][0]*v[0]+M[0][1]*v[1]+M[0][2]*v[2],
+        M[1][0]*v[0]+M[1][1]*v[1]+M[1][2]*v[2],
+        M[2][0]*v[0]+M[2][1]*v[1]+M[2][2]*v[2],
+      ];
+    }
+    const c30 = Math.cos(Math.PI/6), s30 = Math.sin(Math.PI/6);
+    function iso([x,y,z]) {
+      return [
+        CX + (x - y) * c30 * SCALE,
+        CY - z * SCALE + (x + y) * s30 * SCALE * 0.55,
+      ];
+    }
+    const ID3 = [[1,0,0],[0,1,0],[0,0,1]];
+
+    function Arrow({ from, to, color, w=2, dashed=false, head=true, op=1 }) {
+      const [ax, ay] = iso(from), [bx, by] = iso(to);
+      const dx = bx-ax, dy = by-ay;
+      const len = Math.hypot(dx, dy) || 1;
+      const ux = dx/len, uy = dy/len;
+      const px = -uy, py = ux;
+      const hs = 7;
+      const hx = bx - ux*hs, hy = by - uy*hs;
+      const h1x = hx + px*hs*0.5, h1y = hy + py*hs*0.5;
+      const h2x = hx - px*hs*0.5, h2y = hy - py*hs*0.5;
+      return (
+        <g opacity={op}>
+          <line x1={ax} y1={ay} x2={bx} y2={by} stroke={color} strokeWidth={w}
+            strokeDasharray={dashed ? '5 4' : ''} strokeLinecap="round"/>
+          {head && <polygon points={`${bx},${by} ${h1x},${h1y} ${h2x},${h2y}`} fill={color}/>}
+        </g>
+      );
+    }
+
+    function ToolFrame({ p, R, faded=false, label }) {
+      const xE = [p[0]+R[0][0], p[1]+R[1][0], p[2]+R[2][0]];
+      const yE = [p[0]+R[0][1], p[1]+R[1][1], p[2]+R[2][1]];
+      const zE = [p[0]+R[0][2], p[1]+R[1][2], p[2]+R[2][2]];
+      const [cx, cy] = iso(p);
+      const op = faded ? 0.28 : 1;
+      return (
+        <g>
+          <Arrow from={p} to={xE} color={COL.x} w={2.4} op={op}/>
+          <Arrow from={p} to={yE} color={COL.y} w={2.4} op={op}/>
+          <Arrow from={p} to={zE} color={COL.z} w={2.4} op={op}/>
+          <circle cx={cx} cy={cy} r={3.5} fill={COL.ink} opacity={op}/>
+          {label && !faded && (
+            <text x={cx+9} y={cy+14} fontSize={10} fill={COL.soft} style={{fontFamily: MONO}}>{label}</text>
+          )}
+        </g>
+      );
+    }
+
+    function WorldAxes() {
+      const [ox, oy] = iso([0,0,0]);
+      const [lxx, lxy] = iso([3.4,0,0]);
+      const [lyx, lyy] = iso([0,3.4,0]);
+      const [lzx, lzy] = iso([0,0,3.4]);
+      return (
+        <g>
+          <Arrow from={[0,0,0]} to={[3,0,0]} color={COL.x} w={1.4}/>
+          <Arrow from={[0,0,0]} to={[0,3,0]} color={COL.y} w={1.4}/>
+          <Arrow from={[0,0,0]} to={[0,0,3]} color={COL.z} w={1.4}/>
+          <text x={lxx+2} y={lxy+4} fontSize={11} fill={COL.x} style={{fontFamily: MONO}}>x₀</text>
+          <text x={lyx-14} y={lyy+4} fontSize={11} fill={COL.y} style={{fontFamily: MONO}}>y₀</text>
+          <text x={lzx-2} y={lzy-2} fontSize={11} fill={COL.z} style={{fontFamily: MONO}}>z₀</text>
+          <circle cx={ox} cy={oy} r={3} fill={COL.soft}/>
+          <text x={ox-22} y={oy+14} fontSize={10} fill={COL.soft} style={{fontFamily: MONO}}>base</text>
+        </g>
+      );
+    }
+
+    function fmt(n) { const r = Math.round(n*100)/100; return (r === 0 ? 0 : r).toFixed(2); }
+
+    function Widget() {
+      const [axis, setAxis] = useState('z');
+      const [target, setTarget] = useState(90);
+      const [t, setT] = useState(0);
+      const [playing, setPlaying] = useState(false);
+      const rafRef = useRef(null);
+
+      const theta = (target * Math.PI / 180) * t;
+      const R = rotMat(axis, theta);
+      const pLeft = mv(R, P0);
+      const thetaDeg = target * t;
+
+      const trail = useMemo(() => {
+        const N = 48;
+        const pts = [];
+        for (let i = 0; i <= N; i++) {
+          const s = (i/N) * t;
+          const Rs = rotMat(axis, (target*Math.PI/180)*s);
+          pts.push(mv(Rs, P0));
+        }
+        return pts;
+      }, [axis, target, t]);
+
+      useEffect(() => {
+        if (!playing) return;
+        let last = performance.now();
+        const tick = (now) => {
+          const dt = Math.min((now - last) / 1000, 0.05);
+          last = now;
+          let done = false;
+          setT(prev => {
+            const nx = prev + dt * 0.45;
+            if (nx >= 1) { done = true; return 1; }
+            return nx;
+          });
+          if (done) { setPlaying(false); return; }
+          rafRef.current = requestAnimationFrame(tick);
+        };
+        rafRef.current = requestAnimationFrame(tick);
+        return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
+      }, [playing]);
+
+      const gap = Math.hypot(pLeft[0]-P0[0], pLeft[1]-P0[1], pLeft[2]-P0[2]);
+      const parDir = axis === 'x' ? [1,0,0] : axis === 'y' ? [0,1,0] : [0,0,1];
+      const parA = P0.map((c,i) => c - parDir[i]*1.8);
+      const parB = P0.map((c,i) => c + parDir[i]*1.8);
+
+      const trailPath = trail.map((p,i) => {
+        const [x,y] = iso(p);
+        return (i===0 ? 'M' : 'L') + x.toFixed(1) + ' ' + y.toFixed(1);
+      }).join(' ');
+
+      const resetTo = (newAxis, newTarget) => {
+        if (newAxis !== undefined) setAxis(newAxis);
+        if (newTarget !== undefined) setTarget(newTarget);
+        setT(0); setPlaying(false);
+      };
+
+      const style = `
+        #robot-vs-matrix-animator { font-family: var(--font-body); color: var(--ink); }
+        #robot-vs-matrix-animator .root {
+          background: var(--surface);
+          border: 1px solid var(--border);
+          border-radius: 10px;
+          padding: 16px 18px 18px;
+          max-width: 1020px;
+          max-height: 1100px;
+        }
+        #robot-vs-matrix-animator h3.head {
+          margin: 0 0 4px;
+          font-family: var(--font-display);
+          font-weight: 500;
+          font-size: 17px;
+          letter-spacing: 0.005em;
+        }
+        #robot-vs-matrix-animator .lede {
+          font-size: 12.5px;
+          color: var(--ink-soft);
+          margin: 0 0 14px;
+          font-style: italic;
+        }
+        #robot-vs-matrix-animator .row {
+          display: flex; flex-wrap: wrap; gap: 8px 10px; align-items: center;
+          margin-bottom: 10px;
+        }
+        #robot-vs-matrix-animator .pane-grid {
+          display: grid; grid-template-columns: 1fr 1fr; gap: 14px;
+        }
+        @media (max-width: 760px) {
+          #robot-vs-matrix-animator .pane-grid { grid-template-columns: 1fr; }
+        }
+        #robot-vs-matrix-animator .panel {
+          background: #fff;
+          border: 1px solid var(--border);
+          border-radius: 6px;
+          padding: 10px 12px 4px;
+        }
+        #robot-vs-matrix-animator .panel-title {
+          font-family: var(--font-display);
+          font-size: 14px;
+          color: var(--ink);
+        }
+        #robot-vs-matrix-animator .panel-sub {
+          font-size: 11.5px;
+          color: var(--ink-soft);
+          font-family: ${MONO};
+          margin: 1px 0 4px;
+        }
+        #robot-vs-matrix-animator button.tk {
+          background: var(--surface);
+          border: 1px solid var(--border);
+          color: var(--ink);
+          padding: 5px 11px;
+          font-family: var(--font-body);
+          font-size: 12.5px;
+          border-radius: 4px;
+          cursor: pointer;
+          line-height: 1.2;
+        }
+        #robot-vs-matrix-animator button.tk:hover { background: var(--page-bg); }
+        #robot-vs-matrix-animator button.tk:focus-visible {
+          outline: 2px solid var(--accent); outline-offset: 1px;
+        }
+        #robot-vs-matrix-animator button.tk.on {
+          background: var(--accent); color: #fff; border-color: var(--accent);
+        }
+        #robot-vs-matrix-animator button.tk.primary {
+          background: var(--ink); color: var(--surface); border-color: var(--ink);
+        }
+        #robot-vs-matrix-animator button.tk.primary:hover {
+          background: #2a3445;
+        }
+        #robot-vs-matrix-animator .lbl {
+          font-size: 11.5px; color: var(--ink-soft);
+          font-family: ${MONO};
+        }
+        #robot-vs-matrix-animator input[type=range] {
+          accent-color: var(--accent);
+          height: 18px;
+        }
+        #robot-vs-matrix-animator .readout {
+          font-family: ${MONO};
+          font-size: 12.5px;
+          color: var(--ink);
+        }
+        #robot-vs-matrix-animator .gapline {
+          background: rgba(173,58,54,0.07);
+          border-left: 3px solid var(--bad);
+          padding: 9px 12px;
+          font-size: 12.5px;
+          color: var(--ink);
+          margin-top: 10px;
+          border-radius: 0 4px 4px 0;
+          line-height: 1.45;
+        }
+        #robot-vs-matrix-animator .gap-mono {
+          font-family: ${MONO};
+          color: var(--bad);
+        }
+        #robot-vs-matrix-animator .legend {
+          display: flex; flex-wrap: wrap; gap: 12px;
+          font-size: 11.5px; color: var(--ink-soft);
+          margin-top: 6px;
+          font-family: ${MONO};
+        }
+        #robot-vs-matrix-animator .swatch {
+          display:inline-block; width:10px; height:10px; border-radius:2px;
+          vertical-align:middle; margin-right:4px;
+        }
+      `;
+
+      return (
+        <div className="root">
+          <style>{style}</style>
+          <h3 className="head">Same command, two motions — matrix rotation vs robot rotation</h3>
+          <p className="lede">Left obeys R·p₀ and swings the tool around the world origin. Right does what the robot actually does — spins it in place about a line parallel to world {axis}₀ through the tool. Step through and watch the gap open.</p>
+
+          <div className="row" role="group" aria-label="axis selection">
+            <span className="lbl">axis</span>
+            {['x','y','z'].map(a => (
+              <button key={a}
+                className={'tk' + (axis===a ? ' on' : '')}
+                onClick={() => resetTo(a, undefined)}
+                aria-pressed={axis===a}>
+                {a}
+              </button>
+            ))}
+            <span className="lbl" style={{marginLeft:14}}>θ target</span>
+            <input type="range" min={-180} max={180} step={5}
+              value={target}
+              onChange={e => resetTo(undefined, +e.target.value)}
+              style={{width: 150}}
+              aria-label="target angle in degrees"
+            />
+            <span className="readout" style={{minWidth:48}}>{target}°</span>
+
+            <span className="lbl" style={{marginLeft:14}}>presets</span>
+            <button className="tk" onClick={() => resetTo('z', 90)}>z, 90°</button>
+            <button className="tk" onClick={() => resetTo('z', 180)}>z, 180°</button>
+            <button className="tk" onClick={() => resetTo('x', 45)}>x, 45°</button>
+            <button className="tk" onClick={() => resetTo('y', 60)}>y, 60°</button>
+          </div>
+
+          <div className="pane-grid">
+            <div className="panel">
+              <div className="panel-title">Matrix rotation</div>
+              <div className="panel-sub">p(θ) = R({axis}, θ) · p₀ &nbsp;·&nbsp; pivots at world origin</div>
+              <svg viewBox={`0 0 ${W} ${H}`} width="100%" preserveAspectRatio="xMidYMid meet">
+                <WorldAxes/>
+                {t > 0.001 && (
+                  <path d={trailPath}
+                    stroke="rgba(182,82,35,0.55)" strokeWidth="1.6" fill="none"
+                    strokeDasharray="2 3" strokeLinecap="round"/>
+                )}
+                <ToolFrame p={P0} R={ID3} faded/>
+                <ToolFrame p={pLeft} R={R} label={'p(θ)'}/>
+                {(() => {
+                  const [sx,sy] = iso(P0);
+                  return <text x={sx+8} y={sy-6} fontSize={10} fill={COL.soft} style={{fontFamily: MONO}}>p₀ (start)</text>;
+                })()}
+              </svg>
+            </div>
+
+            <div className="panel">
+              <div className="panel-title">Robot rotation</div>
+              <div className="panel-sub">spins about line ∥ {axis}₀ through tool origin</div>
+              <svg viewBox={`0 0 ${W} ${H}`} width="100%" preserveAspectRatio="xMidYMid meet">
+                <WorldAxes/>
+                <Arrow from={parA} to={parB} color={COL[axis]} dashed head={false} w={1.6}/>
+                {(() => {
+                  const [lx,ly] = iso(parB);
+                  return <text x={lx+5} y={ly+4} fontSize={10} fill={COL[axis]} style={{fontFamily: MONO}}>∥ {axis}₀, through tool</text>;
+                })()}
+                <ToolFrame p={P0} R={ID3} faded/>
+                <ToolFrame p={P0} R={R} label={'tool (spins)'}/>
+                {gap > 0.05 && (
+                  <Arrow from={P0} to={pLeft} color={COL.bad} w={1.8} dashed head={true} op={0.85}/>
+                )}
+                {gap > 0.05 && (() => {
+                  const [px,py] = iso(pLeft);
+                  return (
+                    <g>
+                      <circle cx={px} cy={py} r={5} fill="none" stroke={COL.bad} strokeWidth={1.8}/>
+                      <text x={px+9} y={py-5} fontSize={10} fill={COL.bad} style={{fontFamily: MONO}}>matrix says here</text>
+                    </g>
+                  );
+                })()}
+              </svg>
+            </div>
+          </div>
+
+          <div className="legend">
+            <span><span className="swatch" style={{background: COL.x}}></span>x-axis</span>
+            <span><span className="swatch" style={{background: COL.y}}></span>y-axis</span>
+            <span><span className="swatch" style={{background: COL.z}}></span>z-axis</span>
+            <span><span className="swatch" style={{background: COL.bad}}></span>discrepancy</span>
+          </div>
+
+          <div className="row" style={{marginTop:12}}>
+            <button className="tk primary"
+              onClick={() => { if (t >= 1) setT(0); setPlaying(p => !p); }}
+              aria-label={playing ? 'pause' : 'play'}>
+              {playing ? '❚❚ Pause' : '▶ Play'}
+            </button>
+            <button className="tk" onClick={() => { setPlaying(false); setT(0); }}>↺ Reset</button>
+            <button className="tk" onClick={() => { setPlaying(false); setT(p => Math.max(0, p - 0.1)); }}>◂ Step</button>
+            <button className="tk" onClick={() => { setPlaying(false); setT(p => Math.min(1, p + 0.1)); }}>Step ▸</button>
+
+            <span className="lbl" style={{marginLeft:10}}>scrub</span>
+            <input type="range" min={0} max={1} step={0.005}
+              value={t}
+              onChange={e => { setPlaying(false); setT(+e.target.value); }}
+              style={{flex:1, minWidth:120, maxWidth:300}}
+              aria-label="scrub through the animation"
+            />
+            <span className="readout">θ = {fmt(thetaDeg)}°</span>
+          </div>
+
+          <div className="gapline">
+            <strong>The gap is the point.</strong> Both panels were given <span style={{fontFamily: MONO}}>R({axis}, {fmt(thetaDeg)}°)</span>.
+            Matrix tool moved to (<span style={{fontFamily: MONO}}>{fmt(pLeft[0])}, {fmt(pLeft[1])}, {fmt(pLeft[2])}</span>);
+            robot tool stayed at (<span style={{fontFamily: MONO}}>{fmt(P0[0])}, {fmt(P0[1])}, {fmt(P0[2])}</span>) and only re-oriented.
+            Separation <span className="gap-mono">|Δp| = {fmt(gap)}</span> units — not a numerical fudge, a different operation.
+            The robot rotates about a line parallel to world {axis}₀ that passes through the <em>tool</em>, not the base.
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(mount).render(<Widget />);
+  } catch (e) {
+    const mount = document.getElementById('robot-vs-matrix-animator');
+    if (mount) mount.innerHTML = '<div class="widget-fail">Widget failed to load</div>';
+    console.error(e);
+  }
+})();
+</script>
+<!-- widget: build-mobile-rotation-chain (builder) -->
+<script type="text/babel">
+(function () {
+  try {
+    const { useState, useEffect, useRef, useMemo } = React;
+
+    function Widget() {
+      const [chain, setChain] = useState([]);
+      const [progress, setProgress] = useState(0);
+      const [playing, setPlaying] = useState(false);
+      const [flashAt, setFlashAt] = useState(0);
+      const [flashOn, setFlashOn] = useState(false);
+      const formulaRef = useRef(null);
+
+      const D = 4, H = 3, THETA_F = Math.PI / 2;
+
+      const PALETTE = [
+        { id: 'tx',     short: 'T_x(d)',    desc: 'Translate along x by d',                       kind: 'trans' },
+        { id: 'tz',     short: 'T_z(h)',    desc: 'Elevate — translate along z by h',             kind: 'trans' },
+        { id: 'r1',     short: 'R_my(45°)', desc: 'Rotate 45° around mobile axis A (mobile y)',   kind: 'rot'   },
+        { id: 'r2',     short: 'R_mx(45°)', desc: 'Rotate 45° around mobile axis B (mobile x)',   kind: 'rot'   },
+        { id: 'rfinal', short: 'R_mz(θ)',   desc: 'Final rotation θ about the chosen mobile axis',kind: 'rot'   },
+      ];
+
+      const I4  = () => [[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]];
+      const mul = (A,B) => {
+        const C = [[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]];
+        for (let i=0;i<4;i++) for (let j=0;j<4;j++) for (let k=0;k<4;k++) C[i][j] += A[i][k]*B[k][j];
+        return C;
+      };
+      const Tx = d => [[1,0,0,d],[0,1,0,0],[0,0,1,0],[0,0,0,1]];
+      const Tz = h => [[1,0,0,0],[0,1,0,0],[0,0,1,h],[0,0,0,1]];
+      const Rx = a => { const c=Math.cos(a), s=Math.sin(a); return [[1,0,0,0],[0,c,-s,0],[0,s,c,0],[0,0,0,1]]; };
+      const Ry = a => { const c=Math.cos(a), s=Math.sin(a); return [[c,0,s,0],[0,1,0,0],[-s,0,c,0],[0,0,0,1]]; };
+      const Rz = a => { const c=Math.cos(a), s=Math.sin(a); return [[c,-s,0,0],[s,c,0,0],[0,0,1,0],[0,0,0,1]]; };
+
+      const opM = (id, t) => {
+        switch (id) {
+          case 'tx':     return Tx(D * t);
+          case 'tz':     return Tz(H * t);
+          case 'r1':     return Ry((Math.PI/4) * t);
+          case 'r2':     return Rx((Math.PI/4) * t);
+          case 'rfinal': return Rz(THETA_F * t);
+        }
+        return I4();
+      };
+
+      const apply = (T, p) => [
+        T[0][0]*p[0] + T[0][1]*p[1] + T[0][2]*p[2] + T[0][3],
+        T[1][0]*p[0] + T[1][1]*p[1] + T[1][2]*p[2] + T[1][3],
+        T[2][0]*p[0] + T[2][1]*p[1] + T[2][2]*p[2] + T[2][3],
+      ];
+
+      const T_at = (prog) => {
+        let T = I4();
+        for (let i = 0; i < chain.length; i++) {
+          const t = Math.max(0, Math.min(1, prog - i));
+          T = mul(T, opM(chain[i], t));
+        }
+        return T;
+      };
+
+      const currentT = useMemo(() => T_at(progress), [chain, progress]);
+
+      useEffect(() => {
+        if (!playing) return;
+        let raf, last = performance.now();
+        const step = (now) => {
+          const dt = (now - last) / 1000;
+          last = now;
+          setProgress(p => {
+            const np = p + dt * 0.75;
+            if (np >= chain.length) { setPlaying(false); return chain.length; }
+            return np;
+          });
+          raf = requestAnimationFrame(step);
+        };
+        raf = requestAnimationFrame(step);
+        return () => cancelAnimationFrame(raf);
+      }, [playing, chain.length]);
+
+      useEffect(() => {
+        if (!flashAt) return;
+        setFlashOn(true);
+        const t = setTimeout(() => setFlashOn(false), 750);
+        return () => clearTimeout(t);
+      }, [flashAt]);
+
+      const correctness = useMemo(() => {
+        if (chain.length !== 5) return { ok: null };
+        const first2 = new Set([chain[0], chain[1]]);
+        if (!first2.has('tx') || !first2.has('tz')) return { ok: false };
+        if (chain[2] !== 'r1' || chain[3] !== 'r2' || chain[4] !== 'rfinal') return { ok: false };
+        return { ok: true };
+      }, [chain]);
+
+      const earlyRotation = useMemo(() => {
+        let tx=false, tz=false;
+        for (let i = 0; i < chain.length; i++) {
+          const op = PALETTE.find(o => o.id === chain[i]);
+          if (op.kind === 'rot' && (!tx || !tz)) return i;
+          if (chain[i] === 'tx') tx = true;
+          if (chain[i] === 'tz') tz = true;
+        }
+        return -1;
+      }, [chain]);
+
+      const handleAdd = (id) => {
+        if (chain.includes(id) || chain.length >= 5) return;
+        const nc = [...chain, id];
+        const op = PALETTE.find(o => o.id === id);
+        const prevTx = chain.includes('tx');
+        const prevTz = chain.includes('tz');
+        if (op.kind === 'rot' && (!prevTx || !prevTz)) setFlashAt(Date.now());
+        setChain(nc);
+        setProgress(0);
+        setPlaying(true);
+      };
+      const handleUndo  = () => { setChain(c => c.slice(0,-1)); setProgress(0); setPlaying(false); };
+      const handleReset = () => { setChain([]); setProgress(0); setPlaying(false); };
+      const handlePlay  = () => {
+        if (chain.length === 0) return;
+        if (!playing && progress >= chain.length) setProgress(0);
+        setPlaying(p => !p);
+      };
+
+      useEffect(() => {
+        if (correctness.ok && formulaRef.current && window.renderMathInElement) {
+          try {
+            window.renderMathInElement(formulaRef.current, {
+              delimiters: [
+                { left: '$', right: '$', display: true },
+                { left: '
+</html>
