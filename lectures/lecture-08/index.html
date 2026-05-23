@@ -2223,137 +2223,62 @@ a:hover { color: var(--accent-2); }
   }
 })();
 </script>
-<!-- widget: build-mobile-rotation-chain (builder) -->
-<script type="text/babel">
-(function () {
-  try {
-    const { useState, useEffect, useRef, useMemo } = React;
 
-    function Widget() {
-      const [chain, setChain] = useState([]);
-      const [progress, setProgress] = useState(0);
-      const [playing, setPlaying] = useState(false);
-      const [flashAt, setFlashAt] = useState(0);
-      const [flashOn, setFlashOn] = useState(false);
-      const formulaRef = useRef(null);
-
-      const D = 4, H = 3, THETA_F = Math.PI / 2;
-
-      const PALETTE = [
-        { id: 'tx',     short: 'T_x(d)',    desc: 'Translate along x by d',                       kind: 'trans' },
-        { id: 'tz',     short: 'T_z(h)',    desc: 'Elevate — translate along z by h',             kind: 'trans' },
-        { id: 'r1',     short: 'R_my(45°)', desc: 'Rotate 45° around mobile axis A (mobile y)',   kind: 'rot'   },
-        { id: 'r2',     short: 'R_mx(45°)', desc: 'Rotate 45° around mobile axis B (mobile x)',   kind: 'rot'   },
-        { id: 'rfinal', short: 'R_mz(θ)',   desc: 'Final rotation θ about the chosen mobile axis',kind: 'rot'   },
-      ];
-
-      const I4  = () => [[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]];
-      const mul = (A,B) => {
-        const C = [[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]];
-        for (let i=0;i<4;i++) for (let j=0;j<4;j++) for (let k=0;k<4;k++) C[i][j] += A[i][k]*B[k][j];
-        return C;
-      };
-      const Tx = d => [[1,0,0,d],[0,1,0,0],[0,0,1,0],[0,0,0,1]];
-      const Tz = h => [[1,0,0,0],[0,1,0,0],[0,0,1,h],[0,0,0,1]];
-      const Rx = a => { const c=Math.cos(a), s=Math.sin(a); return [[1,0,0,0],[0,c,-s,0],[0,s,c,0],[0,0,0,1]]; };
-      const Ry = a => { const c=Math.cos(a), s=Math.sin(a); return [[c,0,s,0],[0,1,0,0],[-s,0,c,0],[0,0,0,1]]; };
-      const Rz = a => { const c=Math.cos(a), s=Math.sin(a); return [[c,-s,0,0],[s,c,0,0],[0,0,1,0],[0,0,0,1]]; };
-
-      const opM = (id, t) => {
-        switch (id) {
-          case 'tx':     return Tx(D * t);
-          case 'tz':     return Tz(H * t);
-          case 'r1':     return Ry((Math.PI/4) * t);
-          case 'r2':     return Rx((Math.PI/4) * t);
-          case 'rfinal': return Rz(THETA_F * t);
-        }
-        return I4();
-      };
-
-      const apply = (T, p) => [
-        T[0][0]*p[0] + T[0][1]*p[1] + T[0][2]*p[2] + T[0][3],
-        T[1][0]*p[0] + T[1][1]*p[1] + T[1][2]*p[2] + T[1][3],
-        T[2][0]*p[0] + T[2][1]*p[1] + T[2][2]*p[2] + T[2][3],
-      ];
-
-      const T_at = (prog) => {
-        let T = I4();
-        for (let i = 0; i < chain.length; i++) {
-          const t = Math.max(0, Math.min(1, prog - i));
-          T = mul(T, opM(chain[i], t));
-        }
-        return T;
-      };
-
-      const currentT = useMemo(() => T_at(progress), [chain, progress]);
-
-      useEffect(() => {
-        if (!playing) return;
-        let raf, last = performance.now();
-        const step = (now) => {
-          const dt = (now - last) / 1000;
-          last = now;
-          setProgress(p => {
-            const np = p + dt * 0.75;
-            if (np >= chain.length) { setPlaying(false); return chain.length; }
-            return np;
-          });
-          raf = requestAnimationFrame(step);
-        };
-        raf = requestAnimationFrame(step);
-        return () => cancelAnimationFrame(raf);
-      }, [playing, chain.length]);
-
-      useEffect(() => {
-        if (!flashAt) return;
-        setFlashOn(true);
-        const t = setTimeout(() => setFlashOn(false), 750);
-        return () => clearTimeout(t);
-      }, [flashAt]);
-
-      const correctness = useMemo(() => {
-        if (chain.length !== 5) return { ok: null };
-        const first2 = new Set([chain[0], chain[1]]);
-        if (!first2.has('tx') || !first2.has('tz')) return { ok: false };
-        if (chain[2] !== 'r1' || chain[3] !== 'r2' || chain[4] !== 'rfinal') return { ok: false };
-        return { ok: true };
-      }, [chain]);
-
-      const earlyRotation = useMemo(() => {
-        let tx=false, tz=false;
-        for (let i = 0; i < chain.length; i++) {
-          const op = PALETTE.find(o => o.id === chain[i]);
-          if (op.kind === 'rot' && (!tx || !tz)) return i;
-          if (chain[i] === 'tx') tx = true;
-          if (chain[i] === 'tz') tz = true;
-        }
-        return -1;
-      }, [chain]);
-
-      const handleAdd = (id) => {
-        if (chain.includes(id) || chain.length >= 5) return;
-        const nc = [...chain, id];
-        const op = PALETTE.find(o => o.id === id);
-        const prevTx = chain.includes('tx');
-        const prevTz = chain.includes('tz');
-        if (op.kind === 'rot' && (!prevTx || !prevTz)) setFlashAt(Date.now());
-        setChain(nc);
-        setProgress(0);
-        setPlaying(true);
-      };
-      const handleUndo  = () => { setChain(c => c.slice(0,-1)); setProgress(0); setPlaying(false); };
-      const handleReset = () => { setChain([]); setProgress(0); setPlaying(false); };
-      const handlePlay  = () => {
-        if (chain.length === 0) return;
-        if (!playing && progress >= chain.length) setProgress(0);
-        setPlaying(p => !p);
-      };
-
-      useEffect(() => {
-        if (correctness.ok && formulaRef.current && window.renderMathInElement) {
-          try {
-            window.renderMathInElement(formulaRef.current, {
-              delimiters: [
-                { left: '$', right: '$', display: true },
-                { left: '
+<!-- widget: build-mobile-rotation-chain (builder) · repaired -->
+<script>
+/* v0.3 widget-fail placeholder — original widget output was rejected by verifyWidget. */
+(function(){ try {
+  var m = document.getElementById("build-mobile-rotation-chain");
+  if (!m) return;
+  m.innerHTML =
+    '<div role="status" aria-live="polite" style="font-family:system-ui,sans-serif;background:#fff5f5;border:1px solid #fca5a5;color:#7f1d1d;border-radius:6px;padding:14px 16px;margin:12px 0;">' +
+    '<div style="font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#b91c1c;margin-bottom:4px;">widget failed to render</div>' +
+    '<div style="font-weight:600;margin-bottom:4px;color:#7f1d1d;">build-mobile-rotation-chain</div>' +
+    '<div style="font-size:13px;color:#7f1d1d;line-height:1.5;">Original widget output was truncated mid-stream by the v0.2 wizard. Re-render this lecture in wizard-curator-v2 to get a real widget back.<br><span style="opacity:0.75">Regenerate this widget from the wizard to replace the placeholder.</span></div>' +
+    '</div>';
+} catch (e) { console.error(e); } })();
+</script>
+<!-- widget: inspection-transpose-animator (unknown) · repaired -->
+<script>
+/* v0.3 widget-fail placeholder — original widget output was rejected by verifyWidget. */
+(function(){ try {
+  var m = document.getElementById("inspection-transpose-animator");
+  if (!m) return;
+  m.innerHTML =
+    '<div role="status" aria-live="polite" style="font-family:system-ui,sans-serif;background:#fff5f5;border:1px solid #fca5a5;color:#7f1d1d;border-radius:6px;padding:14px 16px;margin:12px 0;">' +
+    '<div style="font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#b91c1c;margin-bottom:4px;">widget failed to render</div>' +
+    '<div style="font-weight:600;margin-bottom:4px;color:#7f1d1d;">inspection-transpose-animator</div>' +
+    '<div style="font-size:13px;color:#7f1d1d;line-height:1.5;">Original widget output was truncated mid-stream by the v0.2 wizard. Re-render this lecture in wizard-curator-v2 to get a real widget back.<br><span style="opacity:0.75">Regenerate this widget from the wizard to replace the placeholder.</span></div>' +
+    '</div>';
+} catch (e) { console.error(e); } })();
+</script>
+<!-- widget: inverse-formula-quiz (unknown) · repaired -->
+<script>
+/* v0.3 widget-fail placeholder — original widget output was rejected by verifyWidget. */
+(function(){ try {
+  var m = document.getElementById("inverse-formula-quiz");
+  if (!m) return;
+  m.innerHTML =
+    '<div role="status" aria-live="polite" style="font-family:system-ui,sans-serif;background:#fff5f5;border:1px solid #fca5a5;color:#7f1d1d;border-radius:6px;padding:14px 16px;margin:12px 0;">' +
+    '<div style="font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#b91c1c;margin-bottom:4px;">widget failed to render</div>' +
+    '<div style="font-weight:600;margin-bottom:4px;color:#7f1d1d;">inverse-formula-quiz</div>' +
+    '<div style="font-size:13px;color:#7f1d1d;line-height:1.5;">Original widget output was truncated mid-stream by the v0.2 wizard. Re-render this lecture in wizard-curator-v2 to get a real widget back.<br><span style="opacity:0.75">Regenerate this widget from the wizard to replace the placeholder.</span></div>' +
+    '</div>';
+} catch (e) { console.error(e); } })();
+</script>
+<!-- widget: inverset-playground (unknown) · repaired -->
+<script>
+/* v0.3 widget-fail placeholder — original widget output was rejected by verifyWidget. */
+(function(){ try {
+  var m = document.getElementById("inverset-playground");
+  if (!m) return;
+  m.innerHTML =
+    '<div role="status" aria-live="polite" style="font-family:system-ui,sans-serif;background:#fff5f5;border:1px solid #fca5a5;color:#7f1d1d;border-radius:6px;padding:14px 16px;margin:12px 0;">' +
+    '<div style="font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#b91c1c;margin-bottom:4px;">widget failed to render</div>' +
+    '<div style="font-weight:600;margin-bottom:4px;color:#7f1d1d;">inverset-playground</div>' +
+    '<div style="font-size:13px;color:#7f1d1d;line-height:1.5;">Original widget output was truncated mid-stream by the v0.2 wizard. Re-render this lecture in wizard-curator-v2 to get a real widget back.<br><span style="opacity:0.75">Regenerate this widget from the wizard to replace the placeholder.</span></div>' +
+    '</div>';
+} catch (e) { console.error(e); } })();
+</script>
+</body>
 </html>
