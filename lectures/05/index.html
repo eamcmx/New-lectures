@@ -2478,268 +2478,3259 @@ tau = D*qdd + h + c;</code></pre>
   }
 })();
 </script>
-<!-- widget: christoffel-mcq (mcq) -->
+<!-- widget: christoffel-mcq · rebuilt 2026-05-24T06:35:09.307Z -->
 <script type="text/babel">
 (function () {
   try {
     const { useState, useEffect, useRef } = React;
-    const mount = document.getElementById('christoffel-mcq');
-    if (!mount) throw new Error('mount missing');
 
-    const questions = [
+    const QUESTIONS = [
       {
-        q: String.raw`A term in $\mathbf{h}$ that scales with $\dot{q}_2^2$ (a single joint's rate squared) is called what?`,
+        q: "A term in $\\mathbf{h}$ that scales with $\\dot{q}_2^2$ (a single joint's rate squared) is called what?",
         options: [
-          String.raw`A Coriolis term, because two joints are involved through the coupling matrix $\mathbf{C}$`,
-          String.raw`A gyroscopic term, since it scales with angular velocity squared and so resists reorientation`,
-          String.raw`A centrifugal term, since it comes from one joint's motion changing its own geometry`,
-          String.raw`An inertial term, because it ultimately multiplies an acceleration on the left-hand side`
-        ],
-        correct: 2,
-        explain: String.raw`Centrifugal = single-joint $\dot{q}_j^2$ self-coupling. Coriolis = cross terms $\dot{q}_j\dot{q}_k$ with $j\neq k$. Both live inside $\mathbf{h}$, but only the cross terms qualify as Coriolis.`
-      },
-      {
-        q: String.raw`Why is the skew-symmetry of $\dot{\mathbf{D}} - 2\mathbf{C}$ so heavily used in robot control proofs?`,
-        options: [
-          String.raw`It implies $\dot{\mathbf{q}}^T(\dot{\mathbf{D}} - 2\mathbf{C})\dot{\mathbf{q}} = 0$, which is exactly the passivity identity Lyapunov stability proofs need`,
-          String.raw`It lets you drop the Coriolis term entirely whenever the joint velocity $\dot{\mathbf{q}}$ is small`,
-          String.raw`It guarantees that $\mathbf{D}(\mathbf{q})$ stays positive definite for all configurations along the trajectory`,
-          String.raw`It means the Christoffel symbols all vanish whenever the inertia matrix is constant in time`
+          "A centrifugal term, since it comes from one joint's motion changing its own geometry",
+          "A Coriolis term, because two joints are involved through the coupling matrix $\\mathbf{C}$",
+          "A gyroscopic term, since it scales with an angular velocity squared",
+          "An inertial term, because it ultimately multiplies an acceleration vector"
         ],
         correct: 0,
-        explain: String.raw`Skew-symmetry of $\dot{\mathbf{D}} - 2\mathbf{C}$ gives the quadratic-form identity $\dot{\mathbf{q}}^T(\dot{\mathbf{D}} - 2\mathbf{C})\dot{\mathbf{q}} = 0$ — that's the passivity hook on which essentially every robot-control Lyapunov proof hangs.`
+        explain: "Centrifugal = single-joint $\\dot{q}_j^2$ self-coupling. Coriolis = cross terms $\\dot{q}_j\\dot{q}_k$ with $j\\neq k$. Both live inside $\\mathbf{h}$, but only the cross terms qualify as Coriolis."
       },
       {
-        q: String.raw`In the Christoffel definition $\Gamma_{ijk} = \tfrac{1}{2}\!\left(\partial_k D_{ij} + \partial_j D_{ik} - \partial_i D_{jk}\right)$, which partial derivative carries the minus sign?`,
+        q: "Why is the skew-symmetry of $\\dot{\\mathbf{D}} - 2\\mathbf{C}$ so heavily used in robot control proofs?",
         options: [
-          String.raw`The derivative of $D_{ij}$ with respect to $q_k$, with the other two terms carrying the plus sign`,
-          String.raw`The derivative of $D_{ii}$ with respect to $q_i$, which carries the opposite sign by symmetry convention`,
-          String.raw`The derivative of $D_{ik}$ with respect to $q_j$, balancing the symmetry between indices $j$ and $k$`,
-          String.raw`The derivative of $D_{jk}$ with respect to $q_i$, since this is the piece that comes from $-\partial T/\partial q_i$ in Euler-Lagrange`
-        ],
-        correct: 3,
-        explain: String.raw`The negative term is $\partial D_{jk}/\partial q_i$ — it comes from the $-\partial T/\partial q_i$ piece of the Euler-Lagrange equation, while the other two come from $\frac{d}{dt}(\partial T/\partial \dot{q}_i)$.`
-      },
-      {
-        q: String.raw`For the 2-DOF planar arm in §7, at what configuration is the inertial coupling $D_{12}$ exactly zero?`,
-        options: [
-          String.raw`At $\theta_2 = 0$, when link 2 lies along link 1 and the two move together as one rigid body`,
-          String.raw`Never exactly zero — the constant piece $\tfrac{m_2 L_2^2}{4} + I_2$ persists at every value of $\theta_2$`,
-          String.raw`At $\theta_2 = 90°$, where $\cos\theta_2 = 0$ kills the configuration-dependent term and the rest cancels`,
-          String.raw`At any pose with $\theta_1 = \theta_2$, because that symmetry forces the off-diagonal $D_{12}$ to vanish`
+          "It lets you drop the Coriolis term entirely whenever $\\dot{\\mathbf{q}}$ is small, simplifying tracking proofs",
+          "It implies $\\dot{\\mathbf{q}}^T(\\dot{\\mathbf{D}} - 2\\mathbf{C})\\dot{\\mathbf{q}} = 0$ — the passivity identity Lyapunov stability proofs need",
+          "It guarantees $\\mathbf{D}$ stays positive definite for all configurations along the trajectory, which any energy function needs",
+          "It means the Christoffel symbols vanish whenever the inertia matrix is constant in time, killing the coupling"
         ],
         correct: 1,
-        explain: String.raw`$D_{12} = m_2\!\left(\tfrac{L_2^2}{4} + \tfrac{L_1 L_2}{2}\cos\theta_2\right) + I_2$. The $\cos\theta_2$ piece dies at $\theta_2 = 90°$, but the constant $\tfrac{m_2 L_2^2}{4} + I_2$ persists, so $D_{12}$ is never exactly zero. The lecture's phrase "coupling disappears at 90°" refers to the configuration-dependent coupling only.`
+        explain: "Skew-symmetry of $\\dot{\\mathbf{D}} - 2\\mathbf{C}$ gives the quadratic-form identity $\\dot{\\mathbf{q}}^T(\\dot{\\mathbf{D}} - 2\\mathbf{C})\\dot{\\mathbf{q}} = 0$. That's the passivity hook on which essentially every robot-control Lyapunov proof hangs."
+      },
+      {
+        q: "In the Christoffel definition $\\Gamma_{ijk} = \\tfrac{1}{2}(\\partial_k D_{ij} + \\partial_j D_{ik} - \\partial_i D_{jk})$, which term carries the minus sign?",
+        options: [
+          "The derivative of $D_{ij}$ with respect to $q_k$, with the other two carrying the plus sign by convention",
+          "The derivative of $D_{ik}$ with respect to $q_j$, balancing the symmetry of indices $j$ and $k$ in the sum",
+          "The derivative of $D_{ii}$ with respect to $q_i$, since diagonal terms always carry the opposite sign by convention",
+          "The derivative of $D_{jk}$ with respect to $q_i$, since that's the partial subtracted from the Euler–Lagrange equation"
+        ],
+        correct: 3,
+        explain: "The negative term is $\\partial D_{jk}/\\partial q_i$ — it comes from the $-\\partial T/\\partial q_i$ piece of the Euler–Lagrange equation, while the other two come from $d/dt(\\partial T/\\partial \\dot{q}_i)$."
+      },
+      {
+        q: "For the 2-DOF planar arm in §7, at what configuration is the inertial coupling $D_{12}$ exactly zero?",
+        options: [
+          "At $\\theta_2 = 0$, when link 2 lies along link 1 and they move as one rigid body",
+          "At $\\theta_2 = 90°$, where $\\cos\\theta_2 = 0$ kills the configuration-dependent piece but the constant $\\tfrac{m_2 L_2^2}{4} + I_2$ remains",
+          "Never exactly zero, since the constant piece $\\tfrac{m_2 L_2^2}{4} + I_2$ persists at every $\\theta_2$",
+          "At any pose with $\\theta_1 = \\theta_2$, because the symmetry forces $D_{12}$ to vanish"
+        ],
+        correct: 2,
+        explain: "$D_{12} = m_2\\!\\left(\\tfrac{L_2^2}{4} + \\tfrac{L_1 L_2}{2}\\cos\\theta_2\\right) + I_2$. The $\\cos\\theta_2$ piece dies at $90°$, but the constant $\\tfrac{m_2 L_2^2}{4} + I_2$ persists. The lecture's 'coupling disappears at 90°' refers to the configuration-dependent piece only."
       }
     ];
 
-    function MD({ text, block }) {
+    function MathSpan({ tex }) {
       const ref = useRef(null);
       useEffect(() => {
         if (!ref.current) return;
-        ref.current.textContent = text;
-        try {
-          if (window.renderMathInElement) {
-            window.renderMathInElement(ref.current, {
-              delimiters: [
-                { left: '$$', right: '$$', display: true },
-                { left: '$', right: '$', display: false },
-                { left: '\\[', right: '\\]', display: true },
-                { left: '\\(', right: '\\)', display: false }
-              ],
-              throwOnError: false
-            });
+        if (window.katex) {
+          try {
+            window.katex.render(tex, ref.current, { throwOnError: false, displayMode: false });
+          } catch (e) {
+            ref.current.textContent = tex;
           }
-        } catch (e) {}
-      }, [text]);
-      return block ? <div ref={ref}></div> : <span ref={ref}></span>;
+        } else {
+          ref.current.textContent = tex;
+        }
+      }, [tex]);
+      return <span ref={ref} />;
     }
 
-    const STYLES = `
-      #christoffel-mcq { max-width: 100%; }
-      #christoffel-mcq * { box-sizing: border-box; }
-      #christoffel-mcq .widget { font-family: var(--font-body); color: var(--ink); padding: 24px 26px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; max-width: 100%; max-height: 760px; overflow: auto; }
-      #christoffel-mcq .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; gap: 16px; flex-wrap: wrap; }
-      #christoffel-mcq .qnum { font-family: var(--font-mono); font-size: 11.5px; color: var(--ink-soft); letter-spacing: 0.08em; text-transform: uppercase; font-weight: 600; }
-      #christoffel-mcq .pips { display: flex; gap: 6px; }
-      #christoffel-mcq .pip { width: 28px; height: 6px; border-radius: 3px; background: var(--border); transition: background 0.2s; }
-      #christoffel-mcq .pip.active { background: var(--accent); }
-      #christoffel-mcq .pip.correct { background: var(--good); }
-      #christoffel-mcq .pip.incorrect { background: var(--bad); }
-      #christoffel-mcq .qbody { font-family: var(--font-display); font-size: 17.5px; line-height: 1.55; margin: 0 0 20px 0; color: var(--ink); }
-      #christoffel-mcq .options { display: flex; flex-direction: column; gap: 10px; }
-      #christoffel-mcq .option { text-align: left; padding: 13px 16px; background: var(--page-bg); border: 1.5px solid var(--border); border-radius: 8px; cursor: pointer; font-family: var(--font-body); font-size: 14.5px; line-height: 1.5; color: var(--ink); transition: border-color 0.15s, background 0.15s, transform 0.15s; display: flex; gap: 12px; align-items: flex-start; width: 100%; }
-      #christoffel-mcq .option:hover:not(:disabled) { border-color: var(--accent); background: var(--surface); transform: translateX(2px); }
-      #christoffel-mcq .option:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-      #christoffel-mcq .option:disabled { cursor: default; }
-      #christoffel-mcq .option .letter { font-family: var(--font-mono); font-size: 12.5px; color: var(--ink-soft); font-weight: 700; margin-top: 2px; min-width: 20px; flex-shrink: 0; }
-      #christoffel-mcq .option .opt-text { flex: 1; min-width: 0; }
-      #christoffel-mcq .option.correct { background: rgba(31, 122, 77, 0.10); border-color: var(--good); }
-      #christoffel-mcq .option.correct .letter { color: var(--good); }
-      #christoffel-mcq .option.incorrect { background: rgba(184, 50, 58, 0.08); border-color: var(--bad); }
-      #christoffel-mcq .option.incorrect .letter { color: var(--bad); }
-      #christoffel-mcq .option.faded { opacity: 0.5; }
-      #christoffel-mcq .mark { margin-left: 6px; font-family: var(--font-mono); font-size: 11.5px; font-weight: 700; white-space: nowrap; flex-shrink: 0; letter-spacing: 0.05em; }
-      #christoffel-mcq .mark.good { color: var(--good); }
-      #christoffel-mcq .mark.bad { color: var(--bad); }
-      #christoffel-mcq .explain { margin-top: 18px; padding: 14px 16px; background: var(--page-bg); border-left: 3px solid var(--accent); border-radius: 4px; font-size: 14px; line-height: 1.6; color: var(--ink); }
-      #christoffel-mcq .explain-label { font-family: var(--font-mono); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--accent); margin-bottom: 6px; font-weight: 700; }
-      #christoffel-mcq .controls { margin-top: 20px; display: flex; justify-content: space-between; align-items: center; padding-top: 16px; border-top: 1px solid var(--border); gap: 12px; flex-wrap: wrap; }
-      #christoffel-mcq .next-btn { background: var(--accent); color: #fffdf7; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-family: var(--font-body); font-size: 14px; font-weight: 500; transition: background 0.15s; }
-      #christoffel-mcq .next-btn:hover { background: #173e72; }
-      #christoffel-mcq .next-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-      #christoffel-mcq .retry-btn { background: transparent; color: var(--accent); border: 1.5px solid var(--accent); padding: 9px 18px; border-radius: 6px; cursor: pointer; font-family: var(--font-body); font-size: 14px; font-weight: 500; transition: all 0.15s; }
-      #christoffel-mcq .retry-btn:hover { background: var(--accent); color: #fffdf7; }
-      #christoffel-mcq .score-card { text-align: center; padding: 12px 0 22px 0; }
-      #christoffel-mcq .score-num { font-family: var(--font-display); font-size: 54px; font-weight: 600; color: var(--accent); line-height: 1; }
-      #christoffel-mcq .score-pct { font-family: var(--font-mono); font-size: 12px; color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.12em; margin-top: 8px; font-weight: 600; }
-      #christoffel-mcq .score-msg { font-family: var(--font-display); font-style: italic; font-size: 15.5px; color: var(--ink); margin: 18px auto 22px auto; max-width: 480px; line-height: 1.55; }
-      #christoffel-mcq .review { text-align: left; }
-      #christoffel-mcq .review h4 { font-family: var(--font-mono); font-size: 11px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--ink-soft); margin: 0 0 8px 0; font-weight: 700; }
-      #christoffel-mcq .review-item { display: flex; gap: 12px; padding: 10px 0; border-top: 1px solid var(--border); font-size: 13.5px; color: var(--ink); line-height: 1.45; }
-      #christoffel-mcq .review-item .ico { font-family: var(--font-mono); font-weight: 700; font-size: 15px; min-width: 18px; flex-shrink: 0; }
-      #christoffel-mcq .review-item .ico.ok { color: var(--good); }
-      #christoffel-mcq .review-item .ico.no { color: var(--bad); }
-      #christoffel-mcq .review-item .review-text { flex: 1; min-width: 0; }
-      #christoffel-mcq .katex { font-size: 1em; }
-    `;
+    function RichText({ text }) {
+      const parts = [];
+      let i = 0, key = 0;
+      while (i < text.length) {
+        const start = text.indexOf('
+<!-- widget: derive-d-jk-builder (builder) -->
+<script type="text/babel">
+(function () {
+  try {
+    const { useState, useEffect, useRef, useMemo } = React;
+    const mount = document.getElementById('derive-d-jk-builder');
+    if (!mount) throw new Error('mount missing');
+
+    function Tex({ tex, display }) {
+      const ref = useRef(null);
+      useEffect(() => {
+        if (!ref.current) return;
+        try {
+          if (window.katex) {
+            window.katex.render(tex, ref.current, { throwOnError: false, displayMode: !!display });
+          } else {
+            ref.current.textContent = tex;
+          }
+        } catch (e) {
+          ref.current.textContent = tex;
+        }
+      }, [tex, display]);
+      return <span ref={ref} />;
+    }
+
+    const OPS = [
+      { id: 'group', label: 'Group all θ̇₁·θ̇₂ cross terms in T₂', kind: 'essential', need: 'pyth',
+        msg: 'Cross terms gathered. Now read the coefficient of θ̇₁θ̇₂ — that is D₁₂.' },
+      { id: 'sub', label: 'Substitute v_{c2} in its grouped (θ̇₁ vs θ̇₂) form', kind: 'essential', need: null,
+        msg: 'v_{c2} now sits in two-column form — the θ̇₁ piece and the θ̇₂ piece are visible separately.' },
+      { id: 'halve', label: 'Halve the coefficient (quadratic form double-counts off-diagonals)', kind: 'herring',
+        msg: 'Red herring. T was written as ½ q̇ᵀD q̇, so the coefficient of θ̇₁θ̇₂ already equals D₁₂. The ½ is built into the quadratic form — not applied a second time.' },
+      { id: 'addRot', label: 'Add the rotational term ½ I₂(θ̇₁+θ̇₂)² to T', kind: 'herring',
+        msg: 'Red herring. The rotational term is already present in the starting T₂ (line 1).' },
+      { id: 'half', label: 'Multiply by ½ m₂', kind: 'herring',
+        msg: 'Red herring. The ½ m₂ factor is part of the kinetic-energy template — already in T₂.' },
+      { id: 'expand', label: 'Compute v_{c2}ᵀ v_{c2} component-wise', kind: 'essential', need: 'sub',
+        msg: 'Expanded. Watch the L₁L₂ cross term involving cosθ₁cos(θ₁+θ₂) + sinθ₁sin(θ₁+θ₂).' },
+      { id: 'pyth', label: 'Apply cos²+sin² = 1 (and the angle-difference identity)', kind: 'essential', need: 'expand',
+        msg: 'Trig collapses: cosθ₁cos(θ₁+θ₂) + sinθ₁sin(θ₁+θ₂) → cosθ₂. The mess turns clean.' },
+    ];
 
     function Widget() {
-      const [idx, setIdx] = useState(0);
-      const [picks, setPicks] = useState([]);
-      const [showResults, setShowResults] = useState(false);
+      const [applied, setApplied] = useState([]);
+      const [message, setMessage] = useState({ kind: 'idle', text: 'Click an operation to begin. Three of the seven are red herrings.' });
+      const [theta2, setTheta2] = useState(Math.PI / 3);
 
-      const q = questions[idx];
-      const pick = picks[idx];
-      const answered = pick !== undefined;
-      const isLast = idx === questions.length - 1;
-      const letters = ['A', 'B', 'C', 'D'];
+      const has = (id) => applied.includes(id);
+      const stage =
+        has('group') && has('pyth') && has('expand') && has('sub') ? 4 :
+        has('pyth') && has('expand') && has('sub') ? 3 :
+        has('expand') && has('sub') ? 2 :
+        has('sub') ? 1 : 0;
+      const won = stage === 4;
 
-      function choose(i) {
-        if (answered) return;
-        const next = [...picks];
-        next[idx] = i;
-        setPicks(next);
-      }
+      const clickOp = (op) => {
+        if (applied.includes(op.id)) {
+          setMessage({ kind: 'block', text: 'Already applied.' });
+          return;
+        }
+        if (op.kind === 'herring') {
+          setApplied([...applied, op.id]);
+          setMessage({ kind: 'herring', text: op.msg });
+          return;
+        }
+        if (op.need && !applied.includes(op.need)) {
+          const dep = OPS.find(o => o.id === op.need);
+          setMessage({ kind: 'block', text: 'First you need to: ' + dep.label });
+          return;
+        }
+        setApplied([...applied, op.id]);
+        setMessage({ kind: 'good', text: op.msg });
+      };
 
-      function advance() {
-        if (isLast) setShowResults(true);
-        else setIdx(idx + 1);
-      }
+      const undo = () => {
+        if (!applied.length) return;
+        setApplied(applied.slice(0, -1));
+        setMessage({ kind: 'idle', text: 'Undone — pick the next operation.' });
+      };
+      const reset = () => {
+        setApplied([]);
+        setMessage({ kind: 'idle', text: 'Cleared. Start again from the top.' });
+      };
 
-      function retry() {
-        setIdx(0);
-        setPicks([]);
-        setShowResults(false);
-      }
+      const arm = useMemo(() => {
+        const L1 = 58, L2 = 48;
+        const cx = 110, cy = 105;
+        const t1 = -Math.PI / 4;
+        const x1 = cx + L1 * Math.cos(t1);
+        const y1 = cy - L1 * Math.sin(t1);
+        const t12 = t1 + theta2;
+        const x2 = x1 + L2 * Math.cos(t12);
+        const y2 = y1 - L2 * Math.sin(t12);
+        const arcR = 18;
+        const ax = x1 + arcR * Math.cos(t1);
+        const ay = y1 - arcR * Math.sin(t1);
+        const bx = x1 + arcR * Math.cos(t12);
+        const by = y1 - arcR * Math.sin(t12);
+        const largeArc = Math.abs(theta2) > Math.PI ? 1 : 0;
+        const sweep = theta2 > 0 ? 0 : 1;
+        const arcD = `M ${ax} ${ay} A ${arcR} ${arcR} 0 ${largeArc} ${sweep} ${bx} ${by}`;
+        return { cx, cy, x1, y1, x2, y2, arcD };
+      }, [theta2]);
 
-      const scoreSoFar = picks.reduce((s, p, i) => s + (p === questions[i].correct ? 1 : 0), 0);
+      return (
+        <div className="dbuilder">
+          <style>{`
+            #derive-d-jk-builder .dbuilder {
+              font-family: var(--font-body, system-ui);
+              color: var(--ink);
+              background: var(--surface);
+              border: 1px solid var(--border);
+              border-radius: 8px;
+              padding: 18px;
+              max-width: 100%;
+              max-height: 880px;
+              overflow: auto;
+            }
+            #derive-d-jk-builder .dbuilder h3 {
+              font-family: var(--font-display);
+              font-size: 1.1rem;
+              margin: 0 0 4px;
+              color: var(--ink);
+            }
+            #derive-d-jk-builder .dbuilder .subhead {
+              color: var(--ink-soft);
+              font-size: 0.85rem;
+              margin-bottom: 12px;
+            }
+            #derive-d-jk-builder .dbuilder .target {
+              background: rgba(31, 78, 140, 0.08);
+              border-left: 3px solid var(--accent);
+              padding: 8px 12px;
+              border-radius: 4px;
+              font-size: 0.95rem;
+              margin-bottom: 14px;
+              display: flex;
+              align-items: center;
+              gap: 10px;
+              flex-wrap: wrap;
+            }
+            #derive-d-jk-builder .dbuilder .tag {
+              color: var(--accent);
+              text-transform: uppercase;
+              letter-spacing: 0.07em;
+              font-size: 0.68rem;
+              font-weight: 700;
+              font-family: var(--font-mono);
+            }
+            #derive-d-jk-builder .dbuilder .grid {
+              display: grid;
+              grid-template-columns: 1fr;
+              gap: 14px;
+            }
+            @media (min-width: 760px) {
+              #derive-d-jk-builder .dbuilder .grid {
+                grid-template-columns: 1.55fr 1fr;
+              }
+            }
+            #derive-d-jk-builder .dbuilder .derivation {
+              background: rgba(0,0,0,0.02);
+              border: 1px solid var(--border);
+              border-radius: 6px;
+              padding: 14px;
+              min-height: 220px;
+            }
+            #derive-d-jk-builder .dbuilder .step {
+              padding: 8px 0;
+              border-bottom: 1px dashed rgba(0,0,0,0.09);
+              animation: dbInSlide 0.25s ease-out;
+            }
+            #derive-d-jk-builder .dbuilder .step:last-child { border-bottom: none; }
+            @keyframes dbInSlide {
+              from { opacity: 0; transform: translateY(-4px); }
+              to { opacity: 1; transform: translateY(0); }
+            }
+            #derive-d-jk-builder .dbuilder .step-label {
+              font-size: 0.72rem;
+              color: var(--ink-soft);
+              text-transform: uppercase;
+              letter-spacing: 0.06em;
+              margin-bottom: 4px;
+              font-weight: 600;
+              font-family: var(--font-mono);
+            }
+            #derive-d-jk-builder .dbuilder .step-eqn {
+              font-size: 0.95rem;
+              color: var(--ink);
+              overflow-x: auto;
+              padding: 2px 0;
+            }
+            #derive-d-jk-builder .dbuilder .win-step {
+              background: rgba(31, 122, 77, 0.08);
+              border-radius: 4px;
+              padding: 8px 10px;
+              margin-top: 2px;
+            }
+            #derive-d-jk-builder .dbuilder .win-step .step-label { color: var(--good); }
+            #derive-d-jk-builder .dbuilder .ops {
+              display: flex;
+              flex-direction: column;
+              gap: 7px;
+            }
+            #derive-d-jk-builder .dbuilder .op-btn {
+              text-align: left;
+              padding: 9px 11px;
+              border: 1px solid var(--border);
+              background: var(--surface);
+              border-radius: 5px;
+              font-family: var(--font-body);
+              font-size: 0.83rem;
+              color: var(--ink);
+              cursor: pointer;
+              transition: border-color 0.15s, background 0.15s, transform 0.1s;
+              line-height: 1.3;
+            }
+            #derive-d-jk-builder .dbuilder .op-btn:hover:not(:disabled) {
+              border-color: var(--accent);
+              background: rgba(31, 78, 140, 0.05);
+              transform: translateX(2px);
+            }
+            #derive-d-jk-builder .dbuilder .op-btn:focus-visible {
+              outline: 2px solid var(--accent);
+              outline-offset: 2px;
+            }
+            #derive-d-jk-builder .dbuilder .op-btn.applied {
+              opacity: 0.5;
+              cursor: default;
+              text-decoration: line-through;
+            }
+            #derive-d-jk-builder .dbuilder .op-btn.applied-herring {
+              opacity: 0.6;
+              cursor: default;
+              background: rgba(184, 50, 58, 0.06);
+              border-color: var(--bad);
+              color: var(--bad);
+            }
+            #derive-d-jk-builder .dbuilder .arm-box {
+              background: var(--page-bg);
+              border: 1px solid var(--border);
+              border-radius: 6px;
+              padding: 10px;
+              text-align: center;
+            }
+            #derive-d-jk-builder .dbuilder .slider-row {
+              display: flex;
+              align-items: center;
+              gap: 8px;
+              font-size: 0.8rem;
+              color: var(--ink-soft);
+              margin-top: 6px;
+              font-family: var(--font-mono);
+            }
+            #derive-d-jk-builder .dbuilder input[type=range] {
+              flex: 1;
+              accent-color: var(--accent);
+            }
+            #derive-d-jk-builder .dbuilder .controls {
+              display: flex;
+              gap: 8px;
+              margin-top: 10px;
+            }
+            #derive-d-jk-builder .dbuilder .btn {
+              padding: 7px 14px;
+              border: 1px solid var(--border);
+              background: var(--surface);
+              border-radius: 5px;
+              cursor: pointer;
+              font-family: var(--font-body);
+              font-size: 0.85rem;
+              color: var(--ink);
+            }
+            #derive-d-jk-builder .dbuilder .btn:hover:not(:disabled) { border-color: var(--ink); }
+            #derive-d-jk-builder .dbuilder .btn:disabled { opacity: 0.4; cursor: default; }
+            #derive-d-jk-builder .dbuilder .message {
+              margin-top: 10px;
+              padding: 9px 12px;
+              border-radius: 5px;
+              font-size: 0.85rem;
+              line-height: 1.4;
+              border-left: 3px solid var(--border);
+              background: rgba(0,0,0,0.02);
+              color: var(--ink-soft);
+            }
+            #derive-d-jk-builder .dbuilder .message.good {
+              border-left-color: var(--good);
+              background: rgba(31, 122, 77, 0.07);
+              color: var(--ink);
+            }
+            #derive-d-jk-builder .dbuilder .message.herring {
+              border-left-color: var(--bad);
+              background: rgba(184, 50, 58, 0.06);
+              color: var(--ink);
+            }
+            #derive-d-jk-builder .dbuilder .message.block {
+              border-left-color: var(--accent-2);
+              background: rgba(184, 84, 26, 0.07);
+              color: var(--ink);
+            }
+            #derive-d-jk-builder .dbuilder .progress {
+              display: flex;
+              gap: 4px;
+              margin-top: 10px;
+            }
+            #derive-d-jk-builder .dbuilder .pip {
+              height: 6px;
+              flex: 1;
+              border-radius: 3px;
+              background: var(--border);
+              transition: background 0.2s;
+            }
+            #derive-d-jk-builder .dbuilder .pip.on { background: var(--good); }
+            #derive-d-jk-builder .dbuilder .legend {
+              font-size: 0.72rem;
+              color: var(--ink-soft);
+              font-family: var(--font-mono);
+              margin-top: 4px;
+              text-align: center;
+            }
+            #derive-d-jk-builder .dbuilder .win-banner {
+              margin-top: 12px;
+              padding: 12px 14px;
+              border-radius: 6px;
+              background: linear-gradient(90deg, rgba(31, 122, 77, 0.14), rgba(31, 78, 140, 0.1));
+              border: 1px solid var(--good);
+              font-size: 0.88rem;
+              color: var(--ink);
+              line-height: 1.5;
+            }
+            #derive-d-jk-builder .dbuilder .ops-header {
+              font-size: 0.7rem;
+              color: var(--ink-soft);
+              text-transform: uppercase;
+              letter-spacing: 0.07em;
+              font-weight: 700;
+              margin: 14px 0 7px;
+              font-family: var(--font-mono);
+            }
+            #derive-d-jk-builder .widget-fail { padding: 14px; color: var(--bad); }
+          `}</style>
 
-      if (showResults) {
-        const total = questions.length;
-        const pct = Math.round(100 * scoreSoFar / total);
-        let msg;
-        if (scoreSoFar === total) msg = "Perfect — you've internalised the Christoffel bookkeeping.";
-        else if (scoreSoFar === total - 1) msg = "Strong — go back and re-read the explanation for the one you missed.";
-        else if (scoreSoFar >= 2) msg = "Halfway there. Re-read §4 (Coriolis vs centrifugal) and §7 (the 2-DOF arm).";
-        else msg = "Walk back through §4 carefully — the indices and signs reward a slow read.";
+          <h3>Derive D₁₂ for the 2-DOF arm</h3>
+          <div className="subhead">
+            Stack operations onto the kinetic-energy expression until the coefficient of θ̇₁θ̇₂ falls out.
+            Three of the seven operations are red herrings — pick well.
+          </div>
 
-        return (
-          <React.Fragment>
-            <style>{STYLES}</style>
-            <div className="widget" role="region" aria-label="Quiz results">
-              <div className="score-card">
-                <div className="score-num">{scoreSoFar}/{total}</div>
-                <div className="score-pct">{pct}% correct</div>
-                <div className="score-msg">{msg}</div>
-                <button className="retry-btn" onClick={retry} aria-label="Retry quiz">↻ Try again</button>
-              </div>
-              <div className="review">
-                <h4>Question review</h4>
-                {questions.map((qq, qi) => {
-                  const ok = picks[qi] === qq.correct;
-                  return (
-                    <div key={qi} className="review-item">
-                      <span className={`ico ${ok ? 'ok' : 'no'}`} aria-hidden="true">{ok ? '✓' : '✗'}</span>
-                      <span className="review-text"><MD text={qq.q} /></span>
+          <div className="target">
+            <span className="tag">target</span>
+            <Tex tex={String.raw`D_{12} = m_2\!\left(\tfrac{L_2^2}{4} + \tfrac{L_1 L_2}{2}\cos\theta_2\right) + I_2`} />
+          </div>
+
+          <div className="grid">
+            <div>
+              <div className="derivation" aria-live="polite">
+                <div className="step">
+                  <div className="step-label">Starting form (T₂ for link 2)</div>
+                  <div className="step-eqn">
+                    <Tex display tex={String.raw`T_2 \;=\; \tfrac{1}{2} m_2\, \mathbf{v}_{c2}^{T} \mathbf{v}_{c2} \;+\; \tfrac{1}{2} I_2\,(\dot\theta_1 + \dot\theta_2)^2`} />
+                  </div>
+                </div>
+
+                {stage >= 1 && (
+                  <div className="step">
+                    <div className="step-label">① v_{c2} substituted — grouped form</div>
+                    <div className="step-eqn">
+                      <Tex display tex={String.raw`\mathbf{v}_{c2} = \begin{bmatrix} -L_1 \sin\theta_1\, \dot\theta_1 - \tfrac{L_2}{2}\sin(\theta_1{+}\theta_2)(\dot\theta_1{+}\dot\theta_2) \\[3pt] \;\;L_1 \cos\theta_1\, \dot\theta_1 + \tfrac{L_2}{2}\cos(\theta_1{+}\theta_2)(\dot\theta_1{+}\dot\theta_2) \end{bmatrix}`} />
                     </div>
+                  </div>
+                )}
+
+                {stage >= 2 && (
+                  <div className="step">
+                    <div className="step-label">② vᵀv expanded component-wise</div>
+                    <div className="step-eqn">
+                      <Tex display tex={String.raw`\mathbf{v}_{c2}^{T}\mathbf{v}_{c2} = L_1^2(s_1^2{+}c_1^2)\dot\theta_1^2 \;+\; \tfrac{L_2^2}{4}(s_{12}^2{+}c_{12}^2)(\dot\theta_1{+}\dot\theta_2)^2 \;+\; L_1 L_2 \,(c_1 c_{12} + s_1 s_{12})\,\dot\theta_1(\dot\theta_1{+}\dot\theta_2)`} />
+                    </div>
+                  </div>
+                )}
+
+                {stage >= 3 && (
+                  <div className="step">
+                    <div className="step-label">③ cos²+sin²=1   and   c₁c₁₂ + s₁s₁₂ = cosθ₂</div>
+                    <div className="step-eqn">
+                      <Tex display tex={String.raw`\mathbf{v}_{c2}^{T}\mathbf{v}_{c2} = L_1^2\, \dot\theta_1^2 \;+\; \tfrac{L_2^2}{4}(\dot\theta_1{+}\dot\theta_2)^2 \;+\; L_1 L_2 \cos\theta_2\;\dot\theta_1(\dot\theta_1{+}\dot\theta_2)`} />
+                    </div>
+                  </div>
+                )}
+
+                {stage >= 4 && (
+                  <>
+                    <div className="step">
+                      <div className="step-label">④ Coefficient of θ̇₁θ̇₂ in T₂ (kinetic part + rotational part)</div>
+                      <div className="step-eqn">
+                        <Tex display tex={String.raw`[\dot\theta_1\dot\theta_2]\text{-coeff in }T_2 \;=\; \tfrac{m_2}{2}\!\left(\tfrac{L_2^2}{2} + L_1 L_2 \cos\theta_2\right) + I_2`} />
+                      </div>
+                    </div>
+                    <div className="step win-step">
+                      <div className="step-label">✓ Read D₁₂ from T = ½ q̇ᵀ D q̇</div>
+                      <div className="step-eqn">
+                        <Tex display tex={String.raw`\boxed{\; D_{12} \;=\; m_2\!\left(\tfrac{L_2^2}{4} + \tfrac{L_1 L_2}{2}\cos\theta_2\right) + I_2 \;}`} />
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              <div className="progress" aria-label="derivation progress">
+                {[0,1,2,3].map(i => <div key={i} className={'pip' + (stage > i ? ' on' : '')} />)}
+              </div>
+              <div className="legend">stage {stage} / 4 essential operations</div>
+
+              <div className={'message ' + message.kind} role="status">{message.text}</div>
+
+              {won && (
+                <div className="win-banner">
+                  <strong>D₁₂ derived.</strong> Notice that the configuration dependence sits entirely in cosθ₂.
+                  Move the θ₂ slider on the right — at θ₂ = 90° the inertial coupling between joints 1 and 2 vanishes,
+                  leaving only the constant I₂ piece from the rotational term.
+                </div>
+              )}
+
+              <div className="controls">
+                <button className="btn" onClick={undo} disabled={!applied.length}>↶ Undo</button>
+                <button className="btn" onClick={reset} disabled={!applied.length}>Reset</button>
+              </div>
+            </div>
+
+            <div>
+              <div className="arm-box">
+                <svg viewBox="0 0 220 200" style={{ width: '100%', maxWidth: 240, height: 'auto', display: 'block', margin: '0 auto' }} aria-label="Two-link planar arm">
+                  <defs>
+                    <marker id="dbArr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+                      <path d="M0,0 L10,5 L0,10 z" fill="var(--good)" />
+                    </marker>
+                  </defs>
+                  <line x1="0" y1={arm.cy} x2="220" y2={arm.cy} stroke="var(--border)" strokeDasharray="3 3" />
+                  <line x1={arm.cx} y1="0" x2={arm.cx} y2="200" stroke="var(--border)" strokeDasharray="3 3" />
+                  <line x1={arm.x1} y1={arm.y1} x2={arm.x1 + 32 * Math.cos(-Math.PI/4)} y2={arm.y1 - 32 * Math.sin(-Math.PI/4)} stroke="var(--ink-soft)" strokeDasharray="2 3" opacity="0.5" />
+                  <line x1={arm.cx} y1={arm.cy} x2={arm.x1} y2={arm.y1} stroke="var(--accent)" strokeWidth="5" strokeLinecap="round" />
+                  <line x1={arm.x1} y1={arm.y1} x2={arm.x2} y2={arm.y2} stroke="var(--accent-2)" strokeWidth="5" strokeLinecap="round" />
+                  <circle cx={arm.cx} cy={arm.cy} r="5" fill="var(--ink)" />
+                  <circle cx={arm.x1} cy={arm.y1} r="4" fill="var(--ink)" />
+                  <circle cx={arm.x2} cy={arm.y2} r="3.5" fill="var(--accent-2)" />
+                  <path d={arm.arcD} stroke="var(--good)" strokeWidth="1.7" fill="none" markerEnd="url(#dbArr)" />
+                  <text x={arm.x1 + 26} y={arm.y1 - 6} fontSize="12" fill="var(--good)" fontFamily="var(--font-mono)">θ₂</text>
+                  <text x={(arm.cx + arm.x1)/2 - 4} y={(arm.cy + arm.y1)/2 + 14} fontSize="10" fill="var(--ink-soft)" fontFamily="var(--font-mono)">L₁</text>
+                  <text x={(arm.x1 + arm.x2)/2 + 4} y={(arm.y1 + arm.y2)/2 - 6} fontSize="10" fill="var(--ink-soft)" fontFamily="var(--font-mono)">L₂</text>
+                  <text x={arm.cx - 8} y={arm.cy + 18} fontSize="9" fill="var(--ink-soft)" fontFamily="var(--font-mono)">base</text>
+                </svg>
+                <div className="slider-row">
+                  <span>θ₂</span>
+                  <input
+                    type="range"
+                    min={-180}
+                    max={180}
+                    step={1}
+                    value={Math.round(theta2 * 180 / Math.PI)}
+                    onChange={e => setTheta2(Number(e.target.value) * Math.PI / 180)}
+                    aria-label="theta two angle"
+                  />
+                  <span>{(theta2 * 180 / Math.PI).toFixed(0)}°</span>
+                </div>
+                <div className="legend">
+                  cosθ₂ = {Math.cos(theta2).toFixed(3)}{'   →   '}D₁₂ − I₂ = m₂(L₂²/4 + {(0.5 * Math.cos(theta2)).toFixed(3)}·L₁L₂)
+                </div>
+              </div>
+
+              <div className="ops-header">Operations</div>
+              <div className="ops">
+                {OPS.map(op => {
+                  const isApplied = applied.includes(op.id);
+                  const cls = 'op-btn' + (isApplied ? (op.kind === 'herring' ? ' applied-herring' : ' applied') : '');
+                  return (
+                    <button
+                      key={op.id}
+                      className={cls}
+                      onClick={() => clickOp(op)}
+                      disabled={isApplied}
+                      aria-pressed={isApplied}
+                    >
+                      {op.label}
+                    </button>
                   );
                 })}
               </div>
             </div>
-          </React.Fragment>
-        );
-      }
-
-      return (
-        <React.Fragment>
-          <style>{STYLES}</style>
-          <div className="widget" role="region" aria-label="Self-check quiz">
-            <div className="topbar">
-              <span className="qnum">Question {idx + 1} of {questions.length}</span>
-              <div className="pips" aria-hidden="true">
-                {questions.map((_, i) => {
-                  let cls = 'pip';
-                  if (picks[i] !== undefined) {
-                    cls += picks[i] === questions[i].correct ? ' correct' : ' incorrect';
-                  } else if (i === idx) {
-                    cls += ' active';
-                  }
-                  return <span key={i} className={cls} />;
-                })}
-              </div>
-            </div>
-
-            <div className="qbody"><MD text={q.q} /></div>
-
-            <div className="options" role="radiogroup" aria-label="Answer choices">
-              {q.options.map((opt, i) => {
-                let cls = 'option';
-                if (answered) {
-                  if (i === q.correct) cls += ' correct';
-                  else if (i === pick) cls += ' incorrect';
-                  else cls += ' faded';
-                }
-                const showGood = answered && i === q.correct;
-                const showBad = answered && i === pick && i !== q.correct;
-                return (
-                  <button
-                    key={`${idx}-${i}`}
-                    className={cls}
-                    onClick={() => choose(i)}
-                    disabled={answered}
-                    role="radio"
-                    aria-checked={pick === i}
-                  >
-                    <span className="letter" aria-hidden="true">{letters[i]}.</span>
-                    <span className="opt-text"><MD text={opt} /></span>
-                    {showGood && <span className="mark good">✓ correct</span>}
-                    {showBad && <span className="mark bad">✗ your pick</span>}
-                  </button>
-                );
-              })}
-            </div>
-
-            {answered && (
-              <div className="explain" role="status">
-                <div className="explain-label">Why</div>
-                <MD text={q.explain} block />
-              </div>
-            )}
-
-            {answered && (
-              <div className="controls">
-                <span className="qnum">Score so far · {scoreSoFar}/{idx + 1}</span>
-                <button className="next-btn" onClick={advance} autoFocus>
-                  {isLast ? 'See results →' : 'Next question →'}
-                </button>
-              </div>
-            )}
           </div>
-        </React.Fragment>
+        </div>
       );
     }
 
+    ReactDOM.createRoot(mount).render(<Widget />);
+  } catch (e) {
+    const mount = document.getElementById('derive-d-jk-builder');
+    if (mount) mount.innerHTML = '<div class="widget-fail">Widget failed to load</div>';
+    console.error(e);
+  }
+})();
+</script>
+<!-- widget: two-dof-playground (playground) -->
+<script type="text/babel">
+(function () {
+  try {
+    const { useState, useEffect, useRef, useMemo } = React;
+
+    const P = { L1: 0.5, L2: 0.4, m1: 2.0, m2: 1.5, I1: 0.0417, I2: 0.02, g: 9.81 };
+
+    function computeTorques(th1, th2, dth1, dth2, ddth1, ddth2) {
+      const { L1, L2, m1, m2, I1, I2, g } = P;
+      const c2 = Math.cos(th2), s2 = Math.sin(th2);
+      const c1 = Math.cos(th1), c12 = Math.cos(th1 + th2);
+
+      const D11 = m1*L1*L1/4 + I1 + m2*(L1*L1 + L2*L2/4 + L1*L2*c2) + I2;
+      const D12 = m2*(L2*L2/4 + L1*L2/2 * c2) + I2;
+      const D22 = m2*L2*L2/4 + I2;
+
+      const inertial1 = D11*ddth1 + D12*ddth2;
+      const inertial2 = D12*ddth1 + D22*ddth2;
+
+      const k = m2*L1*L2*s2;
+      const h1_cross = -k * dth1 * dth2;
+      const h1_sq2   = -k/2 * dth2 * dth2;
+      const h2_sq1   =  k/2 * dth1 * dth1;
+      const h1 = h1_cross + h1_sq2;
+      const h2 = h2_sq1;
+
+      const c1g = m1*g*L1/2 * c1 + m2*g*L1*c1 + m2*g*L2/2 * c12;
+      const c2g = m2*g*L2/2 * c12;
+
+      return {
+        D: [[D11, D12],[D12, D22]],
+        inertial: [inertial1, inertial2],
+        coriolis: [h1, h2],
+        h1_cross, h1_sq2, h2_sq1,
+        gravity: [c1g, c2g]
+      };
+    }
+
+    const PRESETS = [
+      { name: 'Static horizontal', th1: 0, th2: 0, dth1: 0, dth2: 0, ddth1: 0, ddth2: 0 },
+      { name: 'High-speed shoulder spin', th1: 0, th2: 90, dth1: 5, dth2: 0, ddth1: 0, ddth2: 0 },
+      { name: 'Vertical tuck', th1: 90, th2: 0, dth1: 0, dth2: 0, ddth1: 0, ddth2: 0 },
+      { name: 'Coupled motion', th1: 30, th2: 60, dth1: 2, dth2: -3, ddth1: 5, ddth2: -4 }
+    ];
+
+    function Slider({ label, value, setValue, min, max, step, unit, format }) {
+      return (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+          <div style={{ width: 90, fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--ink)' }}>
+            {label}
+          </div>
+          <input
+            type="range"
+            min={min} max={max} step={step}
+            value={value}
+            onChange={e => setValue(parseFloat(e.target.value))}
+            style={{ flex: 1, accentColor: 'var(--accent)' }}
+            aria-label={label}
+          />
+          <div style={{ width: 90, textAlign: 'right', fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--ink-soft)' }}>
+            {format(value)} {unit}
+          </div>
+        </div>
+      );
+    }
+
+    function Arm({ th1, th2, dth1, dth2 }) {
+      const { L1, L2 } = P;
+      const cx = 200, cy = 180;
+      const scale = 140;
+      const x1 = cx + L1 * Math.cos(th1) * scale;
+      const y1 = cy - L1 * Math.sin(th1) * scale;
+      const x2 = x1 + L2 * Math.cos(th1 + th2) * scale;
+      const y2 = y1 - L2 * Math.sin(th1 + th2) * scale;
+
+      const v1x = -L1 * Math.sin(th1) * dth1;
+      const v1y =  L1 * Math.cos(th1) * dth1;
+      const v2x = v1x - L2 * Math.sin(th1+th2) * (dth1+dth2);
+      const v2y = v1y + L2 * Math.cos(th1+th2) * (dth1+dth2);
+      const vmag = Math.sqrt(v2x*v2x + v2y*v2y);
+      const arrowScale = 20;
+
+      return (
+        <svg viewBox="0 0 400 360" style={{ width: '100%', height: 'auto', maxHeight: 320, background: 'var(--page-bg)', borderRadius: 6, border: '1px solid var(--border)' }}>
+          <defs>
+            <marker id="arrow-vel" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+              <path d="M0,0 L10,5 L0,10 z" fill="var(--accent-2)" />
+            </marker>
+            <linearGradient id="link1g" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stopColor="var(--accent)" />
+              <stop offset="100%" stopColor="var(--accent)" stopOpacity="0.7" />
+            </linearGradient>
+            <linearGradient id="link2g" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stopColor="var(--accent-2)" />
+              <stop offset="100%" stopColor="var(--accent-2)" stopOpacity="0.7" />
+            </linearGradient>
+          </defs>
+
+          {[0,1,2,3].map(i => (
+            <line key={i} x1={cx - 160} y1={cy + 40*i - 40} x2={cx + 160} y2={cy + 40*i - 40} stroke="var(--border)" strokeWidth="0.5" opacity="0.4" />
+          ))}
+          <line x1={cx - 160} y1={cy} x2={cx + 160} y2={cy} stroke="var(--ink-soft)" strokeWidth="1" opacity="0.5" strokeDasharray="3,3" />
+          <text x={cx + 160} y={cy - 4} fontSize="9" fill="var(--ink-soft)" textAnchor="end" fontFamily="var(--font-mono)">ground</text>
+
+          <text x={cx + 30} y={cy + 12} fontSize="10" fill="var(--ink-soft)" fontFamily="var(--font-mono)">g ↓</text>
+          <line x1={cx + 60} y1={cy - 8} x2={cx + 60} y2={cy + 14} stroke="var(--ink-soft)" strokeWidth="1.2" markerEnd="url(#arrow-vel)" />
+
+          <line x1={cx} y1={cy} x2={x1} y2={y1} stroke="url(#link1g)" strokeWidth="9" strokeLinecap="round" />
+          <line x1={x1} y1={y1} x2={x2} y2={y2} stroke="url(#link2g)" strokeWidth="7" strokeLinecap="round" />
+
+          <circle cx={cx} cy={cy} r="7" fill="var(--surface)" stroke="var(--ink)" strokeWidth="2" />
+          <circle cx={x1} cy={y1} r="5.5" fill="var(--surface)" stroke="var(--ink)" strokeWidth="1.5" />
+          <circle cx={x2} cy={y2} r="3.5" fill="var(--ink)" />
+
+          <text x={cx - 14} y={cy + 18} fontSize="11" fill="var(--ink)" fontFamily="var(--font-mono)">θ₁</text>
+          <text x={x1 + 6} y={y1 + 18} fontSize="11" fill="var(--ink)" fontFamily="var(--font-mono)">θ₂</text>
+
+          {vmag > 0.05 && (
+            <line
+              x1={x2} y1={y2}
+              x2={x2 + v2x * arrowScale} y2={y2 - v2y * arrowScale}
+              stroke="var(--accent-2)" strokeWidth="2"
+              markerEnd="url(#arrow-vel)"
+            />
+          )}
+          {vmag > 0.05 && (
+            <text x={x2 + v2x * arrowScale + 4} y={y2 - v2y * arrowScale} fontSize="10" fill="var(--accent-2)" fontFamily="var(--font-mono)">|v|={vmag.toFixed(2)}</text>
+          )}
+        </svg>
+      );
+    }
+
+    function BarChart({ inertial, coriolis, gravity, total, mute, joint }) {
+      const w = 360, h = 200;
+      const padL = 50, padR = 20, padT = 20, padB = 40;
+      const innerW = w - padL - padR;
+      const innerH = h - padT - padB;
+
+      const muteIn = mute.inertial ? 0 : 1;
+      const muteC  = mute.coriolis ? 0 : 1;
+      const muteG  = mute.gravity  ? 0 : 1;
+
+      const vals = [inertial * muteIn, coriolis * muteC, gravity * muteG];
+      const labels = ['Inertial', 'Coriolis', 'Gravity'];
+      const colors = ['var(--accent)', 'var(--accent-2)', 'var(--good)'];
+      const sum = vals.reduce((a,b)=>a+b, 0);
+
+      const maxAbs = Math.max(2, ...vals.map(v=>Math.abs(v)), Math.abs(sum), Math.abs(total));
+      const yScale = innerH / (2 * maxAbs);
+      const y0 = padT + innerH / 2;
+
+      const barW = innerW / 5;
+
+      return (
+        <svg viewBox={`0 0 ${w} ${h}`} style={{ width: '100%', height: 'auto', maxHeight: 220 }}>
+          <line x1={padL} y1={y0} x2={w - padR} y2={y0} stroke="var(--ink-soft)" strokeWidth="1" />
+          <line x1={padL} y1={padT} x2={padL} y2={h - padB} stroke="var(--ink-soft)" strokeWidth="1" />
+
+          {[-maxAbs, -maxAbs/2, 0, maxAbs/2, maxAbs].map((tick, i) => {
+            const y = y0 - tick * yScale;
+            return (
+              <g key={i}>
+                <line x1={padL - 3} y1={y} x2={padL} y2={y} stroke="var(--ink-soft)" strokeWidth="1" />
+                <text x={padL - 6} y={y + 3} fontSize="9" textAnchor="end" fill="var(--ink-soft)" fontFamily="var(--font-mono)">{tick.toFixed(1)}</text>
+              </g>
+            );
+          })}
+
+          <text x={6} y={padT + innerH/2 - 6} fontSize="10" fill="var(--ink-soft)" fontFamily="var(--font-mono)" transform={`rotate(-90 12 ${padT + innerH/2})`}>τ (N·m)</text>
+
+          {vals.map((v, i) => {
+            const x = padL + barW * (i + 0.5);
+            const bh = Math.abs(v) * yScale;
+            const yBar = v >= 0 ? y0 - bh : y0;
+            const muted = (i===0 && mute.inertial) || (i===1 && mute.coriolis) || (i===2 && mute.gravity);
+            return (
+              <g key={i}>
+                <rect
+                  x={x} y={yBar} width={barW * 0.85} height={bh}
+                  fill={colors[i]}
+                  opacity={muted ? 0.15 : 0.85}
+                  stroke={colors[i]} strokeWidth="1"
+                />
+                <text x={x + barW*0.425} y={h - padB + 14} fontSize="10" textAnchor="middle" fill="var(--ink)" fontFamily="var(--font-body)">{labels[i]}</text>
+                <text x={x + barW*0.425} y={h - padB + 26} fontSize="9" textAnchor="middle" fill="var(--ink-soft)" fontFamily="var(--font-mono)">{v.toFixed(2)}</text>
+              </g>
+            );
+          })}
+
+          {(() => {
+            const i = 3;
+            const x = padL + barW * (i + 0.5);
+            const bh = Math.abs(sum) * yScale;
+            const yBar = sum >= 0 ? y0 - bh : y0;
+            return (
+              <g>
+                <rect x={x} y={yBar} width={barW*0.85} height={bh}
+                  fill="var(--ink)" opacity="0.8" stroke="var(--ink)" strokeWidth="1" />
+                <text x={x + barW*0.425} y={h - padB + 14} fontSize="10" textAnchor="middle" fill="var(--ink)" fontFamily="var(--font-body)" fontWeight="bold">τ{joint}</text>
+                <text x={x + barW*0.425} y={h - padB + 26} fontSize="9" textAnchor="middle" fill="var(--ink-soft)" fontFamily="var(--font-mono)">{sum.toFixed(2)}</text>
+              </g>
+            );
+          })()}
+        </svg>
+      );
+    }
+
+    function Widget() {
+      const mount = document.getElementById('two-dof-playground');
+      if (!mount) return null;
+
+      const [th1Deg, setTh1Deg] = useState(0);
+      const [th2Deg, setTh2Deg] = useState(0);
+      const [dth1, setDth1] = useState(0);
+      const [dth2, setDth2] = useState(0);
+      const [ddth1, setDdth1] = useState(0);
+      const [ddth2, setDdth2] = useState(0);
+      const [mute, setMute] = useState({ inertial: false, coriolis: false, gravity: false });
+
+      useEffect(() => {
+        const s = document.createElement('style');
+        s.textContent = `
+          #two-dof-playground .twodof-wrap {
+            font-family: var(--font-body);
+            color: var(--ink);
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 14px 16px;
+            max-height: 1100px;
+            overflow: auto;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+          }
+          #two-dof-playground .twodof-wrap h4 {
+            margin: 0 0 8px 0;
+            font-family: var(--font-display);
+            font-size: 14px;
+            color: var(--ink);
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 4px;
+          }
+          #two-dof-playground .twodof-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+          }
+          @media (max-width: 720px) {
+            #two-dof-playground .twodof-grid { grid-template-columns: 1fr; }
+          }
+          #two-dof-playground .twodof-preset {
+            background: var(--page-bg);
+            border: 1px solid var(--border);
+            color: var(--ink);
+            font-family: var(--font-mono);
+            font-size: 11px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 2px;
+            transition: background 0.15s;
+          }
+          #two-dof-playground .twodof-preset:hover {
+            background: var(--accent);
+            color: var(--surface);
+          }
+          #two-dof-playground .twodof-toggle {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            margin-right: 10px;
+            font-family: var(--font-mono);
+            font-size: 11px;
+            cursor: pointer;
+            user-select: none;
+          }
+          #two-dof-playground .twodof-toggle input { accent-color: var(--accent); }
+          #two-dof-playground .twodof-readout {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            background: var(--page-bg);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 8px 10px;
+            line-height: 1.55;
+          }
+          #two-dof-playground .twodof-readout .row {
+            display: flex; justify-content: space-between;
+          }
+          #two-dof-playground .twodof-readout .label { color: var(--ink-soft); }
+          #two-dof-playground .twodof-readout .val { color: var(--ink); font-weight: 600; }
+          #two-dof-playground .twodof-readout .total {
+            border-top: 1px solid var(--border);
+            margin-top: 5px;
+            padding-top: 5px;
+            font-weight: 700;
+          }
+          #two-dof-playground .twodof-readout .total .val { color: var(--accent); }
+          #two-dof-playground .twodof-readout .muted { opacity: 0.35; }
+          #two-dof-playground .twodof-section-title {
+            font-family: var(--font-display);
+            font-size: 12px;
+            color: var(--ink-soft);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin: 10px 0 6px 0;
+          }
+          #two-dof-playground .twodof-joint-card {
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 8px 10px;
+            background: var(--page-bg);
+          }
+          #two-dof-playground .twodof-joint-card.j1 { border-left: 3px solid var(--accent); }
+          #two-dof-playground .twodof-joint-card.j2 { border-left: 3px solid var(--accent-2); }
+        `;
+        mount.appendChild(s);
+        return () => { try { mount.removeChild(s); } catch(e) {} };
+      }, []);
+
+      const th1 = th1Deg * Math.PI / 180;
+      const th2 = th2Deg * Math.PI / 180;
+
+      const r = useMemo(
+        () => computeTorques(th1, th2, dth1, dth2, ddth1, ddth2),
+        [th1, th2, dth1, dth2, ddth1, ddth2]
+      );
+
+      const muteIn = mute.inertial ? 0 : 1;
+      const muteC  = mute.coriolis ? 0 : 1;
+      const muteG  = mute.gravity  ? 0 : 1;
+      const tau1 = r.inertial[0]*muteIn + r.coriolis[0]*muteC + r.gravity[0]*muteG;
+      const tau2 = r.inertial[1]*muteIn + r.coriolis[1]*muteC + r.gravity[1]*muteG;
+
+      const applyPreset = (p) => {
+        setTh1Deg(p.th1); setTh2Deg(p.th2);
+        setDth1(p.dth1); setDth2(p.dth2);
+        setDdth1(p.ddth1); setDdth2(p.ddth2);
+      };
+
+      return (
+        <div className="twodof-wrap">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: 8 }}>
+            <h4 style={{ border: 'none', padding: 0, margin: 0 }}>2-DOF dynamics sandbox · τ = D q̈ + h + c</h4>
+            <div style={{ fontSize: 11, color: 'var(--ink-soft)', fontFamily: 'var(--font-mono)' }}>
+              L₁={P.L1}m · L₂={P.L2}m · m₁={P.m1}kg · m₂={P.m2}kg · g={P.g}
+            </div>
+          </div>
+
+          <div style={{ marginTop: 8 }}>
+            <span style={{ fontSize: 11, color: 'var(--ink-soft)', fontFamily: 'var(--font-mono)', marginRight: 6 }}>presets:</span>
+            {PRESETS.map((p, i) => (
+              <button key={i} className="twodof-preset" onClick={() => applyPreset(p)}>{p.name}</button>
+            ))}
+          </div>
+
+          <div className="twodof-grid" style={{ marginTop: 12 }}>
+            <div>
+              <div className="twodof-section-title">Arm pose (live)</div>
+              <Arm th1={th1} th2={th2} dth1={dth1} dth2={dth2} />
+
+              <div className="twodof-section-title">Controls</div>
+              <Slider label="θ₁" value={th1Deg} setValue={setTh1Deg} min={-180} max={180} step={1} unit="°" format={v=>v.toFixed(0)} />
+              <Slider label="θ₂" value={th2Deg} setValue={setTh2Deg} min={-180} max={180} step={1} unit="°" format={v=>v.toFixed(0)} />
+              <Slider label="θ̇₁" value={dth1} setValue={setDth1} min={-10} max={10} step={0.1} unit="rad/s" format={v=>v.toFixed(2)} />
+              <Slider label="θ̇₂" value={dth2} setValue={setDth2} min={-10} max={10} step={0.1} unit="rad/s" format={v=>v.toFixed(2)} />
+              <Slider label="θ̈₁" value={ddth1} setValue={setDdth1} min={-20} max={20} step={0.1} unit="rad/s²" format={v=>v.toFixed(2)} />
+              <Slider label="θ̈₂" value={ddth2} setValue={setDdth2} min={-20} max={20} step={0.1} unit="rad/s²" format={v=>v.toFixed(2)} />
+
+              <div style={{ marginTop: 8 }}>
+                <span style={{ fontSize: 11, color: 'var(--ink-soft)', fontFamily: 'var(--font-mono)', marginRight: 6 }}>mute:</span>
+                <label className="twodof-toggle">
+                  <input type="checkbox" checked={mute.inertial} onChange={e => setMute({...mute, inertial: e.target.checked})} />
+                  <span style={{ color: 'var(--accent)' }}>■</span> inertial
+                </label>
+                <label className="twodof-toggle">
+                  <input type="checkbox" checked={mute.coriolis} onChange={e => setMute({...mute, coriolis: e.target.checked})} />
+                  <span style={{ color: 'var(--accent-2)' }}>■</span> Coriolis
+                </label>
+                <label className="twodof-toggle">
+                  <input type="checkbox" checked={mute.gravity} onChange={e => setMute({...mute, gravity: e.target.checked})} />
+                  <span style={{ color: 'var(--good)' }}>■</span> gravity
+                </label>
+              </div>
+            </div>
+
+            <div>
+              <div className="twodof-section-title">Torque contributions — joint 1</div>
+              <BarChart
+                inertial={r.inertial[0]} coriolis={r.coriolis[0]} gravity={r.gravity[0]}
+                total={tau1} mute={mute} joint="₁"
+              />
+
+              <div className="twodof-section-title">Torque contributions — joint 2</div>
+              <BarChart
+                inertial={r.inertial[1]} coriolis={r.coriolis[1]} gravity={r.gravity[1]}
+                total={tau2} mute={mute} joint="₂"
+              />
+
+              <div className="twodof-section-title">Numerical breakdown</div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                <div className="twodof-joint-card j1">
+                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--accent)', fontWeight: 700, marginBottom: 4 }}>Joint 1</div>
+                  <div className="twodof-readout" style={{ border: 'none', padding: 0, background: 'transparent' }}>
+                    <div className={`row ${mute.inertial?'muted':''}`}><span className="label">D q̈ :</span><span className="val">{r.inertial[0].toFixed(3)}</span></div>
+                    <div className={`row ${mute.coriolis?'muted':''}`}><span className="label">h (θ̇₁θ̇₂):</span><span className="val">{r.h1_cross.toFixed(3)}</span></div>
+                    <div className={`row ${mute.coriolis?'muted':''}`}><span className="label">h (θ̇₂²):</span><span className="val">{r.h1_sq2.toFixed(3)}</span></div>
+                    <div className={`row ${mute.gravity?'muted':''}`}><span className="label">c (grav):</span><span className="val">{r.gravity[0].toFixed(3)}</span></div>
+                    <div className="row total"><span className="label">τ₁ :</span><span className="val">{tau1.toFixed(3)}</span></div>
+                  </div>
+                </div>
+                <div className="twodof-joint-card j2">
+                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--accent-2)', fontWeight: 700, marginBottom: 4 }}>Joint 2</div>
+                  <div className="twodof-readout" style={{ border: 'none', padding: 0, background: 'transparent' }}>
+                    <div className={`row ${mute.inertial?'muted':''}`}><span className="label">D q̈ :</span><span className="val">{r.inertial[1].toFixed(3)}</span></div>
+                    <div className={`row ${mute.coriolis?'muted':''}`}><span className="label">h (θ̇₁²):</span><span className="val">{r.h2_sq1.toFixed(3)}</span></div>
+                    <div className={`row ${mute.coriolis?'muted':''}`}><span className="label">h (θ̇₂²):</span><span className="val">0.000</span></div>
+                    <div className={`row ${mute.gravity?'muted':''}`}><span className="label">c (grav):</span><span className="val">{r.gravity[1].toFixed(3)}</span></div>
+                    <div className="row total"><span className="label">τ₂ :</span><span className="val">{tau2.toFixed(3)}</span></div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="twodof-section-title">D(q) inertia matrix</div>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, background: 'var(--page-bg)', padding: '6px 10px', border: '1px solid var(--border)', borderRadius: 4 }}>
+                <div>D₁₁ = {r.D[0][0].toFixed(4)} &nbsp; D₁₂ = {r.D[0][1].toFixed(4)}</div>
+                <div>D₂₁ = {r.D[1][0].toFixed(4)} &nbsp; D₂₂ = {r.D[1][1].toFixed(4)}</div>
+                <div style={{ color: 'var(--ink-soft)', marginTop: 3, fontSize: 10 }}>
+                  cos θ₂ = {Math.cos(th2).toFixed(3)} &nbsp; sin θ₂ = {Math.sin(th2).toFixed(3)}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('two-dof-playground')).render(<Widget />);
+  } catch (e) {
+    const mount = document.getElementById('two-dof-playground');
+    if (mount) mount.innerHTML = '<div class="widget-fail">Widget failed to load</div>';
+    console.error(e);
+  }
+})();
+</script>
+<!-- widget: forward-vs-inverse-picker (picker) -->
+<script type="text/babel">
+(function () {
+  try {
+    const { useState, useMemo } = React;
+    const mount = document.getElementById('forward-vs-inverse-picker');
+    if (!mount) throw new Error('mount missing');
+
+    const SCENARIOS = [
+      {
+        id: 'feedforward',
+        title: 'Real-time feedforward controller · 7-DOF arm',
+        prompt: 'Given desired q, q̇, q̈ at 1 kHz, compute the torque command to send to the actuators.',
+        correct: 'inverse',
+        rationale: 'You have the motion (q, q̇, q̈) and need τ. Evaluate the LHS of (3.26) directly — no matrix solve needed. Recursive Newton–Euler does this in O(n).',
+        traps: {
+          forward: 'Forward dynamics solves the opposite problem (τ → q̈). Running it here means an O(n³) Cholesky solve every millisecond — for an answer you already had.',
+          linearised: 'Small-signal LQR form is only valid near a single operating point. A 7-DOF arm tracking a fast trajectory leaves the linearisation regime within milliseconds.',
+          gravity: 'Gravity-only ignores Dq̈ and h — at trajectory speeds those terms dominate, so the feedforward torque will be wrong by tens of N·m.'
+        }
+      },
+      {
+        id: 'sim',
+        title: 'Physics-engine simulation of free motion',
+        prompt: 'Given a known torque profile τ(t), integrate the robot\'s motion forward in time.',
+        correct: 'forward',
+        rationale: 'You have τ and need q̈ to integrate. Solve D q̈ = τ − h − c via Cholesky (D is symmetric positive-definite); never form D⁻¹ explicitly.',
+        traps: {
+          inverse: 'Inverse dynamics needs q̈ as input — but q̈ is the unknown you\'re trying to find. You\'d be circular.',
+          linearised: 'A linearisation drifts away from truth as soon as the robot leaves (q₀, q̇₀). A simulator must stay faithful over the whole trajectory.',
+          gravity: 'Ignoring inertial and Coriolis terms means the simulated motion has no dynamics — the robot would behave like a quasi-static rag doll.'
+        }
+      },
+      {
+        id: 'lqr',
+        title: 'LQR controller design around an equilibrium',
+        prompt: 'Linearise the dynamics around an operating point (q₀, q̇₀) to design a state-feedback gain.',
+        correct: 'linearised',
+        rationale: 'LQR needs a linear time-invariant model. The small-signal form D₀Δq̈ + C₀Δq̇ + K₀Δq = Δτ is exactly the right object — constant matrices fixed at the operating point.',
+        traps: {
+          forward: 'Forward dynamics is fully nonlinear; LQR\'s Riccati equation needs linear matrices, not D(q)⁻¹.',
+          inverse: 'Inverse dynamics gives you a torque, not a state-space (A, B) pair. LQR can\'t consume it directly.',
+          gravity: 'Gravity-only throws away the velocity and acceleration coupling that the LQR damping gains are supposed to shape.'
+        }
+      },
+      {
+        id: 'mcu',
+        title: 'Embedded MCU · static holding torques only',
+        prompt: 'Resource-limited microcontroller — the robot only needs to hold a pose against gravity (q̇ ≈ q̈ ≈ 0).',
+        correct: 'gravity',
+        rationale: 'When q̇ ≈ q̈ ≈ 0, D q̈ and h(q, q̇) both vanish and the equation collapses to τ ≈ c(q). It\'s the cheapest valid term — O(n²) and trig-only.',
+        traps: {
+          inverse: 'Inverse dynamics is overkill if you never accelerate. You\'d still evaluate D and h every cycle for terms that are guaranteed zero.',
+          forward: 'Forward dynamics needs an O(n³) solve per tick. On a low-end MCU that\'s minutes per step — and you don\'t even need q̈.',
+          linearised: 'Around a fixed pose Δq̈ = Δq̇ = 0, so the linearised form reduces to K₀Δq = Δτ — strictly less than what c(q) already gives you globally.'
+        }
+      }
+    ];
+
+    const FORMS = [
+      {
+        id: 'inverse',
+        name: 'Inverse dynamics',
+        equation: 'τ = D(q) q̈ + h(q, q̇) + c(q)',
+        inputs: ['q', 'q̇', 'q̈'],
+        output: 'τ',
+        algorithm: 'Recursive Newton–Euler',
+        cost: 'O(n)',
+        solve: 'no matrix solve',
+        hazard: 'none — just multiply-add along the chain'
+      },
+      {
+        id: 'forward',
+        name: 'Forward dynamics',
+        equation: 'q̈ = D⁻¹(q) [τ − h(q, q̇) − c(q)]',
+        inputs: ['q', 'q̇', 'τ'],
+        output: 'q̈',
+        algorithm: 'Cholesky solve of D x = (τ − h − c)',
+        cost: 'O(n³)',
+        solve: 'matrix solve required',
+        hazard: 'D singular near kinematic singularities — regularise'
+      },
+      {
+        id: 'linearised',
+        name: 'Linearised form',
+        equation: 'D₀ Δq̈ + C₀ Δq̇ + K₀ Δq = Δτ',
+        inputs: ['Δq', 'Δq̇'],
+        output: 'Δτ (small-signal)',
+        algorithm: 'LTI state-space around (q₀, q̇₀)',
+        cost: 'O(n²) per evaluation',
+        solve: 'no online solve — gains precomputed',
+        hazard: 'valid only in a neighbourhood of (q₀, q̇₀)'
+      },
+      {
+        id: 'gravity',
+        name: 'Gravity-only',
+        equation: 'τ ≈ c(q)',
+        inputs: ['q'],
+        output: 'τ',
+        algorithm: 'evaluate c(q) — trig of joint angles',
+        cost: 'O(n²)',
+        solve: 'no matrix solve',
+        hazard: 'wrong whenever q̇ or q̈ is non-zero'
+      }
+    ];
+
+    const FORM_BY_ID = Object.fromEntries(FORMS.map(f => [f.id, f]));
+
+    function Pipeline({ form, isCorrect }) {
+      const accentColor = isCorrect ? 'var(--good)' : 'var(--accent-2)';
+      const stroke = isCorrect ? 'var(--good)' : 'var(--ink-soft)';
+      return (
+        <svg viewBox="0 0 640 200" style={{ width: '100%', height: 'auto', display: 'block' }} role="img" aria-label={`Pipeline for ${form.name}`}>
+          <defs>
+            <marker id="fvi-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+              <path d="M0,0 L10,5 L0,10 z" fill={stroke} />
+            </marker>
+            <linearGradient id={`fvi-grad-${form.id}`} x1="0" x2="1" y1="0" y2="0">
+              <stop offset="0%" stopColor={accentColor} stopOpacity="0.18" />
+              <stop offset="100%" stopColor={accentColor} stopOpacity="0.05" />
+            </linearGradient>
+          </defs>
+
+          <g>
+            <rect x="20" y="60" width="130" height="80" rx="10" fill="var(--surface)" stroke="var(--border)" strokeWidth="1.5" />
+            <text x="85" y="50" textAnchor="middle" fontSize="11" fill="var(--ink-soft)" fontFamily="var(--font-body)">inputs</text>
+            {form.inputs.map((s, i) => (
+              <text key={i} x="85" y={88 + i * 18} textAnchor="middle" fontSize="15" fontFamily="var(--font-mono)" fill="var(--ink)">{s}</text>
+            ))}
+          </g>
+
+          <line x1="150" y1="100" x2="220" y2="100" stroke={stroke} strokeWidth="2" markerEnd="url(#fvi-arrow)" />
+
+          <g>
+            <rect x="220" y="50" width="240" height="100" rx="10" fill={`url(#fvi-grad-${form.id})`} stroke={accentColor} strokeWidth="2" />
+            <text x="340" y="78" textAnchor="middle" fontSize="13" fontFamily="var(--font-body)" fill="var(--ink-soft)">algorithm</text>
+            <text x="340" y="100" textAnchor="middle" fontSize="14" fontFamily="var(--font-mono)" fill="var(--ink)" fontWeight="600">{form.algorithm}</text>
+            <text x="340" y="125" textAnchor="middle" fontSize="12" fontFamily="var(--font-mono)" fill={accentColor} fontWeight="700">{form.cost}</text>
+            <text x="340" y="142" textAnchor="middle" fontSize="11" fontFamily="var(--font-body)" fill="var(--ink-soft)" fontStyle="italic">{form.solve}</text>
+          </g>
+
+          <line x1="460" y1="100" x2="530" y2="100" stroke={stroke} strokeWidth="2" markerEnd="url(#fvi-arrow)" />
+
+          <g>
+            <rect x="530" y="60" width="90" height="80" rx="10" fill="var(--surface)" stroke="var(--border)" strokeWidth="1.5" />
+            <text x="575" y="50" textAnchor="middle" fontSize="11" fill="var(--ink-soft)" fontFamily="var(--font-body)">output</text>
+            <text x="575" y="108" textAnchor="middle" fontSize="20" fontFamily="var(--font-mono)" fill={accentColor} fontWeight="700">{form.output}</text>
+          </g>
+
+          <g>
+            <text x="20" y="180" fontSize="11" fontFamily="var(--font-body)" fill="var(--ink-soft)">numerical hazard:</text>
+            <text x="135" y="180" fontSize="11" fontFamily="var(--font-body)" fill="var(--ink)" fontStyle="italic">{form.hazard}</text>
+          </g>
+        </svg>
+      );
+    }
+
+    function Widget() {
+      const [scenarioIdx, setScenarioIdx] = useState(0);
+      const [pickedByScenario, setPickedByScenario] = useState({});
+      const scenario = SCENARIOS[scenarioIdx];
+      const picked = pickedByScenario[scenario.id];
+      const isCorrect = picked === scenario.correct;
+
+      const score = useMemo(() => {
+        let n = 0;
+        for (const s of SCENARIOS) if (pickedByScenario[s.id] === s.correct) n++;
+        return n;
+      }, [pickedByScenario]);
+
+      const answered = Object.keys(pickedByScenario).length;
+      const displayForm = picked ? FORM_BY_ID[picked] : FORM_BY_ID[scenario.correct];
+
+      const onPick = (formId) => {
+        setPickedByScenario(prev => ({ ...prev, [scenario.id]: formId }));
+      };
+
+      const onReset = () => {
+        setPickedByScenario({});
+        setScenarioIdx(0);
+      };
+
+      return (
+        <div className="fvi-widget">
+          <style>{`
+            #forward-vs-inverse-picker .fvi-widget {
+              font-family: var(--font-body);
+              color: var(--ink);
+              background: var(--surface);
+              border: 1px solid var(--border);
+              border-radius: 12px;
+              padding: 18px 20px;
+              max-height: 900px;
+              overflow: auto;
+            }
+            #forward-vs-inverse-picker .fvi-header {
+              display: flex;
+              justify-content: space-between;
+              align-items: baseline;
+              flex-wrap: wrap;
+              gap: 8px;
+              margin-bottom: 6px;
+            }
+            #forward-vs-inverse-picker .fvi-title {
+              font-family: var(--font-display);
+              font-size: 1.05rem;
+              color: var(--ink);
+              margin: 0;
+            }
+            #forward-vs-inverse-picker .fvi-score {
+              font-family: var(--font-mono);
+              font-size: 0.85rem;
+              color: var(--ink-soft);
+            }
+            #forward-vs-inverse-picker .fvi-tabs {
+              display: flex;
+              gap: 6px;
+              flex-wrap: wrap;
+              margin: 10px 0 14px;
+            }
+            #forward-vs-inverse-picker .fvi-tab {
+              font-family: var(--font-body);
+              font-size: 0.78rem;
+              border: 1px solid var(--border);
+              background: var(--page-bg);
+              color: var(--ink-soft);
+              padding: 6px 10px;
+              border-radius: 999px;
+              cursor: pointer;
+              transition: all 0.15s ease;
+            }
+            #forward-vs-inverse-picker .fvi-tab:hover { color: var(--ink); border-color: var(--ink-soft); }
+            #forward-vs-inverse-picker .fvi-tab.active {
+              background: var(--accent);
+              color: #fff;
+              border-color: var(--accent);
+            }
+            #forward-vs-inverse-picker .fvi-tab.answered-good { border-color: var(--good); color: var(--good); }
+            #forward-vs-inverse-picker .fvi-tab.answered-bad  { border-color: var(--bad);  color: var(--bad); }
+            #forward-vs-inverse-picker .fvi-tab.active.answered-good { background: var(--good); color: #fff; }
+            #forward-vs-inverse-picker .fvi-tab.active.answered-bad  { background: var(--bad);  color: #fff; }
+            #forward-vs-inverse-picker .fvi-scenario {
+              background: var(--page-bg);
+              border-left: 4px solid var(--accent);
+              padding: 12px 14px;
+              border-radius: 0 8px 8px 0;
+              margin-bottom: 14px;
+            }
+            #forward-vs-inverse-picker .fvi-scenario h4 {
+              margin: 0 0 4px;
+              font-family: var(--font-display);
+              font-size: 1rem;
+              color: var(--ink);
+            }
+            #forward-vs-inverse-picker .fvi-scenario p {
+              margin: 0;
+              font-size: 0.88rem;
+              color: var(--ink-soft);
+              line-height: 1.45;
+            }
+            #forward-vs-inverse-picker .fvi-choices {
+              display: grid;
+              grid-template-columns: repeat(2, 1fr);
+              gap: 8px;
+              margin-bottom: 14px;
+            }
+            @media (max-width: 600px) {
+              #forward-vs-inverse-picker .fvi-choices { grid-template-columns: 1fr; }
+            }
+            #forward-vs-inverse-picker .fvi-choice {
+              text-align: left;
+              font-family: var(--font-body);
+              font-size: 0.82rem;
+              line-height: 1.35;
+              border: 1.5px solid var(--border);
+              background: var(--surface);
+              color: var(--ink);
+              padding: 10px 12px;
+              border-radius: 8px;
+              cursor: pointer;
+              transition: all 0.15s ease;
+            }
+            #forward-vs-inverse-picker .fvi-choice:hover:not(:disabled) {
+              border-color: var(--accent);
+              transform: translateY(-1px);
+            }
+            #forward-vs-inverse-picker .fvi-choice .fvi-eq {
+              display: block;
+              font-family: var(--font-mono);
+              font-size: 0.78rem;
+              color: var(--ink-soft);
+              margin-top: 3px;
+            }
+            #forward-vs-inverse-picker .fvi-choice.picked-correct {
+              border-color: var(--good);
+              background: rgba(31, 122, 77, 0.08);
+            }
+            #forward-vs-inverse-picker .fvi-choice.picked-wrong {
+              border-color: var(--bad);
+              background: rgba(184, 50, 58, 0.08);
+            }
+            #forward-vs-inverse-picker .fvi-choice.reveal-correct {
+              border-color: var(--good);
+              border-style: dashed;
+            }
+            #forward-vs-inverse-picker .fvi-choice:disabled { cursor: default; }
+            #forward-vs-inverse-picker .fvi-pipeline {
+              background: var(--page-bg);
+              border: 1px solid var(--border);
+              border-radius: 8px;
+              padding: 10px;
+              margin-bottom: 12px;
+            }
+            #forward-vs-inverse-picker .fvi-pipeline-label {
+              font-size: 0.75rem;
+              text-transform: uppercase;
+              letter-spacing: 0.06em;
+              color: var(--ink-soft);
+              font-family: var(--font-body);
+              margin-bottom: 6px;
+              padding-left: 4px;
+            }
+            #forward-vs-inverse-picker .fvi-feedback {
+              border-radius: 8px;
+              padding: 10px 12px;
+              font-size: 0.86rem;
+              line-height: 1.5;
+              margin-bottom: 10px;
+            }
+            #forward-vs-inverse-picker .fvi-feedback.good {
+              background: rgba(31, 122, 77, 0.1);
+              border-left: 4px solid var(--good);
+              color: var(--ink);
+            }
+            #forward-vs-inverse-picker .fvi-feedback.bad {
+              background: rgba(184, 50, 58, 0.1);
+              border-left: 4px solid var(--bad);
+              color: var(--ink);
+            }
+            #forward-vs-inverse-picker .fvi-feedback strong { color: var(--ink); }
+            #forward-vs-inverse-picker .fvi-footer {
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              flex-wrap: wrap;
+              gap: 8px;
+              margin-top: 6px;
+              padding-top: 10px;
+              border-top: 1px dashed var(--border);
+              font-size: 0.78rem;
+              color: var(--ink-soft);
+            }
+            #forward-vs-inverse-picker .fvi-reset {
+              font-family: var(--font-body);
+              font-size: 0.78rem;
+              background: transparent;
+              border: 1px solid var(--border);
+              color: var(--ink-soft);
+              padding: 4px 10px;
+              border-radius: 6px;
+              cursor: pointer;
+            }
+            #forward-vs-inverse-picker .fvi-reset:hover { color: var(--ink); border-color: var(--ink-soft); }
+            #forward-vs-inverse-picker .widget-fail {
+              color: var(--bad);
+              padding: 12px;
+              border: 1px solid var(--bad);
+              border-radius: 6px;
+            }
+          `}</style>
+
+          <div className="fvi-header">
+            <h3 className="fvi-title">Which rearrangement do you actually run?</h3>
+            <span className="fvi-score" aria-live="polite">{answered}/4 answered · {score} correct</span>
+          </div>
+
+          <div className="fvi-tabs" role="tablist" aria-label="Engineering scenarios">
+            {SCENARIOS.map((s, i) => {
+              const ans = pickedByScenario[s.id];
+              let cls = 'fvi-tab';
+              if (i === scenarioIdx) cls += ' active';
+              if (ans) cls += (ans === s.correct ? ' answered-good' : ' answered-bad');
+              return (
+                <button
+                  key={s.id}
+                  className={cls}
+                  role="tab"
+                  aria-selected={i === scenarioIdx}
+                  onClick={() => setScenarioIdx(i)}
+                >
+                  Scenario {i + 1}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="fvi-scenario">
+            <h4>{scenario.title}</h4>
+            <p>{scenario.prompt}</p>
+          </div>
+
+          <div className="fvi-choices" role="radiogroup" aria-label="Which form would you evaluate?">
+            {FORMS.map(form => {
+              let cls = 'fvi-choice';
+              if (picked === form.id) {
+                cls += isCorrect ? ' picked-correct' : ' picked-wrong';
+              } else if (picked && !isCorrect && form.id === scenario.correct) {
+                cls += ' reveal-correct';
+              }
+              return (
+                <button
+                  key={form.id}
+                  className={cls}
+                  role="radio"
+                  aria-checked={picked === form.id}
+                  disabled={!!picked}
+                  onClick={() => onPick(form.id)}
+                >
+                  <strong>{form.name}</strong>
+                  <span className="fvi-eq">{form.equation}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="fvi-pipeline">
+            <div className="fvi-pipeline-label">
+              pipeline · {picked ? (isCorrect ? 'your choice' : 'the right tool for this job') : 'pick to compare'}
+            </div>
+            <Pipeline form={displayForm} isCorrect={!picked || isCorrect} />
+          </div>
+
+          {picked && (
+            <div className={`fvi-feedback ${isCorrect ? 'good' : 'bad'}`} role="status">
+              {isCorrect ? (
+                <span><strong>Right tool.</strong> {scenario.rationale}</span>
+              ) : (
+                <span>
+                  <strong>Not quite.</strong> {scenario.traps[picked]} The right pick is <strong>{FORM_BY_ID[scenario.correct].name}</strong> — {scenario.rationale}
+                </span>
+              )}
+            </div>
+          )}
+
+          <div className="fvi-footer">
+            <span>All four forms are valid rearrangements of D q̈ + h + c = τ — the question is which one matches the task.</span>
+            <button className="fvi-reset" onClick={onReset} aria-label="Reset all answers">Reset</button>
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(mount).render(<Widget />);
+  } catch (e) {
+    const mount = document.getElementById('forward-vs-inverse-picker');
+    if (mount) mount.innerHTML = '<div class="widget-fail">Widget failed to load</div>';
+    console.error(e);
+  }
+})();
+</script>
+</body>
+</html>, i);
+        if (start === -1) {
+          parts.push(<span key={key++}>{text.slice(i)}</span>);
+          break;
+        }
+        if (start > i) parts.push(<span key={key++}>{text.slice(i, start)}</span>);
+        const end = text.indexOf('
+<!-- widget: derive-d-jk-builder (builder) -->
+<script type="text/babel">
+(function () {
+  try {
+    const { useState, useEffect, useRef, useMemo } = React;
+    const mount = document.getElementById('derive-d-jk-builder');
+    if (!mount) throw new Error('mount missing');
+
+    function Tex({ tex, display }) {
+      const ref = useRef(null);
+      useEffect(() => {
+        if (!ref.current) return;
+        try {
+          if (window.katex) {
+            window.katex.render(tex, ref.current, { throwOnError: false, displayMode: !!display });
+          } else {
+            ref.current.textContent = tex;
+          }
+        } catch (e) {
+          ref.current.textContent = tex;
+        }
+      }, [tex, display]);
+      return <span ref={ref} />;
+    }
+
+    const OPS = [
+      { id: 'group', label: 'Group all θ̇₁·θ̇₂ cross terms in T₂', kind: 'essential', need: 'pyth',
+        msg: 'Cross terms gathered. Now read the coefficient of θ̇₁θ̇₂ — that is D₁₂.' },
+      { id: 'sub', label: 'Substitute v_{c2} in its grouped (θ̇₁ vs θ̇₂) form', kind: 'essential', need: null,
+        msg: 'v_{c2} now sits in two-column form — the θ̇₁ piece and the θ̇₂ piece are visible separately.' },
+      { id: 'halve', label: 'Halve the coefficient (quadratic form double-counts off-diagonals)', kind: 'herring',
+        msg: 'Red herring. T was written as ½ q̇ᵀD q̇, so the coefficient of θ̇₁θ̇₂ already equals D₁₂. The ½ is built into the quadratic form — not applied a second time.' },
+      { id: 'addRot', label: 'Add the rotational term ½ I₂(θ̇₁+θ̇₂)² to T', kind: 'herring',
+        msg: 'Red herring. The rotational term is already present in the starting T₂ (line 1).' },
+      { id: 'half', label: 'Multiply by ½ m₂', kind: 'herring',
+        msg: 'Red herring. The ½ m₂ factor is part of the kinetic-energy template — already in T₂.' },
+      { id: 'expand', label: 'Compute v_{c2}ᵀ v_{c2} component-wise', kind: 'essential', need: 'sub',
+        msg: 'Expanded. Watch the L₁L₂ cross term involving cosθ₁cos(θ₁+θ₂) + sinθ₁sin(θ₁+θ₂).' },
+      { id: 'pyth', label: 'Apply cos²+sin² = 1 (and the angle-difference identity)', kind: 'essential', need: 'expand',
+        msg: 'Trig collapses: cosθ₁cos(θ₁+θ₂) + sinθ₁sin(θ₁+θ₂) → cosθ₂. The mess turns clean.' },
+    ];
+
+    function Widget() {
+      const [applied, setApplied] = useState([]);
+      const [message, setMessage] = useState({ kind: 'idle', text: 'Click an operation to begin. Three of the seven are red herrings.' });
+      const [theta2, setTheta2] = useState(Math.PI / 3);
+
+      const has = (id) => applied.includes(id);
+      const stage =
+        has('group') && has('pyth') && has('expand') && has('sub') ? 4 :
+        has('pyth') && has('expand') && has('sub') ? 3 :
+        has('expand') && has('sub') ? 2 :
+        has('sub') ? 1 : 0;
+      const won = stage === 4;
+
+      const clickOp = (op) => {
+        if (applied.includes(op.id)) {
+          setMessage({ kind: 'block', text: 'Already applied.' });
+          return;
+        }
+        if (op.kind === 'herring') {
+          setApplied([...applied, op.id]);
+          setMessage({ kind: 'herring', text: op.msg });
+          return;
+        }
+        if (op.need && !applied.includes(op.need)) {
+          const dep = OPS.find(o => o.id === op.need);
+          setMessage({ kind: 'block', text: 'First you need to: ' + dep.label });
+          return;
+        }
+        setApplied([...applied, op.id]);
+        setMessage({ kind: 'good', text: op.msg });
+      };
+
+      const undo = () => {
+        if (!applied.length) return;
+        setApplied(applied.slice(0, -1));
+        setMessage({ kind: 'idle', text: 'Undone — pick the next operation.' });
+      };
+      const reset = () => {
+        setApplied([]);
+        setMessage({ kind: 'idle', text: 'Cleared. Start again from the top.' });
+      };
+
+      const arm = useMemo(() => {
+        const L1 = 58, L2 = 48;
+        const cx = 110, cy = 105;
+        const t1 = -Math.PI / 4;
+        const x1 = cx + L1 * Math.cos(t1);
+        const y1 = cy - L1 * Math.sin(t1);
+        const t12 = t1 + theta2;
+        const x2 = x1 + L2 * Math.cos(t12);
+        const y2 = y1 - L2 * Math.sin(t12);
+        const arcR = 18;
+        const ax = x1 + arcR * Math.cos(t1);
+        const ay = y1 - arcR * Math.sin(t1);
+        const bx = x1 + arcR * Math.cos(t12);
+        const by = y1 - arcR * Math.sin(t12);
+        const largeArc = Math.abs(theta2) > Math.PI ? 1 : 0;
+        const sweep = theta2 > 0 ? 0 : 1;
+        const arcD = `M ${ax} ${ay} A ${arcR} ${arcR} 0 ${largeArc} ${sweep} ${bx} ${by}`;
+        return { cx, cy, x1, y1, x2, y2, arcD };
+      }, [theta2]);
+
+      return (
+        <div className="dbuilder">
+          <style>{`
+            #derive-d-jk-builder .dbuilder {
+              font-family: var(--font-body, system-ui);
+              color: var(--ink);
+              background: var(--surface);
+              border: 1px solid var(--border);
+              border-radius: 8px;
+              padding: 18px;
+              max-width: 100%;
+              max-height: 880px;
+              overflow: auto;
+            }
+            #derive-d-jk-builder .dbuilder h3 {
+              font-family: var(--font-display);
+              font-size: 1.1rem;
+              margin: 0 0 4px;
+              color: var(--ink);
+            }
+            #derive-d-jk-builder .dbuilder .subhead {
+              color: var(--ink-soft);
+              font-size: 0.85rem;
+              margin-bottom: 12px;
+            }
+            #derive-d-jk-builder .dbuilder .target {
+              background: rgba(31, 78, 140, 0.08);
+              border-left: 3px solid var(--accent);
+              padding: 8px 12px;
+              border-radius: 4px;
+              font-size: 0.95rem;
+              margin-bottom: 14px;
+              display: flex;
+              align-items: center;
+              gap: 10px;
+              flex-wrap: wrap;
+            }
+            #derive-d-jk-builder .dbuilder .tag {
+              color: var(--accent);
+              text-transform: uppercase;
+              letter-spacing: 0.07em;
+              font-size: 0.68rem;
+              font-weight: 700;
+              font-family: var(--font-mono);
+            }
+            #derive-d-jk-builder .dbuilder .grid {
+              display: grid;
+              grid-template-columns: 1fr;
+              gap: 14px;
+            }
+            @media (min-width: 760px) {
+              #derive-d-jk-builder .dbuilder .grid {
+                grid-template-columns: 1.55fr 1fr;
+              }
+            }
+            #derive-d-jk-builder .dbuilder .derivation {
+              background: rgba(0,0,0,0.02);
+              border: 1px solid var(--border);
+              border-radius: 6px;
+              padding: 14px;
+              min-height: 220px;
+            }
+            #derive-d-jk-builder .dbuilder .step {
+              padding: 8px 0;
+              border-bottom: 1px dashed rgba(0,0,0,0.09);
+              animation: dbInSlide 0.25s ease-out;
+            }
+            #derive-d-jk-builder .dbuilder .step:last-child { border-bottom: none; }
+            @keyframes dbInSlide {
+              from { opacity: 0; transform: translateY(-4px); }
+              to { opacity: 1; transform: translateY(0); }
+            }
+            #derive-d-jk-builder .dbuilder .step-label {
+              font-size: 0.72rem;
+              color: var(--ink-soft);
+              text-transform: uppercase;
+              letter-spacing: 0.06em;
+              margin-bottom: 4px;
+              font-weight: 600;
+              font-family: var(--font-mono);
+            }
+            #derive-d-jk-builder .dbuilder .step-eqn {
+              font-size: 0.95rem;
+              color: var(--ink);
+              overflow-x: auto;
+              padding: 2px 0;
+            }
+            #derive-d-jk-builder .dbuilder .win-step {
+              background: rgba(31, 122, 77, 0.08);
+              border-radius: 4px;
+              padding: 8px 10px;
+              margin-top: 2px;
+            }
+            #derive-d-jk-builder .dbuilder .win-step .step-label { color: var(--good); }
+            #derive-d-jk-builder .dbuilder .ops {
+              display: flex;
+              flex-direction: column;
+              gap: 7px;
+            }
+            #derive-d-jk-builder .dbuilder .op-btn {
+              text-align: left;
+              padding: 9px 11px;
+              border: 1px solid var(--border);
+              background: var(--surface);
+              border-radius: 5px;
+              font-family: var(--font-body);
+              font-size: 0.83rem;
+              color: var(--ink);
+              cursor: pointer;
+              transition: border-color 0.15s, background 0.15s, transform 0.1s;
+              line-height: 1.3;
+            }
+            #derive-d-jk-builder .dbuilder .op-btn:hover:not(:disabled) {
+              border-color: var(--accent);
+              background: rgba(31, 78, 140, 0.05);
+              transform: translateX(2px);
+            }
+            #derive-d-jk-builder .dbuilder .op-btn:focus-visible {
+              outline: 2px solid var(--accent);
+              outline-offset: 2px;
+            }
+            #derive-d-jk-builder .dbuilder .op-btn.applied {
+              opacity: 0.5;
+              cursor: default;
+              text-decoration: line-through;
+            }
+            #derive-d-jk-builder .dbuilder .op-btn.applied-herring {
+              opacity: 0.6;
+              cursor: default;
+              background: rgba(184, 50, 58, 0.06);
+              border-color: var(--bad);
+              color: var(--bad);
+            }
+            #derive-d-jk-builder .dbuilder .arm-box {
+              background: var(--page-bg);
+              border: 1px solid var(--border);
+              border-radius: 6px;
+              padding: 10px;
+              text-align: center;
+            }
+            #derive-d-jk-builder .dbuilder .slider-row {
+              display: flex;
+              align-items: center;
+              gap: 8px;
+              font-size: 0.8rem;
+              color: var(--ink-soft);
+              margin-top: 6px;
+              font-family: var(--font-mono);
+            }
+            #derive-d-jk-builder .dbuilder input[type=range] {
+              flex: 1;
+              accent-color: var(--accent);
+            }
+            #derive-d-jk-builder .dbuilder .controls {
+              display: flex;
+              gap: 8px;
+              margin-top: 10px;
+            }
+            #derive-d-jk-builder .dbuilder .btn {
+              padding: 7px 14px;
+              border: 1px solid var(--border);
+              background: var(--surface);
+              border-radius: 5px;
+              cursor: pointer;
+              font-family: var(--font-body);
+              font-size: 0.85rem;
+              color: var(--ink);
+            }
+            #derive-d-jk-builder .dbuilder .btn:hover:not(:disabled) { border-color: var(--ink); }
+            #derive-d-jk-builder .dbuilder .btn:disabled { opacity: 0.4; cursor: default; }
+            #derive-d-jk-builder .dbuilder .message {
+              margin-top: 10px;
+              padding: 9px 12px;
+              border-radius: 5px;
+              font-size: 0.85rem;
+              line-height: 1.4;
+              border-left: 3px solid var(--border);
+              background: rgba(0,0,0,0.02);
+              color: var(--ink-soft);
+            }
+            #derive-d-jk-builder .dbuilder .message.good {
+              border-left-color: var(--good);
+              background: rgba(31, 122, 77, 0.07);
+              color: var(--ink);
+            }
+            #derive-d-jk-builder .dbuilder .message.herring {
+              border-left-color: var(--bad);
+              background: rgba(184, 50, 58, 0.06);
+              color: var(--ink);
+            }
+            #derive-d-jk-builder .dbuilder .message.block {
+              border-left-color: var(--accent-2);
+              background: rgba(184, 84, 26, 0.07);
+              color: var(--ink);
+            }
+            #derive-d-jk-builder .dbuilder .progress {
+              display: flex;
+              gap: 4px;
+              margin-top: 10px;
+            }
+            #derive-d-jk-builder .dbuilder .pip {
+              height: 6px;
+              flex: 1;
+              border-radius: 3px;
+              background: var(--border);
+              transition: background 0.2s;
+            }
+            #derive-d-jk-builder .dbuilder .pip.on { background: var(--good); }
+            #derive-d-jk-builder .dbuilder .legend {
+              font-size: 0.72rem;
+              color: var(--ink-soft);
+              font-family: var(--font-mono);
+              margin-top: 4px;
+              text-align: center;
+            }
+            #derive-d-jk-builder .dbuilder .win-banner {
+              margin-top: 12px;
+              padding: 12px 14px;
+              border-radius: 6px;
+              background: linear-gradient(90deg, rgba(31, 122, 77, 0.14), rgba(31, 78, 140, 0.1));
+              border: 1px solid var(--good);
+              font-size: 0.88rem;
+              color: var(--ink);
+              line-height: 1.5;
+            }
+            #derive-d-jk-builder .dbuilder .ops-header {
+              font-size: 0.7rem;
+              color: var(--ink-soft);
+              text-transform: uppercase;
+              letter-spacing: 0.07em;
+              font-weight: 700;
+              margin: 14px 0 7px;
+              font-family: var(--font-mono);
+            }
+            #derive-d-jk-builder .widget-fail { padding: 14px; color: var(--bad); }
+          `}</style>
+
+          <h3>Derive D₁₂ for the 2-DOF arm</h3>
+          <div className="subhead">
+            Stack operations onto the kinetic-energy expression until the coefficient of θ̇₁θ̇₂ falls out.
+            Three of the seven operations are red herrings — pick well.
+          </div>
+
+          <div className="target">
+            <span className="tag">target</span>
+            <Tex tex={String.raw`D_{12} = m_2\!\left(\tfrac{L_2^2}{4} + \tfrac{L_1 L_2}{2}\cos\theta_2\right) + I_2`} />
+          </div>
+
+          <div className="grid">
+            <div>
+              <div className="derivation" aria-live="polite">
+                <div className="step">
+                  <div className="step-label">Starting form (T₂ for link 2)</div>
+                  <div className="step-eqn">
+                    <Tex display tex={String.raw`T_2 \;=\; \tfrac{1}{2} m_2\, \mathbf{v}_{c2}^{T} \mathbf{v}_{c2} \;+\; \tfrac{1}{2} I_2\,(\dot\theta_1 + \dot\theta_2)^2`} />
+                  </div>
+                </div>
+
+                {stage >= 1 && (
+                  <div className="step">
+                    <div className="step-label">① v_{c2} substituted — grouped form</div>
+                    <div className="step-eqn">
+                      <Tex display tex={String.raw`\mathbf{v}_{c2} = \begin{bmatrix} -L_1 \sin\theta_1\, \dot\theta_1 - \tfrac{L_2}{2}\sin(\theta_1{+}\theta_2)(\dot\theta_1{+}\dot\theta_2) \\[3pt] \;\;L_1 \cos\theta_1\, \dot\theta_1 + \tfrac{L_2}{2}\cos(\theta_1{+}\theta_2)(\dot\theta_1{+}\dot\theta_2) \end{bmatrix}`} />
+                    </div>
+                  </div>
+                )}
+
+                {stage >= 2 && (
+                  <div className="step">
+                    <div className="step-label">② vᵀv expanded component-wise</div>
+                    <div className="step-eqn">
+                      <Tex display tex={String.raw`\mathbf{v}_{c2}^{T}\mathbf{v}_{c2} = L_1^2(s_1^2{+}c_1^2)\dot\theta_1^2 \;+\; \tfrac{L_2^2}{4}(s_{12}^2{+}c_{12}^2)(\dot\theta_1{+}\dot\theta_2)^2 \;+\; L_1 L_2 \,(c_1 c_{12} + s_1 s_{12})\,\dot\theta_1(\dot\theta_1{+}\dot\theta_2)`} />
+                    </div>
+                  </div>
+                )}
+
+                {stage >= 3 && (
+                  <div className="step">
+                    <div className="step-label">③ cos²+sin²=1   and   c₁c₁₂ + s₁s₁₂ = cosθ₂</div>
+                    <div className="step-eqn">
+                      <Tex display tex={String.raw`\mathbf{v}_{c2}^{T}\mathbf{v}_{c2} = L_1^2\, \dot\theta_1^2 \;+\; \tfrac{L_2^2}{4}(\dot\theta_1{+}\dot\theta_2)^2 \;+\; L_1 L_2 \cos\theta_2\;\dot\theta_1(\dot\theta_1{+}\dot\theta_2)`} />
+                    </div>
+                  </div>
+                )}
+
+                {stage >= 4 && (
+                  <>
+                    <div className="step">
+                      <div className="step-label">④ Coefficient of θ̇₁θ̇₂ in T₂ (kinetic part + rotational part)</div>
+                      <div className="step-eqn">
+                        <Tex display tex={String.raw`[\dot\theta_1\dot\theta_2]\text{-coeff in }T_2 \;=\; \tfrac{m_2}{2}\!\left(\tfrac{L_2^2}{2} + L_1 L_2 \cos\theta_2\right) + I_2`} />
+                      </div>
+                    </div>
+                    <div className="step win-step">
+                      <div className="step-label">✓ Read D₁₂ from T = ½ q̇ᵀ D q̇</div>
+                      <div className="step-eqn">
+                        <Tex display tex={String.raw`\boxed{\; D_{12} \;=\; m_2\!\left(\tfrac{L_2^2}{4} + \tfrac{L_1 L_2}{2}\cos\theta_2\right) + I_2 \;}`} />
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              <div className="progress" aria-label="derivation progress">
+                {[0,1,2,3].map(i => <div key={i} className={'pip' + (stage > i ? ' on' : '')} />)}
+              </div>
+              <div className="legend">stage {stage} / 4 essential operations</div>
+
+              <div className={'message ' + message.kind} role="status">{message.text}</div>
+
+              {won && (
+                <div className="win-banner">
+                  <strong>D₁₂ derived.</strong> Notice that the configuration dependence sits entirely in cosθ₂.
+                  Move the θ₂ slider on the right — at θ₂ = 90° the inertial coupling between joints 1 and 2 vanishes,
+                  leaving only the constant I₂ piece from the rotational term.
+                </div>
+              )}
+
+              <div className="controls">
+                <button className="btn" onClick={undo} disabled={!applied.length}>↶ Undo</button>
+                <button className="btn" onClick={reset} disabled={!applied.length}>Reset</button>
+              </div>
+            </div>
+
+            <div>
+              <div className="arm-box">
+                <svg viewBox="0 0 220 200" style={{ width: '100%', maxWidth: 240, height: 'auto', display: 'block', margin: '0 auto' }} aria-label="Two-link planar arm">
+                  <defs>
+                    <marker id="dbArr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+                      <path d="M0,0 L10,5 L0,10 z" fill="var(--good)" />
+                    </marker>
+                  </defs>
+                  <line x1="0" y1={arm.cy} x2="220" y2={arm.cy} stroke="var(--border)" strokeDasharray="3 3" />
+                  <line x1={arm.cx} y1="0" x2={arm.cx} y2="200" stroke="var(--border)" strokeDasharray="3 3" />
+                  <line x1={arm.x1} y1={arm.y1} x2={arm.x1 + 32 * Math.cos(-Math.PI/4)} y2={arm.y1 - 32 * Math.sin(-Math.PI/4)} stroke="var(--ink-soft)" strokeDasharray="2 3" opacity="0.5" />
+                  <line x1={arm.cx} y1={arm.cy} x2={arm.x1} y2={arm.y1} stroke="var(--accent)" strokeWidth="5" strokeLinecap="round" />
+                  <line x1={arm.x1} y1={arm.y1} x2={arm.x2} y2={arm.y2} stroke="var(--accent-2)" strokeWidth="5" strokeLinecap="round" />
+                  <circle cx={arm.cx} cy={arm.cy} r="5" fill="var(--ink)" />
+                  <circle cx={arm.x1} cy={arm.y1} r="4" fill="var(--ink)" />
+                  <circle cx={arm.x2} cy={arm.y2} r="3.5" fill="var(--accent-2)" />
+                  <path d={arm.arcD} stroke="var(--good)" strokeWidth="1.7" fill="none" markerEnd="url(#dbArr)" />
+                  <text x={arm.x1 + 26} y={arm.y1 - 6} fontSize="12" fill="var(--good)" fontFamily="var(--font-mono)">θ₂</text>
+                  <text x={(arm.cx + arm.x1)/2 - 4} y={(arm.cy + arm.y1)/2 + 14} fontSize="10" fill="var(--ink-soft)" fontFamily="var(--font-mono)">L₁</text>
+                  <text x={(arm.x1 + arm.x2)/2 + 4} y={(arm.y1 + arm.y2)/2 - 6} fontSize="10" fill="var(--ink-soft)" fontFamily="var(--font-mono)">L₂</text>
+                  <text x={arm.cx - 8} y={arm.cy + 18} fontSize="9" fill="var(--ink-soft)" fontFamily="var(--font-mono)">base</text>
+                </svg>
+                <div className="slider-row">
+                  <span>θ₂</span>
+                  <input
+                    type="range"
+                    min={-180}
+                    max={180}
+                    step={1}
+                    value={Math.round(theta2 * 180 / Math.PI)}
+                    onChange={e => setTheta2(Number(e.target.value) * Math.PI / 180)}
+                    aria-label="theta two angle"
+                  />
+                  <span>{(theta2 * 180 / Math.PI).toFixed(0)}°</span>
+                </div>
+                <div className="legend">
+                  cosθ₂ = {Math.cos(theta2).toFixed(3)}{'   →   '}D₁₂ − I₂ = m₂(L₂²/4 + {(0.5 * Math.cos(theta2)).toFixed(3)}·L₁L₂)
+                </div>
+              </div>
+
+              <div className="ops-header">Operations</div>
+              <div className="ops">
+                {OPS.map(op => {
+                  const isApplied = applied.includes(op.id);
+                  const cls = 'op-btn' + (isApplied ? (op.kind === 'herring' ? ' applied-herring' : ' applied') : '');
+                  return (
+                    <button
+                      key={op.id}
+                      className={cls}
+                      onClick={() => clickOp(op)}
+                      disabled={isApplied}
+                      aria-pressed={isApplied}
+                    >
+                      {op.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(mount).render(<Widget />);
+  } catch (e) {
+    const mount = document.getElementById('derive-d-jk-builder');
+    if (mount) mount.innerHTML = '<div class="widget-fail">Widget failed to load</div>';
+    console.error(e);
+  }
+})();
+</script>
+<!-- widget: two-dof-playground (playground) -->
+<script type="text/babel">
+(function () {
+  try {
+    const { useState, useEffect, useRef, useMemo } = React;
+
+    const P = { L1: 0.5, L2: 0.4, m1: 2.0, m2: 1.5, I1: 0.0417, I2: 0.02, g: 9.81 };
+
+    function computeTorques(th1, th2, dth1, dth2, ddth1, ddth2) {
+      const { L1, L2, m1, m2, I1, I2, g } = P;
+      const c2 = Math.cos(th2), s2 = Math.sin(th2);
+      const c1 = Math.cos(th1), c12 = Math.cos(th1 + th2);
+
+      const D11 = m1*L1*L1/4 + I1 + m2*(L1*L1 + L2*L2/4 + L1*L2*c2) + I2;
+      const D12 = m2*(L2*L2/4 + L1*L2/2 * c2) + I2;
+      const D22 = m2*L2*L2/4 + I2;
+
+      const inertial1 = D11*ddth1 + D12*ddth2;
+      const inertial2 = D12*ddth1 + D22*ddth2;
+
+      const k = m2*L1*L2*s2;
+      const h1_cross = -k * dth1 * dth2;
+      const h1_sq2   = -k/2 * dth2 * dth2;
+      const h2_sq1   =  k/2 * dth1 * dth1;
+      const h1 = h1_cross + h1_sq2;
+      const h2 = h2_sq1;
+
+      const c1g = m1*g*L1/2 * c1 + m2*g*L1*c1 + m2*g*L2/2 * c12;
+      const c2g = m2*g*L2/2 * c12;
+
+      return {
+        D: [[D11, D12],[D12, D22]],
+        inertial: [inertial1, inertial2],
+        coriolis: [h1, h2],
+        h1_cross, h1_sq2, h2_sq1,
+        gravity: [c1g, c2g]
+      };
+    }
+
+    const PRESETS = [
+      { name: 'Static horizontal', th1: 0, th2: 0, dth1: 0, dth2: 0, ddth1: 0, ddth2: 0 },
+      { name: 'High-speed shoulder spin', th1: 0, th2: 90, dth1: 5, dth2: 0, ddth1: 0, ddth2: 0 },
+      { name: 'Vertical tuck', th1: 90, th2: 0, dth1: 0, dth2: 0, ddth1: 0, ddth2: 0 },
+      { name: 'Coupled motion', th1: 30, th2: 60, dth1: 2, dth2: -3, ddth1: 5, ddth2: -4 }
+    ];
+
+    function Slider({ label, value, setValue, min, max, step, unit, format }) {
+      return (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+          <div style={{ width: 90, fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--ink)' }}>
+            {label}
+          </div>
+          <input
+            type="range"
+            min={min} max={max} step={step}
+            value={value}
+            onChange={e => setValue(parseFloat(e.target.value))}
+            style={{ flex: 1, accentColor: 'var(--accent)' }}
+            aria-label={label}
+          />
+          <div style={{ width: 90, textAlign: 'right', fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--ink-soft)' }}>
+            {format(value)} {unit}
+          </div>
+        </div>
+      );
+    }
+
+    function Arm({ th1, th2, dth1, dth2 }) {
+      const { L1, L2 } = P;
+      const cx = 200, cy = 180;
+      const scale = 140;
+      const x1 = cx + L1 * Math.cos(th1) * scale;
+      const y1 = cy - L1 * Math.sin(th1) * scale;
+      const x2 = x1 + L2 * Math.cos(th1 + th2) * scale;
+      const y2 = y1 - L2 * Math.sin(th1 + th2) * scale;
+
+      const v1x = -L1 * Math.sin(th1) * dth1;
+      const v1y =  L1 * Math.cos(th1) * dth1;
+      const v2x = v1x - L2 * Math.sin(th1+th2) * (dth1+dth2);
+      const v2y = v1y + L2 * Math.cos(th1+th2) * (dth1+dth2);
+      const vmag = Math.sqrt(v2x*v2x + v2y*v2y);
+      const arrowScale = 20;
+
+      return (
+        <svg viewBox="0 0 400 360" style={{ width: '100%', height: 'auto', maxHeight: 320, background: 'var(--page-bg)', borderRadius: 6, border: '1px solid var(--border)' }}>
+          <defs>
+            <marker id="arrow-vel" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+              <path d="M0,0 L10,5 L0,10 z" fill="var(--accent-2)" />
+            </marker>
+            <linearGradient id="link1g" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stopColor="var(--accent)" />
+              <stop offset="100%" stopColor="var(--accent)" stopOpacity="0.7" />
+            </linearGradient>
+            <linearGradient id="link2g" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stopColor="var(--accent-2)" />
+              <stop offset="100%" stopColor="var(--accent-2)" stopOpacity="0.7" />
+            </linearGradient>
+          </defs>
+
+          {[0,1,2,3].map(i => (
+            <line key={i} x1={cx - 160} y1={cy + 40*i - 40} x2={cx + 160} y2={cy + 40*i - 40} stroke="var(--border)" strokeWidth="0.5" opacity="0.4" />
+          ))}
+          <line x1={cx - 160} y1={cy} x2={cx + 160} y2={cy} stroke="var(--ink-soft)" strokeWidth="1" opacity="0.5" strokeDasharray="3,3" />
+          <text x={cx + 160} y={cy - 4} fontSize="9" fill="var(--ink-soft)" textAnchor="end" fontFamily="var(--font-mono)">ground</text>
+
+          <text x={cx + 30} y={cy + 12} fontSize="10" fill="var(--ink-soft)" fontFamily="var(--font-mono)">g ↓</text>
+          <line x1={cx + 60} y1={cy - 8} x2={cx + 60} y2={cy + 14} stroke="var(--ink-soft)" strokeWidth="1.2" markerEnd="url(#arrow-vel)" />
+
+          <line x1={cx} y1={cy} x2={x1} y2={y1} stroke="url(#link1g)" strokeWidth="9" strokeLinecap="round" />
+          <line x1={x1} y1={y1} x2={x2} y2={y2} stroke="url(#link2g)" strokeWidth="7" strokeLinecap="round" />
+
+          <circle cx={cx} cy={cy} r="7" fill="var(--surface)" stroke="var(--ink)" strokeWidth="2" />
+          <circle cx={x1} cy={y1} r="5.5" fill="var(--surface)" stroke="var(--ink)" strokeWidth="1.5" />
+          <circle cx={x2} cy={y2} r="3.5" fill="var(--ink)" />
+
+          <text x={cx - 14} y={cy + 18} fontSize="11" fill="var(--ink)" fontFamily="var(--font-mono)">θ₁</text>
+          <text x={x1 + 6} y={y1 + 18} fontSize="11" fill="var(--ink)" fontFamily="var(--font-mono)">θ₂</text>
+
+          {vmag > 0.05 && (
+            <line
+              x1={x2} y1={y2}
+              x2={x2 + v2x * arrowScale} y2={y2 - v2y * arrowScale}
+              stroke="var(--accent-2)" strokeWidth="2"
+              markerEnd="url(#arrow-vel)"
+            />
+          )}
+          {vmag > 0.05 && (
+            <text x={x2 + v2x * arrowScale + 4} y={y2 - v2y * arrowScale} fontSize="10" fill="var(--accent-2)" fontFamily="var(--font-mono)">|v|={vmag.toFixed(2)}</text>
+          )}
+        </svg>
+      );
+    }
+
+    function BarChart({ inertial, coriolis, gravity, total, mute, joint }) {
+      const w = 360, h = 200;
+      const padL = 50, padR = 20, padT = 20, padB = 40;
+      const innerW = w - padL - padR;
+      const innerH = h - padT - padB;
+
+      const muteIn = mute.inertial ? 0 : 1;
+      const muteC  = mute.coriolis ? 0 : 1;
+      const muteG  = mute.gravity  ? 0 : 1;
+
+      const vals = [inertial * muteIn, coriolis * muteC, gravity * muteG];
+      const labels = ['Inertial', 'Coriolis', 'Gravity'];
+      const colors = ['var(--accent)', 'var(--accent-2)', 'var(--good)'];
+      const sum = vals.reduce((a,b)=>a+b, 0);
+
+      const maxAbs = Math.max(2, ...vals.map(v=>Math.abs(v)), Math.abs(sum), Math.abs(total));
+      const yScale = innerH / (2 * maxAbs);
+      const y0 = padT + innerH / 2;
+
+      const barW = innerW / 5;
+
+      return (
+        <svg viewBox={`0 0 ${w} ${h}`} style={{ width: '100%', height: 'auto', maxHeight: 220 }}>
+          <line x1={padL} y1={y0} x2={w - padR} y2={y0} stroke="var(--ink-soft)" strokeWidth="1" />
+          <line x1={padL} y1={padT} x2={padL} y2={h - padB} stroke="var(--ink-soft)" strokeWidth="1" />
+
+          {[-maxAbs, -maxAbs/2, 0, maxAbs/2, maxAbs].map((tick, i) => {
+            const y = y0 - tick * yScale;
+            return (
+              <g key={i}>
+                <line x1={padL - 3} y1={y} x2={padL} y2={y} stroke="var(--ink-soft)" strokeWidth="1" />
+                <text x={padL - 6} y={y + 3} fontSize="9" textAnchor="end" fill="var(--ink-soft)" fontFamily="var(--font-mono)">{tick.toFixed(1)}</text>
+              </g>
+            );
+          })}
+
+          <text x={6} y={padT + innerH/2 - 6} fontSize="10" fill="var(--ink-soft)" fontFamily="var(--font-mono)" transform={`rotate(-90 12 ${padT + innerH/2})`}>τ (N·m)</text>
+
+          {vals.map((v, i) => {
+            const x = padL + barW * (i + 0.5);
+            const bh = Math.abs(v) * yScale;
+            const yBar = v >= 0 ? y0 - bh : y0;
+            const muted = (i===0 && mute.inertial) || (i===1 && mute.coriolis) || (i===2 && mute.gravity);
+            return (
+              <g key={i}>
+                <rect
+                  x={x} y={yBar} width={barW * 0.85} height={bh}
+                  fill={colors[i]}
+                  opacity={muted ? 0.15 : 0.85}
+                  stroke={colors[i]} strokeWidth="1"
+                />
+                <text x={x + barW*0.425} y={h - padB + 14} fontSize="10" textAnchor="middle" fill="var(--ink)" fontFamily="var(--font-body)">{labels[i]}</text>
+                <text x={x + barW*0.425} y={h - padB + 26} fontSize="9" textAnchor="middle" fill="var(--ink-soft)" fontFamily="var(--font-mono)">{v.toFixed(2)}</text>
+              </g>
+            );
+          })}
+
+          {(() => {
+            const i = 3;
+            const x = padL + barW * (i + 0.5);
+            const bh = Math.abs(sum) * yScale;
+            const yBar = sum >= 0 ? y0 - bh : y0;
+            return (
+              <g>
+                <rect x={x} y={yBar} width={barW*0.85} height={bh}
+                  fill="var(--ink)" opacity="0.8" stroke="var(--ink)" strokeWidth="1" />
+                <text x={x + barW*0.425} y={h - padB + 14} fontSize="10" textAnchor="middle" fill="var(--ink)" fontFamily="var(--font-body)" fontWeight="bold">τ{joint}</text>
+                <text x={x + barW*0.425} y={h - padB + 26} fontSize="9" textAnchor="middle" fill="var(--ink-soft)" fontFamily="var(--font-mono)">{sum.toFixed(2)}</text>
+              </g>
+            );
+          })()}
+        </svg>
+      );
+    }
+
+    function Widget() {
+      const mount = document.getElementById('two-dof-playground');
+      if (!mount) return null;
+
+      const [th1Deg, setTh1Deg] = useState(0);
+      const [th2Deg, setTh2Deg] = useState(0);
+      const [dth1, setDth1] = useState(0);
+      const [dth2, setDth2] = useState(0);
+      const [ddth1, setDdth1] = useState(0);
+      const [ddth2, setDdth2] = useState(0);
+      const [mute, setMute] = useState({ inertial: false, coriolis: false, gravity: false });
+
+      useEffect(() => {
+        const s = document.createElement('style');
+        s.textContent = `
+          #two-dof-playground .twodof-wrap {
+            font-family: var(--font-body);
+            color: var(--ink);
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 14px 16px;
+            max-height: 1100px;
+            overflow: auto;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+          }
+          #two-dof-playground .twodof-wrap h4 {
+            margin: 0 0 8px 0;
+            font-family: var(--font-display);
+            font-size: 14px;
+            color: var(--ink);
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 4px;
+          }
+          #two-dof-playground .twodof-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+          }
+          @media (max-width: 720px) {
+            #two-dof-playground .twodof-grid { grid-template-columns: 1fr; }
+          }
+          #two-dof-playground .twodof-preset {
+            background: var(--page-bg);
+            border: 1px solid var(--border);
+            color: var(--ink);
+            font-family: var(--font-mono);
+            font-size: 11px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 2px;
+            transition: background 0.15s;
+          }
+          #two-dof-playground .twodof-preset:hover {
+            background: var(--accent);
+            color: var(--surface);
+          }
+          #two-dof-playground .twodof-toggle {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            margin-right: 10px;
+            font-family: var(--font-mono);
+            font-size: 11px;
+            cursor: pointer;
+            user-select: none;
+          }
+          #two-dof-playground .twodof-toggle input { accent-color: var(--accent); }
+          #two-dof-playground .twodof-readout {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            background: var(--page-bg);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 8px 10px;
+            line-height: 1.55;
+          }
+          #two-dof-playground .twodof-readout .row {
+            display: flex; justify-content: space-between;
+          }
+          #two-dof-playground .twodof-readout .label { color: var(--ink-soft); }
+          #two-dof-playground .twodof-readout .val { color: var(--ink); font-weight: 600; }
+          #two-dof-playground .twodof-readout .total {
+            border-top: 1px solid var(--border);
+            margin-top: 5px;
+            padding-top: 5px;
+            font-weight: 700;
+          }
+          #two-dof-playground .twodof-readout .total .val { color: var(--accent); }
+          #two-dof-playground .twodof-readout .muted { opacity: 0.35; }
+          #two-dof-playground .twodof-section-title {
+            font-family: var(--font-display);
+            font-size: 12px;
+            color: var(--ink-soft);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin: 10px 0 6px 0;
+          }
+          #two-dof-playground .twodof-joint-card {
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 8px 10px;
+            background: var(--page-bg);
+          }
+          #two-dof-playground .twodof-joint-card.j1 { border-left: 3px solid var(--accent); }
+          #two-dof-playground .twodof-joint-card.j2 { border-left: 3px solid var(--accent-2); }
+        `;
+        mount.appendChild(s);
+        return () => { try { mount.removeChild(s); } catch(e) {} };
+      }, []);
+
+      const th1 = th1Deg * Math.PI / 180;
+      const th2 = th2Deg * Math.PI / 180;
+
+      const r = useMemo(
+        () => computeTorques(th1, th2, dth1, dth2, ddth1, ddth2),
+        [th1, th2, dth1, dth2, ddth1, ddth2]
+      );
+
+      const muteIn = mute.inertial ? 0 : 1;
+      const muteC  = mute.coriolis ? 0 : 1;
+      const muteG  = mute.gravity  ? 0 : 1;
+      const tau1 = r.inertial[0]*muteIn + r.coriolis[0]*muteC + r.gravity[0]*muteG;
+      const tau2 = r.inertial[1]*muteIn + r.coriolis[1]*muteC + r.gravity[1]*muteG;
+
+      const applyPreset = (p) => {
+        setTh1Deg(p.th1); setTh2Deg(p.th2);
+        setDth1(p.dth1); setDth2(p.dth2);
+        setDdth1(p.ddth1); setDdth2(p.ddth2);
+      };
+
+      return (
+        <div className="twodof-wrap">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: 8 }}>
+            <h4 style={{ border: 'none', padding: 0, margin: 0 }}>2-DOF dynamics sandbox · τ = D q̈ + h + c</h4>
+            <div style={{ fontSize: 11, color: 'var(--ink-soft)', fontFamily: 'var(--font-mono)' }}>
+              L₁={P.L1}m · L₂={P.L2}m · m₁={P.m1}kg · m₂={P.m2}kg · g={P.g}
+            </div>
+          </div>
+
+          <div style={{ marginTop: 8 }}>
+            <span style={{ fontSize: 11, color: 'var(--ink-soft)', fontFamily: 'var(--font-mono)', marginRight: 6 }}>presets:</span>
+            {PRESETS.map((p, i) => (
+              <button key={i} className="twodof-preset" onClick={() => applyPreset(p)}>{p.name}</button>
+            ))}
+          </div>
+
+          <div className="twodof-grid" style={{ marginTop: 12 }}>
+            <div>
+              <div className="twodof-section-title">Arm pose (live)</div>
+              <Arm th1={th1} th2={th2} dth1={dth1} dth2={dth2} />
+
+              <div className="twodof-section-title">Controls</div>
+              <Slider label="θ₁" value={th1Deg} setValue={setTh1Deg} min={-180} max={180} step={1} unit="°" format={v=>v.toFixed(0)} />
+              <Slider label="θ₂" value={th2Deg} setValue={setTh2Deg} min={-180} max={180} step={1} unit="°" format={v=>v.toFixed(0)} />
+              <Slider label="θ̇₁" value={dth1} setValue={setDth1} min={-10} max={10} step={0.1} unit="rad/s" format={v=>v.toFixed(2)} />
+              <Slider label="θ̇₂" value={dth2} setValue={setDth2} min={-10} max={10} step={0.1} unit="rad/s" format={v=>v.toFixed(2)} />
+              <Slider label="θ̈₁" value={ddth1} setValue={setDdth1} min={-20} max={20} step={0.1} unit="rad/s²" format={v=>v.toFixed(2)} />
+              <Slider label="θ̈₂" value={ddth2} setValue={setDdth2} min={-20} max={20} step={0.1} unit="rad/s²" format={v=>v.toFixed(2)} />
+
+              <div style={{ marginTop: 8 }}>
+                <span style={{ fontSize: 11, color: 'var(--ink-soft)', fontFamily: 'var(--font-mono)', marginRight: 6 }}>mute:</span>
+                <label className="twodof-toggle">
+                  <input type="checkbox" checked={mute.inertial} onChange={e => setMute({...mute, inertial: e.target.checked})} />
+                  <span style={{ color: 'var(--accent)' }}>■</span> inertial
+                </label>
+                <label className="twodof-toggle">
+                  <input type="checkbox" checked={mute.coriolis} onChange={e => setMute({...mute, coriolis: e.target.checked})} />
+                  <span style={{ color: 'var(--accent-2)' }}>■</span> Coriolis
+                </label>
+                <label className="twodof-toggle">
+                  <input type="checkbox" checked={mute.gravity} onChange={e => setMute({...mute, gravity: e.target.checked})} />
+                  <span style={{ color: 'var(--good)' }}>■</span> gravity
+                </label>
+              </div>
+            </div>
+
+            <div>
+              <div className="twodof-section-title">Torque contributions — joint 1</div>
+              <BarChart
+                inertial={r.inertial[0]} coriolis={r.coriolis[0]} gravity={r.gravity[0]}
+                total={tau1} mute={mute} joint="₁"
+              />
+
+              <div className="twodof-section-title">Torque contributions — joint 2</div>
+              <BarChart
+                inertial={r.inertial[1]} coriolis={r.coriolis[1]} gravity={r.gravity[1]}
+                total={tau2} mute={mute} joint="₂"
+              />
+
+              <div className="twodof-section-title">Numerical breakdown</div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                <div className="twodof-joint-card j1">
+                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--accent)', fontWeight: 700, marginBottom: 4 }}>Joint 1</div>
+                  <div className="twodof-readout" style={{ border: 'none', padding: 0, background: 'transparent' }}>
+                    <div className={`row ${mute.inertial?'muted':''}`}><span className="label">D q̈ :</span><span className="val">{r.inertial[0].toFixed(3)}</span></div>
+                    <div className={`row ${mute.coriolis?'muted':''}`}><span className="label">h (θ̇₁θ̇₂):</span><span className="val">{r.h1_cross.toFixed(3)}</span></div>
+                    <div className={`row ${mute.coriolis?'muted':''}`}><span className="label">h (θ̇₂²):</span><span className="val">{r.h1_sq2.toFixed(3)}</span></div>
+                    <div className={`row ${mute.gravity?'muted':''}`}><span className="label">c (grav):</span><span className="val">{r.gravity[0].toFixed(3)}</span></div>
+                    <div className="row total"><span className="label">τ₁ :</span><span className="val">{tau1.toFixed(3)}</span></div>
+                  </div>
+                </div>
+                <div className="twodof-joint-card j2">
+                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--accent-2)', fontWeight: 700, marginBottom: 4 }}>Joint 2</div>
+                  <div className="twodof-readout" style={{ border: 'none', padding: 0, background: 'transparent' }}>
+                    <div className={`row ${mute.inertial?'muted':''}`}><span className="label">D q̈ :</span><span className="val">{r.inertial[1].toFixed(3)}</span></div>
+                    <div className={`row ${mute.coriolis?'muted':''}`}><span className="label">h (θ̇₁²):</span><span className="val">{r.h2_sq1.toFixed(3)}</span></div>
+                    <div className={`row ${mute.coriolis?'muted':''}`}><span className="label">h (θ̇₂²):</span><span className="val">0.000</span></div>
+                    <div className={`row ${mute.gravity?'muted':''}`}><span className="label">c (grav):</span><span className="val">{r.gravity[1].toFixed(3)}</span></div>
+                    <div className="row total"><span className="label">τ₂ :</span><span className="val">{tau2.toFixed(3)}</span></div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="twodof-section-title">D(q) inertia matrix</div>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, background: 'var(--page-bg)', padding: '6px 10px', border: '1px solid var(--border)', borderRadius: 4 }}>
+                <div>D₁₁ = {r.D[0][0].toFixed(4)} &nbsp; D₁₂ = {r.D[0][1].toFixed(4)}</div>
+                <div>D₂₁ = {r.D[1][0].toFixed(4)} &nbsp; D₂₂ = {r.D[1][1].toFixed(4)}</div>
+                <div style={{ color: 'var(--ink-soft)', marginTop: 3, fontSize: 10 }}>
+                  cos θ₂ = {Math.cos(th2).toFixed(3)} &nbsp; sin θ₂ = {Math.sin(th2).toFixed(3)}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('two-dof-playground')).render(<Widget />);
+  } catch (e) {
+    const mount = document.getElementById('two-dof-playground');
+    if (mount) mount.innerHTML = '<div class="widget-fail">Widget failed to load</div>';
+    console.error(e);
+  }
+})();
+</script>
+<!-- widget: forward-vs-inverse-picker (picker) -->
+<script type="text/babel">
+(function () {
+  try {
+    const { useState, useMemo } = React;
+    const mount = document.getElementById('forward-vs-inverse-picker');
+    if (!mount) throw new Error('mount missing');
+
+    const SCENARIOS = [
+      {
+        id: 'feedforward',
+        title: 'Real-time feedforward controller · 7-DOF arm',
+        prompt: 'Given desired q, q̇, q̈ at 1 kHz, compute the torque command to send to the actuators.',
+        correct: 'inverse',
+        rationale: 'You have the motion (q, q̇, q̈) and need τ. Evaluate the LHS of (3.26) directly — no matrix solve needed. Recursive Newton–Euler does this in O(n).',
+        traps: {
+          forward: 'Forward dynamics solves the opposite problem (τ → q̈). Running it here means an O(n³) Cholesky solve every millisecond — for an answer you already had.',
+          linearised: 'Small-signal LQR form is only valid near a single operating point. A 7-DOF arm tracking a fast trajectory leaves the linearisation regime within milliseconds.',
+          gravity: 'Gravity-only ignores Dq̈ and h — at trajectory speeds those terms dominate, so the feedforward torque will be wrong by tens of N·m.'
+        }
+      },
+      {
+        id: 'sim',
+        title: 'Physics-engine simulation of free motion',
+        prompt: 'Given a known torque profile τ(t), integrate the robot\'s motion forward in time.',
+        correct: 'forward',
+        rationale: 'You have τ and need q̈ to integrate. Solve D q̈ = τ − h − c via Cholesky (D is symmetric positive-definite); never form D⁻¹ explicitly.',
+        traps: {
+          inverse: 'Inverse dynamics needs q̈ as input — but q̈ is the unknown you\'re trying to find. You\'d be circular.',
+          linearised: 'A linearisation drifts away from truth as soon as the robot leaves (q₀, q̇₀). A simulator must stay faithful over the whole trajectory.',
+          gravity: 'Ignoring inertial and Coriolis terms means the simulated motion has no dynamics — the robot would behave like a quasi-static rag doll.'
+        }
+      },
+      {
+        id: 'lqr',
+        title: 'LQR controller design around an equilibrium',
+        prompt: 'Linearise the dynamics around an operating point (q₀, q̇₀) to design a state-feedback gain.',
+        correct: 'linearised',
+        rationale: 'LQR needs a linear time-invariant model. The small-signal form D₀Δq̈ + C₀Δq̇ + K₀Δq = Δτ is exactly the right object — constant matrices fixed at the operating point.',
+        traps: {
+          forward: 'Forward dynamics is fully nonlinear; LQR\'s Riccati equation needs linear matrices, not D(q)⁻¹.',
+          inverse: 'Inverse dynamics gives you a torque, not a state-space (A, B) pair. LQR can\'t consume it directly.',
+          gravity: 'Gravity-only throws away the velocity and acceleration coupling that the LQR damping gains are supposed to shape.'
+        }
+      },
+      {
+        id: 'mcu',
+        title: 'Embedded MCU · static holding torques only',
+        prompt: 'Resource-limited microcontroller — the robot only needs to hold a pose against gravity (q̇ ≈ q̈ ≈ 0).',
+        correct: 'gravity',
+        rationale: 'When q̇ ≈ q̈ ≈ 0, D q̈ and h(q, q̇) both vanish and the equation collapses to τ ≈ c(q). It\'s the cheapest valid term — O(n²) and trig-only.',
+        traps: {
+          inverse: 'Inverse dynamics is overkill if you never accelerate. You\'d still evaluate D and h every cycle for terms that are guaranteed zero.',
+          forward: 'Forward dynamics needs an O(n³) solve per tick. On a low-end MCU that\'s minutes per step — and you don\'t even need q̈.',
+          linearised: 'Around a fixed pose Δq̈ = Δq̇ = 0, so the linearised form reduces to K₀Δq = Δτ — strictly less than what c(q) already gives you globally.'
+        }
+      }
+    ];
+
+    const FORMS = [
+      {
+        id: 'inverse',
+        name: 'Inverse dynamics',
+        equation: 'τ = D(q) q̈ + h(q, q̇) + c(q)',
+        inputs: ['q', 'q̇', 'q̈'],
+        output: 'τ',
+        algorithm: 'Recursive Newton–Euler',
+        cost: 'O(n)',
+        solve: 'no matrix solve',
+        hazard: 'none — just multiply-add along the chain'
+      },
+      {
+        id: 'forward',
+        name: 'Forward dynamics',
+        equation: 'q̈ = D⁻¹(q) [τ − h(q, q̇) − c(q)]',
+        inputs: ['q', 'q̇', 'τ'],
+        output: 'q̈',
+        algorithm: 'Cholesky solve of D x = (τ − h − c)',
+        cost: 'O(n³)',
+        solve: 'matrix solve required',
+        hazard: 'D singular near kinematic singularities — regularise'
+      },
+      {
+        id: 'linearised',
+        name: 'Linearised form',
+        equation: 'D₀ Δq̈ + C₀ Δq̇ + K₀ Δq = Δτ',
+        inputs: ['Δq', 'Δq̇'],
+        output: 'Δτ (small-signal)',
+        algorithm: 'LTI state-space around (q₀, q̇₀)',
+        cost: 'O(n²) per evaluation',
+        solve: 'no online solve — gains precomputed',
+        hazard: 'valid only in a neighbourhood of (q₀, q̇₀)'
+      },
+      {
+        id: 'gravity',
+        name: 'Gravity-only',
+        equation: 'τ ≈ c(q)',
+        inputs: ['q'],
+        output: 'τ',
+        algorithm: 'evaluate c(q) — trig of joint angles',
+        cost: 'O(n²)',
+        solve: 'no matrix solve',
+        hazard: 'wrong whenever q̇ or q̈ is non-zero'
+      }
+    ];
+
+    const FORM_BY_ID = Object.fromEntries(FORMS.map(f => [f.id, f]));
+
+    function Pipeline({ form, isCorrect }) {
+      const accentColor = isCorrect ? 'var(--good)' : 'var(--accent-2)';
+      const stroke = isCorrect ? 'var(--good)' : 'var(--ink-soft)';
+      return (
+        <svg viewBox="0 0 640 200" style={{ width: '100%', height: 'auto', display: 'block' }} role="img" aria-label={`Pipeline for ${form.name}`}>
+          <defs>
+            <marker id="fvi-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+              <path d="M0,0 L10,5 L0,10 z" fill={stroke} />
+            </marker>
+            <linearGradient id={`fvi-grad-${form.id}`} x1="0" x2="1" y1="0" y2="0">
+              <stop offset="0%" stopColor={accentColor} stopOpacity="0.18" />
+              <stop offset="100%" stopColor={accentColor} stopOpacity="0.05" />
+            </linearGradient>
+          </defs>
+
+          <g>
+            <rect x="20" y="60" width="130" height="80" rx="10" fill="var(--surface)" stroke="var(--border)" strokeWidth="1.5" />
+            <text x="85" y="50" textAnchor="middle" fontSize="11" fill="var(--ink-soft)" fontFamily="var(--font-body)">inputs</text>
+            {form.inputs.map((s, i) => (
+              <text key={i} x="85" y={88 + i * 18} textAnchor="middle" fontSize="15" fontFamily="var(--font-mono)" fill="var(--ink)">{s}</text>
+            ))}
+          </g>
+
+          <line x1="150" y1="100" x2="220" y2="100" stroke={stroke} strokeWidth="2" markerEnd="url(#fvi-arrow)" />
+
+          <g>
+            <rect x="220" y="50" width="240" height="100" rx="10" fill={`url(#fvi-grad-${form.id})`} stroke={accentColor} strokeWidth="2" />
+            <text x="340" y="78" textAnchor="middle" fontSize="13" fontFamily="var(--font-body)" fill="var(--ink-soft)">algorithm</text>
+            <text x="340" y="100" textAnchor="middle" fontSize="14" fontFamily="var(--font-mono)" fill="var(--ink)" fontWeight="600">{form.algorithm}</text>
+            <text x="340" y="125" textAnchor="middle" fontSize="12" fontFamily="var(--font-mono)" fill={accentColor} fontWeight="700">{form.cost}</text>
+            <text x="340" y="142" textAnchor="middle" fontSize="11" fontFamily="var(--font-body)" fill="var(--ink-soft)" fontStyle="italic">{form.solve}</text>
+          </g>
+
+          <line x1="460" y1="100" x2="530" y2="100" stroke={stroke} strokeWidth="2" markerEnd="url(#fvi-arrow)" />
+
+          <g>
+            <rect x="530" y="60" width="90" height="80" rx="10" fill="var(--surface)" stroke="var(--border)" strokeWidth="1.5" />
+            <text x="575" y="50" textAnchor="middle" fontSize="11" fill="var(--ink-soft)" fontFamily="var(--font-body)">output</text>
+            <text x="575" y="108" textAnchor="middle" fontSize="20" fontFamily="var(--font-mono)" fill={accentColor} fontWeight="700">{form.output}</text>
+          </g>
+
+          <g>
+            <text x="20" y="180" fontSize="11" fontFamily="var(--font-body)" fill="var(--ink-soft)">numerical hazard:</text>
+            <text x="135" y="180" fontSize="11" fontFamily="var(--font-body)" fill="var(--ink)" fontStyle="italic">{form.hazard}</text>
+          </g>
+        </svg>
+      );
+    }
+
+    function Widget() {
+      const [scenarioIdx, setScenarioIdx] = useState(0);
+      const [pickedByScenario, setPickedByScenario] = useState({});
+      const scenario = SCENARIOS[scenarioIdx];
+      const picked = pickedByScenario[scenario.id];
+      const isCorrect = picked === scenario.correct;
+
+      const score = useMemo(() => {
+        let n = 0;
+        for (const s of SCENARIOS) if (pickedByScenario[s.id] === s.correct) n++;
+        return n;
+      }, [pickedByScenario]);
+
+      const answered = Object.keys(pickedByScenario).length;
+      const displayForm = picked ? FORM_BY_ID[picked] : FORM_BY_ID[scenario.correct];
+
+      const onPick = (formId) => {
+        setPickedByScenario(prev => ({ ...prev, [scenario.id]: formId }));
+      };
+
+      const onReset = () => {
+        setPickedByScenario({});
+        setScenarioIdx(0);
+      };
+
+      return (
+        <div className="fvi-widget">
+          <style>{`
+            #forward-vs-inverse-picker .fvi-widget {
+              font-family: var(--font-body);
+              color: var(--ink);
+              background: var(--surface);
+              border: 1px solid var(--border);
+              border-radius: 12px;
+              padding: 18px 20px;
+              max-height: 900px;
+              overflow: auto;
+            }
+            #forward-vs-inverse-picker .fvi-header {
+              display: flex;
+              justify-content: space-between;
+              align-items: baseline;
+              flex-wrap: wrap;
+              gap: 8px;
+              margin-bottom: 6px;
+            }
+            #forward-vs-inverse-picker .fvi-title {
+              font-family: var(--font-display);
+              font-size: 1.05rem;
+              color: var(--ink);
+              margin: 0;
+            }
+            #forward-vs-inverse-picker .fvi-score {
+              font-family: var(--font-mono);
+              font-size: 0.85rem;
+              color: var(--ink-soft);
+            }
+            #forward-vs-inverse-picker .fvi-tabs {
+              display: flex;
+              gap: 6px;
+              flex-wrap: wrap;
+              margin: 10px 0 14px;
+            }
+            #forward-vs-inverse-picker .fvi-tab {
+              font-family: var(--font-body);
+              font-size: 0.78rem;
+              border: 1px solid var(--border);
+              background: var(--page-bg);
+              color: var(--ink-soft);
+              padding: 6px 10px;
+              border-radius: 999px;
+              cursor: pointer;
+              transition: all 0.15s ease;
+            }
+            #forward-vs-inverse-picker .fvi-tab:hover { color: var(--ink); border-color: var(--ink-soft); }
+            #forward-vs-inverse-picker .fvi-tab.active {
+              background: var(--accent);
+              color: #fff;
+              border-color: var(--accent);
+            }
+            #forward-vs-inverse-picker .fvi-tab.answered-good { border-color: var(--good); color: var(--good); }
+            #forward-vs-inverse-picker .fvi-tab.answered-bad  { border-color: var(--bad);  color: var(--bad); }
+            #forward-vs-inverse-picker .fvi-tab.active.answered-good { background: var(--good); color: #fff; }
+            #forward-vs-inverse-picker .fvi-tab.active.answered-bad  { background: var(--bad);  color: #fff; }
+            #forward-vs-inverse-picker .fvi-scenario {
+              background: var(--page-bg);
+              border-left: 4px solid var(--accent);
+              padding: 12px 14px;
+              border-radius: 0 8px 8px 0;
+              margin-bottom: 14px;
+            }
+            #forward-vs-inverse-picker .fvi-scenario h4 {
+              margin: 0 0 4px;
+              font-family: var(--font-display);
+              font-size: 1rem;
+              color: var(--ink);
+            }
+            #forward-vs-inverse-picker .fvi-scenario p {
+              margin: 0;
+              font-size: 0.88rem;
+              color: var(--ink-soft);
+              line-height: 1.45;
+            }
+            #forward-vs-inverse-picker .fvi-choices {
+              display: grid;
+              grid-template-columns: repeat(2, 1fr);
+              gap: 8px;
+              margin-bottom: 14px;
+            }
+            @media (max-width: 600px) {
+              #forward-vs-inverse-picker .fvi-choices { grid-template-columns: 1fr; }
+            }
+            #forward-vs-inverse-picker .fvi-choice {
+              text-align: left;
+              font-family: var(--font-body);
+              font-size: 0.82rem;
+              line-height: 1.35;
+              border: 1.5px solid var(--border);
+              background: var(--surface);
+              color: var(--ink);
+              padding: 10px 12px;
+              border-radius: 8px;
+              cursor: pointer;
+              transition: all 0.15s ease;
+            }
+            #forward-vs-inverse-picker .fvi-choice:hover:not(:disabled) {
+              border-color: var(--accent);
+              transform: translateY(-1px);
+            }
+            #forward-vs-inverse-picker .fvi-choice .fvi-eq {
+              display: block;
+              font-family: var(--font-mono);
+              font-size: 0.78rem;
+              color: var(--ink-soft);
+              margin-top: 3px;
+            }
+            #forward-vs-inverse-picker .fvi-choice.picked-correct {
+              border-color: var(--good);
+              background: rgba(31, 122, 77, 0.08);
+            }
+            #forward-vs-inverse-picker .fvi-choice.picked-wrong {
+              border-color: var(--bad);
+              background: rgba(184, 50, 58, 0.08);
+            }
+            #forward-vs-inverse-picker .fvi-choice.reveal-correct {
+              border-color: var(--good);
+              border-style: dashed;
+            }
+            #forward-vs-inverse-picker .fvi-choice:disabled { cursor: default; }
+            #forward-vs-inverse-picker .fvi-pipeline {
+              background: var(--page-bg);
+              border: 1px solid var(--border);
+              border-radius: 8px;
+              padding: 10px;
+              margin-bottom: 12px;
+            }
+            #forward-vs-inverse-picker .fvi-pipeline-label {
+              font-size: 0.75rem;
+              text-transform: uppercase;
+              letter-spacing: 0.06em;
+              color: var(--ink-soft);
+              font-family: var(--font-body);
+              margin-bottom: 6px;
+              padding-left: 4px;
+            }
+            #forward-vs-inverse-picker .fvi-feedback {
+              border-radius: 8px;
+              padding: 10px 12px;
+              font-size: 0.86rem;
+              line-height: 1.5;
+              margin-bottom: 10px;
+            }
+            #forward-vs-inverse-picker .fvi-feedback.good {
+              background: rgba(31, 122, 77, 0.1);
+              border-left: 4px solid var(--good);
+              color: var(--ink);
+            }
+            #forward-vs-inverse-picker .fvi-feedback.bad {
+              background: rgba(184, 50, 58, 0.1);
+              border-left: 4px solid var(--bad);
+              color: var(--ink);
+            }
+            #forward-vs-inverse-picker .fvi-feedback strong { color: var(--ink); }
+            #forward-vs-inverse-picker .fvi-footer {
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              flex-wrap: wrap;
+              gap: 8px;
+              margin-top: 6px;
+              padding-top: 10px;
+              border-top: 1px dashed var(--border);
+              font-size: 0.78rem;
+              color: var(--ink-soft);
+            }
+            #forward-vs-inverse-picker .fvi-reset {
+              font-family: var(--font-body);
+              font-size: 0.78rem;
+              background: transparent;
+              border: 1px solid var(--border);
+              color: var(--ink-soft);
+              padding: 4px 10px;
+              border-radius: 6px;
+              cursor: pointer;
+            }
+            #forward-vs-inverse-picker .fvi-reset:hover { color: var(--ink); border-color: var(--ink-soft); }
+            #forward-vs-inverse-picker .widget-fail {
+              color: var(--bad);
+              padding: 12px;
+              border: 1px solid var(--bad);
+              border-radius: 6px;
+            }
+          `}</style>
+
+          <div className="fvi-header">
+            <h3 className="fvi-title">Which rearrangement do you actually run?</h3>
+            <span className="fvi-score" aria-live="polite">{answered}/4 answered · {score} correct</span>
+          </div>
+
+          <div className="fvi-tabs" role="tablist" aria-label="Engineering scenarios">
+            {SCENARIOS.map((s, i) => {
+              const ans = pickedByScenario[s.id];
+              let cls = 'fvi-tab';
+              if (i === scenarioIdx) cls += ' active';
+              if (ans) cls += (ans === s.correct ? ' answered-good' : ' answered-bad');
+              return (
+                <button
+                  key={s.id}
+                  className={cls}
+                  role="tab"
+                  aria-selected={i === scenarioIdx}
+                  onClick={() => setScenarioIdx(i)}
+                >
+                  Scenario {i + 1}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="fvi-scenario">
+            <h4>{scenario.title}</h4>
+            <p>{scenario.prompt}</p>
+          </div>
+
+          <div className="fvi-choices" role="radiogroup" aria-label="Which form would you evaluate?">
+            {FORMS.map(form => {
+              let cls = 'fvi-choice';
+              if (picked === form.id) {
+                cls += isCorrect ? ' picked-correct' : ' picked-wrong';
+              } else if (picked && !isCorrect && form.id === scenario.correct) {
+                cls += ' reveal-correct';
+              }
+              return (
+                <button
+                  key={form.id}
+                  className={cls}
+                  role="radio"
+                  aria-checked={picked === form.id}
+                  disabled={!!picked}
+                  onClick={() => onPick(form.id)}
+                >
+                  <strong>{form.name}</strong>
+                  <span className="fvi-eq">{form.equation}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="fvi-pipeline">
+            <div className="fvi-pipeline-label">
+              pipeline · {picked ? (isCorrect ? 'your choice' : 'the right tool for this job') : 'pick to compare'}
+            </div>
+            <Pipeline form={displayForm} isCorrect={!picked || isCorrect} />
+          </div>
+
+          {picked && (
+            <div className={`fvi-feedback ${isCorrect ? 'good' : 'bad'}`} role="status">
+              {isCorrect ? (
+                <span><strong>Right tool.</strong> {scenario.rationale}</span>
+              ) : (
+                <span>
+                  <strong>Not quite.</strong> {scenario.traps[picked]} The right pick is <strong>{FORM_BY_ID[scenario.correct].name}</strong> — {scenario.rationale}
+                </span>
+              )}
+            </div>
+          )}
+
+          <div className="fvi-footer">
+            <span>All four forms are valid rearrangements of D q̈ + h + c = τ — the question is which one matches the task.</span>
+            <button className="fvi-reset" onClick={onReset} aria-label="Reset all answers">Reset</button>
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(mount).render(<Widget />);
+  } catch (e) {
+    const mount = document.getElementById('forward-vs-inverse-picker');
+    if (mount) mount.innerHTML = '<div class="widget-fail">Widget failed to load</div>';
+    console.error(e);
+  }
+})();
+</script>
+</body>
+</html>, start + 1);
+        if (end === -1) {
+          parts.push(<span key={key++}>{text.slice(start)}</span>);
+          break;
+        }
+        parts.push(<MathSpan key={key++} tex={text.slice(start + 1, end)} />);
+        i = end + 1;
+      }
+      return <>{parts}</>;
+    }
+
+    function Widget() {
+      const [idx, setIdx] = useState(0);
+      const [picks, setPicks] = useState(Array(QUESTIONS.length).fill(null));
+
+      useEffect(() => {
+        const s = document.createElement('style');
+        s.setAttribute('data-widget', 'christoffel-mcq');
+        s.textContent = `
+          #christoffel-mcq .mcq-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+            font-family: var(--font-body);
+            color: var(--ink);
+            max-width: 100%;
+            box-shadow: 0 1px 3px rgba(26,34,56,0.04);
+          }
+          #christoffel-mcq .mcq-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 18px;
+            padding-bottom: 14px;
+            border-bottom: 1px solid var(--border);
+          }
+          #christoffel-mcq .mcq-eyebrow {
+            font-family: var(--font-mono);
+            font-size: 0.72rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--accent);
+          }
+          #christoffel-mcq .mcq-progress {
+            display: flex;
+            gap: 6px;
+          }
+          #christoffel-mcq .mcq-dot {
+            width: 26px;
+            height: 6px;
+            border-radius: 3px;
+            background: var(--border);
+            transition: background 200ms;
+          }
+          #christoffel-mcq .mcq-dot.current { background: var(--accent); }
+          #christoffel-mcq .mcq-dot.right { background: var(--good); }
+          #christoffel-mcq .mcq-dot.wrong { background: var(--bad); }
+          #christoffel-mcq .mcq-question {
+            font-family: var(--font-display);
+            font-size: 1.08rem;
+            line-height: 1.55;
+            color: var(--ink);
+            margin-bottom: 18px;
+          }
+          #christoffel-mcq .mcq-options {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 16px;
+          }
+          #christoffel-mcq .mcq-option {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 14px 16px;
+            border: 1.5px solid var(--border);
+            border-radius: 8px;
+            background: var(--page-bg);
+            color: var(--ink);
+            font-family: var(--font-body);
+            font-size: 0.95rem;
+            line-height: 1.5;
+            text-align: left;
+            cursor: pointer;
+            transition: border-color 150ms, background 150ms, transform 80ms;
+            width: 100%;
+          }
+          #christoffel-mcq .mcq-option:hover:not(:disabled) {
+            border-color: var(--accent);
+            background: var(--surface);
+            transform: translateY(-1px);
+          }
+          #christoffel-mcq .mcq-option:focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: 2px;
+          }
+          #christoffel-mcq .mcq-option:disabled { cursor: default; transform: none; }
+          #christoffel-mcq .mcq-letter {
+            flex: 0 0 auto;
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            background: var(--surface);
+            border: 1.5px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: var(--font-mono);
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: var(--ink-soft);
+          }
+          #christoffel-mcq .mcq-body { flex: 1; padding-top: 1px; }
+          #christoffel-mcq .mcq-option.correct {
+            border-color: var(--good);
+            background: rgba(31, 122, 77, 0.10);
+          }
+          #christoffel-mcq .mcq-option.correct .mcq-letter {
+            background: var(--good); color: #fff; border-color: var(--good);
+          }
+          #christoffel-mcq .mcq-option.incorrect {
+            border-color: var(--bad);
+            background: rgba(184, 50, 58, 0.10);
+          }
+          #christoffel-mcq .mcq-option.incorrect .mcq-letter {
+            background: var(--bad); color: #fff; border-color: var(--bad);
+          }
+          #christoffel-mcq .mcq-option.reveal {
+            border-color: var(--good);
+            background: rgba(31, 122, 77, 0.04);
+          }
+          #christoffel-mcq .mcq-option.reveal .mcq-letter {
+            border-color: var(--good); color: var(--good);
+          }
+          #christoffel-mcq .mcq-option.dim { opacity: 0.55; }
+          #christoffel-mcq .mcq-explain {
+            padding: 14px 16px;
+            border-left: 3px solid var(--accent);
+            background: rgba(31, 78, 140, 0.06);
+            border-radius: 0 6px 6px 0;
+            font-size: 0.92rem;
+            line-height: 1.6;
+            color: var(--ink);
+            margin-bottom: 16px;
+          }
+          #christoffel-mcq .mcq-explain.right { border-left-color: var(--good); background: rgba(31, 122, 77, 0.07); }
+          #christoffel-mcq .mcq-explain.wrong { border-left-color: var(--bad); background: rgba(184, 50, 58, 0.06); }
+          #christoffel-mcq .mcq-explain-title {
+            font-family: var(--font-mono);
+            font-size: 0.7rem;
+            letter-spacing: 0.10em;
+            text-transform: uppercase;
+            margin-bottom: 6px;
+            color: var(--accent);
+          }
+          #christoffel-mcq .mcq-explain.right .mcq-explain-title { color: var(--good); }
+          #christoffel-mcq .mcq-explain.wrong .mcq-explain-title { color: var(--bad); }
+          #christoffel-mcq .mcq-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            margin-top: 4px;
+          }
+          #christoffel-mcq .mcq-btn {
+            padding: 8px 16px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            color: var(--ink);
+            font-family: var(--font-body);
+            font-size: 0.88rem;
+            cursor: pointer;
+            transition: background 150ms, border-color 150ms, color 150ms;
+          }
+          #christoffel-mcq .mcq-btn:hover:not(:disabled) {
+            border-color: var(--accent);
+            color: var(--accent);
+          }
+          #christoffel-mcq .mcq-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+          #christoffel-mcq .mcq-btn.primary {
+            background: var(--accent); color: #fff; border-color: var(--accent);
+          }
+          #christoffel-mcq .mcq-btn.primary:hover:not(:disabled) {
+            background: #173d6e; color: #fff; border-color: #173d6e;
+          }
+          #christoffel-mcq .mcq-score {
+            font-family: var(--font-mono);
+            font-size: 0.82rem;
+            color: var(--ink-soft);
+          }
+          #christoffel-mcq .mcq-summary {
+            text-align: center;
+            padding: 12px 8px 4px;
+            border-top: 1px dashed var(--border);
+            margin-top: 14px;
+          }
+          #christoffel-mcq .mcq-summary-label {
+            font-family: var(--font-mono);
+            font-size: 0.72rem;
+            letter-spacing: 0.10em;
+            text-transform: uppercase;
+            color: var(--ink-soft);
+          }
+          #christoffel-mcq .mcq-summary-score {
+            font-family: var(--font-display);
+            font-size: 1.6rem;
+            color: var(--accent);
+            margin-top: 4px;
+          }
+          #christoffel-mcq .mcq-reset {
+            margin-top: 8px;
+            font-family: var(--font-mono);
+            font-size: 0.78rem;
+            color: var(--accent-2);
+            background: none;
+            border: none;
+            cursor: pointer;
+            text-decoration: underline dotted;
+            text-underline-offset: 3px;
+          }
+          #christoffel-mcq .widget-fail {
+            padding: 16px;
+            background: rgba(184, 50, 58, 0.06);
+            border: 1px solid var(--bad);
+            border-radius: 8px;
+            color: var(--bad);
+            font-family: var(--font-mono);
+          }
+          @media (max-width: 600px) {
+            #christoffel-mcq .mcq-card { padding: 18px; }
+            #christoffel-mcq .mcq-question { font-size: 1rem; }
+            #christoffel-mcq .mcq-option { font-size: 0.9rem; padding: 12px; }
+            #christoffel-mcq .mcq-dot { width: 18px; }
+          }
+        `;
+        document.head.appendChild(s);
+        return () => { try { document.head.removeChild(s); } catch (e) {} };
+      }, []);
+
+      const q = QUESTIONS[idx];
+      const pick = picks[idx];
+      const answered = pick !== null;
+      const isCorrect = answered && pick === q.correct;
+      const letters = ['A', 'B', 'C', 'D'];
+
+      const pickOption = (i) => {
+        if (answered) return;
+        const next = picks.slice();
+        next[idx] = i;
+        setPicks(next);
+      };
+
+      const score = picks.reduce((s, p, i) => s + (p !== null && p === QUESTIONS[i].correct ? 1 : 0), 0);
+      const answeredCount = picks.filter(p => p !== null).length;
+      const allDone = answeredCount === QUESTIONS.length;
+
+      const reset = () => {
+        setPicks(Array(QUESTIONS.length).fill(null));
+        setIdx(0);
+      };
+
+      return (
+        <div className="mcq-card" role="region" aria-label="Coriolis self-check questions">
+          <div className="mcq-header">
+            <span className="mcq-eyebrow">Self-check · Q{idx + 1} of {QUESTIONS.length}</span>
+            <div className="mcq-progress" aria-label="Progress through questions">
+              {QUESTIONS.map((qq, i) => {
+                let cls = 'mcq-dot';
+                if (i === idx) cls += ' current';
+                else if (picks[i] !== null) cls += picks[i] === qq.correct ? ' right' : ' wrong';
+                return <button
+                  key={i}
+                  className={cls}
+                  onClick={() => setIdx(i)}
+                  aria-label={`Go to question ${i + 1}`}
+                  style={{ border: 'none', padding: 0, cursor: 'pointer' }}
+                />;
+              })}
+            </div>
+          </div>
+
+          <div className="mcq-question">
+            <RichText text={q.q} />
+          </div>
+
+          <div className="mcq-options" role="radiogroup" aria-label="Answer choices">
+            {q.options.map((opt, i) => {
+              let cls = 'mcq-option';
+              if (answered) {
+                if (i === pick && isCorrect) cls += ' correct';
+                else if (i === pick && !isCorrect) cls += ' incorrect';
+                else if (i === q.correct) cls += ' reveal';
+                else cls += ' dim';
+              }
+              return (
+                <button
+                  key={i}
+                  className={cls}
+                  onClick={() => pickOption(i)}
+                  disabled={answered}
+                  role="radio"
+                  aria-checked={pick === i}
+                >
+                  <span className="mcq-letter" aria-hidden="true">{letters[i]}</span>
+                  <span className="mcq-body"><RichText text={opt} /></span>
+                </button>
+              );
+            })}
+          </div>
+
+          {answered && (
+            <div className={`mcq-explain ${isCorrect ? 'right' : 'wrong'}`} role="status">
+              <div className="mcq-explain-title">
+                {isCorrect ? '✓ Correct' : '✗ Not quite — see why'}
+              </div>
+              <div><RichText text={q.explain} /></div>
+            </div>
+          )}
+
+          <div className="mcq-nav">
+            <button
+              className="mcq-btn"
+              onClick={() => setIdx(Math.max(0, idx - 1))}
+              disabled={idx === 0}
+              aria-label="Previous question"
+            >
+              ← Previous
+            </button>
+            <span className="mcq-score" aria-live="polite">
+              Score: {score} / {QUESTIONS.length}
+            </span>
+            <button
+              className="mcq-btn primary"
+              onClick={() => setIdx(Math.min(QUESTIONS.length - 1, idx + 1))}
+              disabled={idx === QUESTIONS.length - 1 || !answered}
+              aria-label="Next question"
+            >
+              Next →
+            </button>
+          </div>
+
+          {allDone && (
+            <div className="mcq-summary">
+              <div className="mcq-summary-label">All four done</div>
+              <div className="mcq-summary-score">{score} / {QUESTIONS.length}</div>
+              <button className="mcq-reset" onClick={reset} aria-label="Reset all answers">
+                reset and try again
+              </button>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    const mount = document.getElementById('christoffel-mcq');
+    if (!mount) throw new Error('mount missing');
     ReactDOM.createRoot(mount).render(<Widget />);
   } catch (e) {
     const mount = document.getElementById('christoffel-mcq');
