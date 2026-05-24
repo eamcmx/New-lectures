@@ -2078,390 +2078,399 @@ tau = D*qdd + h + c;</code></pre>
   }
 })();
 </script>
-<!-- widget: inertia-matrix-animator (animator) -->
+<!-- widget: inertia-matrix-animator · rebuilt 2026-05-24T06:21:46.401Z -->
 <script type="text/babel">
 (function () {
   try {
-    const { useState, useEffect, useMemo, Fragment } = React;
+    const { useState, useEffect, useMemo } = React;
+
+    const PRESETS = [
+      { label: 'q = (0°, 0°, 0°) — fully extended', q: [0, 0, 0] },
+      { label: 'q = (0°, 90°, 0°) — elbow up',      q: [0, Math.PI / 2, 0] },
+      { label: 'q = (45°, 45°, 45°) — generic pose', q: [Math.PI / 4, Math.PI / 4, Math.PI / 4] }
+    ];
+    const L = [0.4, 0.4, 0.4];
+    const M = [1.0, 1.0, 1.0];
+    const SUB = ['₁', '₂', '₃'];
+
+    function computeArm(q) {
+      const joints = [{ x: 0, y: 0 }];
+      let ang = 0, x = 0, y = 0;
+      for (let i = 0; i < 3; i++) {
+        ang += q[i];
+        x += L[i] * Math.cos(ang);
+        y += L[i] * Math.sin(ang);
+        joints.push({ x, y });
+      }
+      const ends = joints.slice(1).map(p => ({ x: p.x, y: p.y }));
+      return { joints, ends };
+    }
+
+    function partial(i, j, arm) {
+      if (j > i) return { x: 0, y: 0 };
+      const o = arm.joints[j];
+      const p = arm.ends[i];
+      return { x: -(p.y - o.y), y: (p.x - o.x) };
+    }
+
+    function computeSteps(q) {
+      const arm = computeArm(q);
+      const steps = [];
+      for (let i = 0; i < 3; i++) {
+        for (let j = 0; j <= i; j++) {
+          for (let k = 0; k <= i; k++) {
+            const dj = partial(i, j, arm);
+            const dk = partial(i, k, arm);
+            const value = M[i] * (dj.x * dk.x + dj.y * dk.y);
+            steps.push({ i, j, k, value });
+          }
+        }
+      }
+      return steps;
+    }
 
     function Widget() {
-      const presets = [
-        { key: 'extended', name: 'extended  q = (0°, 0°, 0°)',         q: [0, 0, 0] },
-        { key: 'elbowUp',  name: 'elbow up  q = (0°, 90°, 0°)',        q: [0, Math.PI / 2, 0] },
-        { key: 'generic',  name: 'generic   q = (45°, 45°, 45°)',      q: [Math.PI / 4, Math.PI / 4, Math.PI / 4] },
-      ];
+      const mount = document.getElementById('inertia-matrix-animator');
+      if (!mount) return null;
 
-      const [presetIdx, setPresetIdx] = useState(1);
+      const [presetIdx, setPresetIdx] = useState(0);
+      const [stepIdx, setStepIdx] = useState(-1);
       const [playing, setPlaying] = useState(false);
-      const [stepIdx, setStepIdx] = useState(0);
-      const [speedHz, setSpeedHz] = useState(1.4);
+      const [speed, setSpeed] = useState(1);
       const [hoverCell, setHoverCell] = useState(null);
       const [hoverLink, setHoverLink] = useState(null);
 
-      const q = presets[presetIdx].q;
-      const L = [0.4, 0.4, 0.4];
-      const masses = [1, 1, 1];
+      const q = PRESETS[presetIdx].q;
+      const arm = useMemo(() => computeArm(q), [presetIdx]);
+      const allSteps = useMemo(() => computeSteps(q), [presetIdx]);
 
-      const contributions = useMemo(() => {
-        const Theta = [q[0], q[0] + q[1], q[0] + q[1] + q[2]];
-        const cosT = Theta.map(Math.cos);
-        const sinT = Theta.map(Math.sin);
-        const pX = (i, j) => {
-          let s = 0;
-          for (let kk = j; kk <= i; kk++) s += -L[kk] * sinT[kk];
-          return s;
-        };
-        const pY = (i, j) => {
-          let s = 0;
-          for (let kk = j; kk <= i; kk++) s += L[kk] * cosT[kk];
-          return s;
-        };
-        const list = [];
-        for (let i = 0; i < 3; i++) {
-          for (let j = 0; j <= i; j++) {
-            for (let k = 0; k <= i; k++) {
-              const v = masses[i] * (pX(i, j) * pX(i, k) + pY(i, j) * pY(i, k));
-              list.push({ i, j, k, val: v });
-            }
-          }
-        }
-        return list;
-      }, [q[0], q[1], q[2]]);
+      useEffect(() => {
+        const s = document.createElement('style');
+        s.textContent = `
+          #inertia-matrix-animator .iw { font-family: var(--font-body); color: var(--ink); background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 14px; max-width: 100%; box-sizing: border-box; max-height: 880px; overflow: auto; }
+          #inertia-matrix-animator .iw-row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; font-size: 13px; }
+          #inertia-matrix-animator .iw-row > label { display: inline-flex; align-items: center; gap: 6px; color: var(--ink-soft); }
+          #inertia-matrix-animator .iw select { font-family: var(--font-body); font-size: 12.5px; padding: 4px 8px; border: 1px solid var(--border); background: var(--surface); color: var(--ink); border-radius: 4px; }
+          #inertia-matrix-animator .iw input[type=range] { accent-color: var(--accent); }
+          #inertia-matrix-animator .iw button { font-family: var(--font-body); font-size: 13px; padding: 5px 12px; border: 1px solid var(--border); background: var(--page-bg); color: var(--ink); border-radius: 4px; cursor: pointer; transition: all 0.12s; }
+          #inertia-matrix-animator .iw button:hover:not(:disabled) { background: var(--accent); color: var(--surface); border-color: var(--accent); }
+          #inertia-matrix-animator .iw button:disabled { opacity: 0.4; cursor: not-allowed; }
+          #inertia-matrix-animator .iw button.primary { background: var(--accent); color: var(--surface); border-color: var(--accent); }
+          #inertia-matrix-animator .iw button.primary:hover { background: var(--ink); border-color: var(--ink); }
+          #inertia-matrix-animator .iw-grid { display: grid; grid-template-columns: minmax(280px, 1fr) minmax(280px, 1fr); gap: 14px; margin-top: 12px; }
+          @media (max-width: 700px) { #inertia-matrix-animator .iw-grid { grid-template-columns: 1fr; } }
+          #inertia-matrix-animator .iw-panel { background: var(--page-bg); border: 1px solid var(--border); border-radius: 6px; padding: 12px; }
+          #inertia-matrix-animator .iw-panel h4 { margin: 0 0 8px 0; font-family: var(--font-display); font-size: 11px; color: var(--ink-soft); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; }
+          #inertia-matrix-animator .iw-arm svg { width: 100%; height: auto; display: block; max-height: 320px; }
+          #inertia-matrix-animator .iw-matrix { display: grid; grid-template-columns: 30px repeat(3, 1fr); gap: 4px; font-family: var(--font-mono); font-size: 13px; }
+          #inertia-matrix-animator .iw-mcell { padding: 12px 4px; text-align: center; border-radius: 4px; border: 1px solid var(--border); background: var(--surface); cursor: pointer; transition: all 0.15s; min-height: 38px; display: flex; align-items: center; justify-content: center; font-weight: 500; }
+          #inertia-matrix-animator .iw-mcell.active { border: 2px solid var(--accent-2); padding: 11px 3px; box-shadow: 0 0 0 2px rgba(184,84,26,0.20); transform: scale(1.04); }
+          #inertia-matrix-animator .iw-mcell.dim { opacity: 0.25; }
+          #inertia-matrix-animator .iw-mcell.spotlight { border: 2px solid var(--accent); padding: 11px 3px; }
+          #inertia-matrix-animator .iw-mhead { text-align: center; font-family: var(--font-display); font-weight: 600; color: var(--ink-soft); padding: 6px 0; font-size: 12px; }
+          #inertia-matrix-animator .iw-step { font-family: var(--font-mono); font-size: 12.5px; background: var(--surface); padding: 10px 12px; border-radius: 4px; border: 1px solid var(--border); line-height: 1.7; min-height: 80px; }
+          #inertia-matrix-animator .iw-step .lbl { color: var(--ink-soft); }
+          #inertia-matrix-animator .iw-step .val { color: var(--accent-2); font-weight: 600; }
+          #inertia-matrix-animator .iw-step .acc { color: var(--accent); font-weight: 600; }
+          #inertia-matrix-animator .iw-voice { background: rgba(31,78,140,0.07); border-left: 3px solid var(--accent); padding: 10px 14px; font-style: italic; font-size: 13px; color: var(--ink); border-radius: 0 4px 4px 0; margin-top: 12px; line-height: 1.5; }
+          #inertia-matrix-animator .iw-progress { height: 4px; background: var(--border); border-radius: 3px; overflow: hidden; margin-top: 8px; }
+          #inertia-matrix-animator .iw-progress-bar { height: 100%; background: var(--accent-2); transition: width 0.25s ease; }
+          #inertia-matrix-animator .iw-detail { margin-top: 8px; font-size: 11.5px; font-family: var(--font-mono); background: var(--surface); padding: 8px 10px; border-radius: 4px; border: 1px dashed var(--accent); max-height: 110px; overflow: auto; }
+          #inertia-matrix-animator .iw-detail .hd { color: var(--ink-soft); margin-bottom: 4px; font-style: italic; }
+        `;
+        mount.appendChild(s);
+        return () => { try { mount.removeChild(s); } catch (e) {} };
+      }, []);
 
-      const totalSteps = contributions.length;
-
-      const D = useMemo(() => {
-        const M = [[0, 0, 0], [0, 0, 0], [0, 0, 0]];
-        const upTo = Math.min(stepIdx, totalSteps);
-        for (let s = 0; s < upTo; s++) {
-          const c = contributions[s];
-          M[c.j][c.k] += c.val;
-        }
-        return M;
-      }, [stepIdx, contributions, totalSteps]);
-
-      const hoverInfo = useMemo(() => {
-        if (hoverCell == null && hoverLink == null) return null;
-        const upTo = Math.min(stepIdx, totalSteps);
-        const seen = contributions.slice(0, upTo);
-        if (hoverCell != null) return seen.filter(c => c.j === hoverCell.j && c.k === hoverCell.k);
-        return seen.filter(c => c.i === hoverLink);
-      }, [hoverCell, hoverLink, stepIdx, contributions, totalSteps]);
+      useEffect(() => {
+        setStepIdx(-1);
+        setPlaying(false);
+      }, [presetIdx]);
 
       useEffect(() => {
         if (!playing) return;
-        if (stepIdx >= totalSteps) { setPlaying(false); return; }
-        const id = setTimeout(() => setStepIdx(s => s + 1), 1000 / speedHz);
+        if (stepIdx >= allSteps.length - 1) {
+          setPlaying(false);
+          return;
+        }
+        const id = setTimeout(() => setStepIdx(stepIdx + 1), 750 / speed);
         return () => clearTimeout(id);
-      }, [playing, stepIdx, totalSteps, speedHz]);
+      }, [playing, stepIdx, speed, allSteps.length]);
 
-      useEffect(() => { setStepIdx(0); setPlaying(false); }, [presetIdx]);
+      const visible = stepIdx >= 0 ? allSteps.slice(0, stepIdx + 1) : [];
+      const current = stepIdx >= 0 ? allSteps[stepIdx] : null;
 
-      const current = stepIdx > 0 && stepIdx <= totalSteps ? contributions[stepIdx - 1] : null;
+      const D = [[0, 0, 0], [0, 0, 0], [0, 0, 0]];
+      visible.forEach(s => { D[s.j][s.k] += s.value; });
+      let maxD = 0;
+      for (let r = 0; r < 3; r++) for (let c = 0; c < 3; c++) if (D[r][c] > maxD) maxD = D[r][c];
 
-      const Theta = [q[0], q[0] + q[1], q[0] + q[1] + q[2]];
-      const scale = 130, cx = 140, cy = 250;
-      const pts = [{ x: cx, y: cy }];
-      let px = 0, py = 0;
-      for (let i = 0; i < 3; i++) {
-        px += L[i] * Math.cos(Theta[i]);
-        py += L[i] * Math.sin(Theta[i]);
-        pts.push({ x: cx + px * scale, y: cy - py * scale });
+      const cellContribs = (j, k) => visible.filter(s => s.j === j && s.k === k);
+      const linkContribs = (i) => visible.filter(s => s.i === i);
+
+      const highlightedCells = new Set();
+      if (hoverLink !== null) {
+        linkContribs(hoverLink).forEach(s => highlightedCells.add(`${s.j},${s.k}`));
       }
 
-      const linkColors = ['#6c92bf', '#1f4e8c', '#0d2a52'];
-      const fmt = (v) => {
-        if (!isFinite(v)) return '—';
-        if (Math.abs(v) < 1e-4) return '0.000';
-        return v.toFixed(3);
-      };
+      const fmt = (v) => (Math.abs(v) < 1e-5 ? '0.000' : v.toFixed(3));
 
-      const btn = {
-        background: 'var(--surface)', color: 'var(--ink)',
-        border: '1px solid var(--border)', padding: '6px 12px',
-        borderRadius: 4, font: 'inherit', cursor: 'pointer',
-        fontFamily: 'var(--font-body)', fontSize: 13,
-      };
-      const btnPri = { ...btn, background: 'var(--accent)', color: 'white', borderColor: 'var(--accent)' };
-      const btnDis = { ...btn, opacity: 0.45, cursor: 'not-allowed' };
+      const armCx = 80, armCy = 240, sc = 195;
+      const ax = (x) => armCx + x * sc;
+      const ay = (y) => armCy - y * sc;
 
-      const cellHeaderStyle = {
-        background: 'var(--surface)', textAlign: 'center',
-        fontFamily: 'var(--font-mono)', fontSize: 11,
-        color: 'var(--ink-soft)', padding: '4px',
+      const onPlayClick = () => {
+        if (!playing) {
+          if (stepIdx >= allSteps.length - 1 || stepIdx < 0) setStepIdx(0);
+          setPlaying(true);
+        } else {
+          setPlaying(false);
+        }
       };
 
       return (
-        <div className="widget" style={{
-          fontFamily: 'var(--font-body)', color: 'var(--ink)',
-          background: 'var(--surface)', border: '1px solid var(--border)',
-          borderRadius: 8, padding: 16, maxHeight: 760, overflow: 'auto',
-        }}>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center', marginBottom: 12 }}>
-            <button style={playing ? btn : btnPri}
-                    aria-label={playing ? 'Pause' : 'Play'}
-                    onClick={() => {
-                      if (stepIdx >= totalSteps) setStepIdx(0);
-                      setPlaying(p => !p);
-                    }}>{playing ? '⏸  Pause' : '▶  Play'}</button>
-            <button style={stepIdx >= totalSteps ? btnDis : btn}
-                    onClick={() => { setPlaying(false); setStepIdx(s => Math.min(s + 1, totalSteps)); }}
-                    disabled={stepIdx >= totalSteps}
-                    aria-label="Step forward">Step ▶</button>
-            <button style={btn} onClick={() => { setPlaying(false); setStepIdx(0); }}
-                    aria-label="Reset">↺  Reset</button>
-            <span style={{ fontSize: 12, color: 'var(--ink-soft)', marginLeft: 6 }}>speed</span>
-            <input type="range" min="0.3" max="4" step="0.1" value={speedHz}
-                   onChange={e => setSpeedHz(parseFloat(e.target.value))}
-                   style={{ width: 90 }} aria-label="Animation speed" />
-            <span style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--ink-soft)' }}>
-              {speedHz.toFixed(1)}/s
+        <div className="iw">
+          <div className="iw-row">
+            <label>
+              Pose
+              <select value={presetIdx} onChange={e => setPresetIdx(Number(e.target.value))} aria-label="Choose pose preset">
+                {PRESETS.map((p, i) => <option key={i} value={i}>{p.label}</option>)}
+              </select>
+            </label>
+            <button className={playing ? '' : 'primary'} onClick={onPlayClick} aria-label={playing ? 'Pause animation' : 'Play animation'}>
+              {playing ? '⏸ Pause' : '▶ Play'}
+            </button>
+            <button onClick={() => setStepIdx(Math.min(stepIdx + 1, allSteps.length - 1))} disabled={stepIdx >= allSteps.length - 1 || playing} aria-label="Advance one step">
+              Step ▶
+            </button>
+            <button onClick={() => { setStepIdx(-1); setPlaying(false); }} aria-label="Reset to start">
+              ↺ Reset
+            </button>
+            <label>
+              Speed
+              <input type="range" min="0.5" max="3" step="0.25" value={speed} onChange={e => setSpeed(Number(e.target.value))} style={{width: 90}} aria-label="Playback speed"/>
+              <span style={{fontFamily: 'var(--font-mono)', minWidth: 36}}>{speed.toFixed(2)}×</span>
+            </label>
+            <span style={{marginLeft: 'auto', color: 'var(--ink-soft)', fontFamily: 'var(--font-mono)', fontSize: 12}}>
+              {Math.max(0, stepIdx + 1)} / {allSteps.length}
             </span>
-            <span style={{ flex: 1 }} />
-            <select value={presetIdx} onChange={e => setPresetIdx(parseInt(e.target.value, 10))}
-                    style={{ ...btn, padding: '5px 8px', fontFamily: 'var(--font-mono)', fontSize: 12 }}
-                    aria-label="Pose preset">
-              {presets.map((p, i) => <option key={p.key} value={i}>{p.name}</option>)}
-            </select>
           </div>
 
-          <div style={{ height: 4, background: 'var(--border)', borderRadius: 2, marginBottom: 14, overflow: 'hidden' }}>
-            <div style={{
-              height: '100%',
-              width: `${(stepIdx / totalSteps) * 100}%`,
-              background: 'var(--accent)',
-              transition: 'width 0.18s ease',
-            }} />
+          <div className="iw-progress" aria-hidden="true">
+            <div className="iw-progress-bar" style={{ width: `${(Math.max(0, stepIdx + 1) / allSteps.length) * 100}%` }} />
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', gap: 16 }}>
-            <div>
-              <div style={{ fontSize: 12, color: 'var(--ink-soft)', marginBottom: 4, fontFamily: 'var(--font-mono)' }}>
-                3-DOF planar arm · click a link to filter
-              </div>
-              <svg viewBox="0 0 400 340" style={{
-                width: '100%', height: 'auto', display: 'block',
-                background: '#f9f5e9', borderRadius: 4, border: '1px solid var(--border)',
-              }} role="img" aria-label="3-DOF planar arm visualization">
+          <div className="iw-grid">
+            <div className="iw-panel iw-arm">
+              <h4>3-DOF planar arm · point masses at link ends</h4>
+              <svg viewBox="0 0 380 320" aria-label="3-DOF planar arm visualization">
                 <defs>
-                  <marker id="arrowSmall" viewBox="0 0 10 10" refX="9" refY="5"
-                          markerWidth="6" markerHeight="6" orient="auto">
-                    <path d="M0,0 L10,5 L0,10 z" fill="var(--ink-soft)" />
+                  <marker id="iw-ar-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+                    <path d="M0,0 L10,5 L0,10 z" fill="var(--accent)" />
+                  </marker>
+                  <marker id="iw-ar-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+                    <path d="M0,0 L10,5 L0,10 z" fill="var(--good)" />
                   </marker>
                 </defs>
-                <line x1="20" y1={cy} x2="380" y2={cy} stroke="#e0d6bd" strokeWidth="1" strokeDasharray="3,4" />
-                <line x1={cx} y1="20" x2={cx} y2="320" stroke="#e0d6bd" strokeWidth="1" strokeDasharray="3,4" />
 
-                <line x1="330" y1="30" x2="370" y2="30" stroke="var(--ink-soft)" strokeWidth="1" markerEnd="url(#arrowSmall)" />
-                <text x="375" y="34" fontSize="11" fill="var(--ink-soft)" fontFamily="var(--font-mono)">x</text>
-                <line x1="330" y1="30" x2="330" y2="-10" stroke="var(--ink-soft)" strokeWidth="1" markerEnd="url(#arrowSmall)" />
-
-                {[0, 1, 2].map(i => {
-                  const isCurrent = current && current.i === i;
-                  const linkActive = isCurrent || hoverLink === i;
-                  const dim = hoverLink != null && hoverLink !== i;
-                  return (
-                    <line key={i}
-                          x1={pts[i].x} y1={pts[i].y}
-                          x2={pts[i + 1].x} y2={pts[i + 1].y}
-                          stroke={linkActive ? 'var(--accent-2)' : linkColors[i]}
-                          strokeWidth={linkActive ? 11 : 7.5}
-                          strokeLinecap="round"
-                          opacity={dim ? 0.25 : 1}
-                          style={{ cursor: 'pointer', transition: 'stroke 0.18s, stroke-width 0.18s, opacity 0.18s' }}
-                          onMouseEnter={() => setHoverLink(i)}
-                          onMouseLeave={() => setHoverLink(null)} />
-                  );
-                })}
-
-                {pts.slice(0, 3).map((p, i) => (
-                  <circle key={i} cx={p.x} cy={p.y} r="6" fill="white" stroke="var(--ink)" strokeWidth="2" />
-                ))}
-                <rect x={cx - 14} y={cy + 2} width="28" height="9" fill="var(--ink)" />
-                <line x1={cx - 18} y1={cy + 11} x2={cx - 10} y2={cy + 18} stroke="var(--ink)" strokeWidth="1.4" />
-                <line x1={cx - 8} y1={cy + 11} x2={cx} y2={cy + 18} stroke="var(--ink)" strokeWidth="1.4" />
-                <line x1={cx + 2} y1={cy + 11} x2={cx + 10} y2={cy + 18} stroke="var(--ink)" strokeWidth="1.4" />
-                <line x1={cx + 12} y1={cy + 11} x2={cx + 20} y2={cy + 18} stroke="var(--ink)" strokeWidth="1.4" />
+                <line x1={ax(-0.2)} y1={ay(0)} x2={ax(1.4)} y2={ay(0)} stroke="var(--border)" strokeWidth="1" strokeDasharray="3,3"/>
+                <line x1={ax(0)} y1={ay(-0.3)} x2={ax(0)} y2={ay(1.1)} stroke="var(--border)" strokeWidth="1" strokeDasharray="3,3"/>
+                <rect x={ax(0) - 18} y={ay(0)} width="36" height="10" fill="var(--ink-soft)" opacity="0.45"/>
+                <text x={ax(0) - 22} y={ay(0) + 22} fontSize="10" fill="var(--ink-soft)" fontFamily="var(--font-mono)">base</text>
 
                 {[0, 1, 2].map(i => {
-                  const isCurrent = current && current.i === i;
+                  const a = arm.joints[i], b = arm.joints[i + 1];
+                  const isCur = current && current.i === i;
+                  const isHov = hoverLink === i;
+                  const wasPlayed = visible.some(s => s.i === i);
+                  const stroke = isCur ? 'var(--accent-2)' : (wasPlayed ? 'var(--accent)' : 'var(--ink-soft)');
+                  const sw = isCur || isHov ? 7 : 4.5;
+                  const dim = hoverLink !== null && hoverLink !== i;
                   return (
-                    <g key={i} style={{ cursor: 'pointer' }}
+                    <g key={i} style={{cursor: 'pointer'}}
                        onMouseEnter={() => setHoverLink(i)}
                        onMouseLeave={() => setHoverLink(null)}>
-                      <circle cx={pts[i + 1].x} cy={pts[i + 1].y} r={isCurrent ? 11 : 9}
-                              fill={isCurrent ? 'var(--accent-2)' : linkColors[i]}
-                              stroke="var(--ink)" strokeWidth="1.5"
-                              style={{ transition: 'r 0.18s, fill 0.18s' }} />
-                      <text x={pts[i + 1].x} y={pts[i + 1].y + 3.5} textAnchor="middle"
-                            fontSize="10" fill="white" fontFamily="var(--font-mono)"
-                            fontWeight="600" style={{ pointerEvents: 'none' }}>
-                        m{i + 1}
-                      </text>
+                      <line x1={ax(a.x)} y1={ay(a.y)} x2={ax(b.x)} y2={ay(b.y)}
+                            stroke={stroke} strokeWidth={sw} strokeLinecap="round"
+                            opacity={dim ? 0.25 : 1} />
+                      <text x={(ax(a.x) + ax(b.x)) / 2 + 6} y={(ay(a.y) + ay(b.y)) / 2 - 6}
+                            fontSize="11" fill="var(--ink)" fontFamily="var(--font-mono)"
+                            opacity={dim ? 0.4 : 1}>L{i + 1}</text>
                     </g>
                   );
                 })}
 
-                <text x={cx - 22} y={cy + 26} fontSize="12" fill="var(--ink-soft)" fontFamily="var(--font-mono)">θ₁</text>
-                <text x={pts[1].x - 18} y={pts[1].y - 10} fontSize="12" fill="var(--ink-soft)" fontFamily="var(--font-mono)">θ₂</text>
-                <text x={pts[2].x - 18} y={pts[2].y - 10} fontSize="12" fill="var(--ink-soft)" fontFamily="var(--font-mono)">θ₃</text>
+                {[0, 1, 2].map(i => {
+                  const j = arm.joints[i];
+                  const isCur = current && (current.j === i || current.k === i);
+                  return (
+                    <g key={i}>
+                      <circle cx={ax(j.x)} cy={ay(j.y)} r={isCur ? 8 : 5.5}
+                              fill={isCur ? 'var(--accent)' : 'var(--surface)'}
+                              stroke="var(--ink)" strokeWidth="2" />
+                      <text x={ax(j.x) - 18} y={ay(j.y) - 10} fontSize="11" fill="var(--ink-soft)"
+                            fontFamily="var(--font-mono)" fontWeight={isCur ? 700 : 400}>q{SUB[i]}</text>
+                    </g>
+                  );
+                })}
+
+                {arm.ends.map((p, i) => {
+                  const isCur = current && current.i === i;
+                  return (
+                    <g key={i}>
+                      <circle cx={ax(p.x)} cy={ay(p.y)} r={isCur ? 10 : 7}
+                              fill={isCur ? 'var(--accent-2)' : 'var(--accent)'}
+                              stroke="var(--ink)" strokeWidth="1.5" />
+                      <text x={ax(p.x) + 12} y={ay(p.y) + 4} fontSize="11" fill="var(--ink)"
+                            fontFamily="var(--font-mono)" fontWeight={isCur ? 700 : 500}>m{SUB[i]}</text>
+                    </g>
+                  );
+                })}
+
+                {current && (() => {
+                  const dj = partial(current.i, current.j, arm);
+                  const dk = partial(current.i, current.k, arm);
+                  const p = arm.ends[current.i];
+                  const arrowScale = 55;
+                  const out = [];
+                  const nj = Math.hypot(dj.x, dj.y);
+                  if (nj > 1e-4) {
+                    out.push(
+                      <line key="dj"
+                            x1={ax(p.x)} y1={ay(p.y)}
+                            x2={ax(p.x) + dj.x * arrowScale}
+                            y2={ay(p.y) - dj.y * arrowScale}
+                            stroke="var(--accent)" strokeWidth="2.5"
+                            markerEnd="url(#iw-ar-blue)" />
+                    );
+                  }
+                  if (current.j !== current.k) {
+                    const nk = Math.hypot(dk.x, dk.y);
+                    if (nk > 1e-4) {
+                      out.push(
+                        <line key="dk"
+                              x1={ax(p.x)} y1={ay(p.y)}
+                              x2={ax(p.x) + dk.x * arrowScale}
+                              y2={ay(p.y) - dk.y * arrowScale}
+                              stroke="var(--good)" strokeWidth="2.5"
+                              markerEnd="url(#iw-ar-green)" />
+                      );
+                    }
+                  }
+                  return out;
+                })()}
               </svg>
-              <div style={{ fontSize: 11, color: 'var(--ink-soft)', marginTop: 6, fontFamily: 'var(--font-mono)', lineHeight: 1.5 }}>
-                L₁ = L₂ = L₃ = 0.4 m · m₁ = m₂ = m₃ = 1 kg<br />
-                point masses at link ends · revolute joints in plane
+              <div style={{fontSize: 11.5, color: 'var(--ink-soft)', marginTop: 6, lineHeight: 1.5}}>
+                {current ? (
+                  <span>
+                    Active link <b style={{color: 'var(--accent-2)'}}>L{current.i + 1}</b>{' · '}
+                    <span style={{color: 'var(--accent)'}}>blue arrow ∂p{SUB[current.i]}/∂q{SUB[current.j]}</span>
+                    {current.j !== current.k && <> · <span style={{color: 'var(--good)'}}>green arrow ∂p{SUB[current.i]}/∂q{SUB[current.k]}</span></>}
+                    {current.j === current.k && <> (same index — squared)</>}
+                  </span>
+                ) : (
+                  <span>Press <b>▶ Play</b> or hover a matrix cell / link to explore.</span>
+                )}
               </div>
             </div>
 
-            <div>
-              <div style={{ fontSize: 12, color: 'var(--ink-soft)', marginBottom: 4, fontFamily: 'var(--font-mono)' }}>
-                D(q) — running sum · step {stepIdx} / {totalSteps}
-              </div>
-
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: '26px repeat(3, 1fr)',
-                gap: 2,
-                background: 'var(--border)',
-                border: '1px solid var(--border)',
-                borderRadius: 4,
-                overflow: 'hidden',
-              }}>
-                <div style={cellHeaderStyle}></div>
-                {[0, 1, 2].map(k => (
-                  <div key={k} style={cellHeaderStyle}>k={k + 1}</div>
-                ))}
-                {[0, 1, 2].map(j => (
-                  <Fragment key={j}>
-                    <div style={{ ...cellHeaderStyle, alignSelf: 'center' }}>j={j + 1}</div>
-                    {[0, 1, 2].map(k => {
-                      const isCurrent = current && current.j === j && current.k === k;
-                      const isHovered = hoverCell && hoverCell.j === j && hoverCell.k === k;
-                      const isLinkCell = hoverLink != null && hoverInfo && hoverInfo.some(c => c.j === j && c.k === k);
-                      const hasContrib = Math.abs(D[j][k]) > 1e-9;
+            <div className="iw-panel">
+              <h4>D(q) — accumulating</h4>
+              <div className="iw-matrix" role="grid" aria-label="3 by 3 inertia matrix D">
+                <div></div>
+                {[0, 1, 2].map(c => <div key={'h' + c} className="iw-mhead">k={c + 1}</div>)}
+                {[0, 1, 2].map(r => (
+                  <React.Fragment key={'row' + r}>
+                    <div className="iw-mhead">j={r + 1}</div>
+                    {[0, 1, 2].map(c => {
+                      const val = D[r][c];
+                      const isCur = current && current.j === r && current.k === c;
+                      const isHovCell = hoverCell && hoverCell[0] === r && hoverCell[1] === c;
+                      const isLinkHi = hoverLink !== null && highlightedCells.has(`${r},${c}`);
+                      const dimmed = hoverLink !== null && !highlightedCells.has(`${r},${c}`);
+                      const intensity = maxD > 0 ? Math.min(1, val / maxD) : 0;
+                      let cls = 'iw-mcell';
+                      if (isCur) cls += ' active';
+                      if (isHovCell || isLinkHi) cls += ' spotlight';
+                      if (dimmed && !isLinkHi) cls += ' dim';
                       return (
-                        <div key={k}
-                             tabIndex={0}
-                             role="gridcell"
-                             aria-label={`D row ${j + 1} column ${k + 1} equals ${fmt(D[j][k])}`}
-                             onMouseEnter={() => setHoverCell({ j, k })}
+                        <div key={c} className={cls}
+                             style={{background: `rgba(31,78,140,${0.04 + intensity * 0.32})`}}
+                             onMouseEnter={() => setHoverCell([r, c])}
                              onMouseLeave={() => setHoverCell(null)}
-                             onFocus={() => setHoverCell({ j, k })}
-                             onBlur={() => setHoverCell(null)}
-                             style={{
-                               background: isCurrent ? 'rgba(184,84,26,0.20)' :
-                                          isHovered ? 'rgba(31,78,140,0.13)' :
-                                          isLinkCell ? 'rgba(31,78,140,0.07)' :
-                                          hasContrib ? '#fffefa' : '#faf6ec',
-                               padding: '16px 6px',
-                               textAlign: 'center',
-                               fontFamily: 'var(--font-mono)',
-                               fontSize: 14,
-                               color: hasContrib ? 'var(--ink)' : 'var(--ink-soft)',
-                               transition: 'background 0.18s',
-                               border: isCurrent ? '2px solid var(--accent-2)' : '2px solid transparent',
-                               cursor: 'pointer',
-                               outline: 'none',
-                             }}>
-                          {fmt(D[j][k])}
+                             role="gridcell"
+                             aria-label={`D row ${r + 1} col ${c + 1} equals ${fmt(val)}`}
+                             title={`D[${r + 1},${c + 1}] — hover to see contributions`}>
+                          {fmt(val)}
                         </div>
                       );
                     })}
-                  </Fragment>
+                  </React.Fragment>
                 ))}
               </div>
+              <div style={{fontSize: 11, color: 'var(--ink-soft)', marginTop: 6, fontStyle: 'italic'}}>
+                kg·m². Symmetric: D[j,k] = D[k,j]. Hover a cell or link to filter.
+              </div>
 
-              <div style={{
-                marginTop: 12,
-                padding: '10px 12px',
-                background: '#faf6ec',
-                border: '1px solid var(--border)',
-                borderRadius: 4,
-                fontFamily: 'var(--font-mono)',
-                fontSize: 12.5,
-                minHeight: 70,
-                lineHeight: 1.55,
-              }}>
+              <h4 style={{marginTop: 14}}>Current trace term</h4>
+              <div className="iw-step" aria-live="polite">
                 {current ? (
                   <>
-                    <div style={{ color: 'var(--ink-soft)', fontSize: 11, marginBottom: 4 }}>
-                      step {stepIdx} of {totalSteps}
+                    <div>
+                      <span className="lbl">i={current.i + 1}, j={current.j + 1}, k={current.k + 1}:</span>{' '}
+                      Tr(U{SUB[current.i]}{SUB[current.j]} · J{SUB[current.i]} · U{SUB[current.i]}{SUB[current.k]}ᵀ)
                     </div>
                     <div>
-                      <span style={{ color: 'var(--accent-2)', fontWeight: 600 }}>link i = {current.i + 1}</span>
-                      {' '}→ adds into{' '}
-                      <span style={{ color: 'var(--accent)', fontWeight: 600 }}>
-                        D[{current.j + 1},{current.k + 1}]
-                      </span>
+                      <span className="lbl">= m{SUB[current.i]} · </span>
+                      <span style={{color: 'var(--accent)'}}>∂p{SUB[current.i]}/∂q{SUB[current.j]}</span>
+                      <span className="lbl"> · </span>
+                      <span style={{color: 'var(--good)'}}>∂p{SUB[current.i]}/∂q{SUB[current.k]}</span>
                     </div>
-                    <div style={{ marginTop: 4 }}>
-                      Tr( U<sub>{current.i + 1},{current.j + 1}</sub> · J<sub>{current.i + 1}</sub> · U<sub>{current.i + 1},{current.k + 1}</sub><sup>T</sup> ) ={' '}
-                      <span style={{
-                        color: current.val >= 0 ? 'var(--good)' : 'var(--bad)',
-                        fontWeight: 600,
-                      }}>{fmt(current.val)}</span>
+                    <div>
+                      <span className="lbl">= 1.00 × </span>
+                      <span className="val">{fmt(current.value)}</span>
+                      <span className="lbl"> → D[{current.j + 1},{current.k + 1}] = </span>
+                      <span className="acc">{fmt(D[current.j][current.k])}</span>
                     </div>
                   </>
-                ) : stepIdx === 0 ? (
-                  <div style={{ color: 'var(--ink-soft)' }}>
-                    Press <strong style={{ color: 'var(--ink)' }}>Play</strong> to walk through Algorithm 3.1.
-                    Each tick adds one Tr( U<sub>ij</sub> J<sub>i</sub> U<sub>ik</sub><sup>T</sup> ) into D[j,k].
-                  </div>
                 ) : (
-                  <div style={{ color: 'var(--good)', fontWeight: 600 }}>
-                    ✓ D(q) fully assembled from {totalSteps} trace contributions.
-                    <div style={{ color: 'var(--ink-soft)', fontWeight: 400, marginTop: 4, fontSize: 11.5 }}>
-                      Notice D is symmetric — that's the trace's gift.
-                    </div>
-                  </div>
+                  <span style={{color: 'var(--ink-soft)'}}>
+                    Each step walks one (i, j, k) triple from Algorithm 3.1, evaluates one trace term, and adds it to a cell of D. Outer index i (link), inner indices j, k (joints).
+                  </span>
                 )}
               </div>
 
-              {(hoverCell || hoverLink != null) && hoverInfo && hoverInfo.length > 0 && (
-                <div style={{
-                  marginTop: 10,
-                  padding: '8px 10px',
-                  background: 'rgba(31,78,140,0.08)',
-                  border: '1px dashed var(--accent)',
-                  borderRadius: 4,
-                  fontFamily: 'var(--font-mono)',
-                  fontSize: 11.5,
-                  lineHeight: 1.55,
-                }}>
-                  <div style={{ color: 'var(--accent)', fontWeight: 600, marginBottom: 3 }}>
+              {(hoverCell || hoverLink !== null) && (
+                <div className="iw-detail" aria-live="polite">
+                  <div className="hd">
                     {hoverCell
-                      ? `D[${hoverCell.j + 1},${hoverCell.k + 1}] breakdown so far:`
-                      : `link i = ${hoverLink + 1} has touched:`}
+                      ? `Contributions to D[${hoverCell[0] + 1},${hoverCell[1] + 1}] so far:`
+                      : `Contributions from link L${hoverLink + 1} so far:`}
                   </div>
-                  {hoverInfo.map((c, idx) => (
-                    <div key={idx} style={{ color: 'var(--ink-soft)' }}>
-                      {hoverCell
-                        ? `i=${c.i + 1}: `
-                        : `D[${c.j + 1},${c.k + 1}] += `}
-                      <span style={{ color: 'var(--ink)' }}>{fmt(c.val)}</span>
+                  {(hoverCell ? cellContribs(hoverCell[0], hoverCell[1]) : linkContribs(hoverLink)).map((s, idx) => (
+                    <div key={idx}>
+                      i={s.i + 1}, j={s.j + 1}, k={s.k + 1}: <span style={{color: 'var(--accent-2)', fontWeight: 600}}>+{fmt(s.value)}</span>
                     </div>
                   ))}
-                  <div style={{ marginTop: 4, color: 'var(--ink)', fontWeight: 600 }}>
-                    Σ = {fmt(hoverInfo.reduce((a, b) => a + b.val, 0))}
-                  </div>
+                  {(hoverCell ? cellContribs(hoverCell[0], hoverCell[1]) : linkContribs(hoverLink)).length === 0 && (
+                    <div style={{color: 'var(--ink-soft)', fontStyle: 'italic'}}>None yet — keep stepping.</div>
+                  )}
                 </div>
               )}
             </div>
           </div>
 
-          <div style={{
-            marginTop: 12, fontSize: 11.5, color: 'var(--ink-soft)',
-            fontStyle: 'italic', lineHeight: 1.55,
-          }}>
-            Hover a D[j,k] cell to see which links contributed. Hover a link to see which cells it touched.
-            Link 3 (the outboard one) lights up every cell — outboard mass dominates the inertia at every inboard joint.
+          <div className="iw-voice">
+            Notice how the link-3 contributions touch every cell of D — outboard links dominate the inertia of every inboard joint.
           </div>
         </div>
       );
     }
 
-    const mount = document.getElementById('inertia-matrix-animator');
-    if (!mount) throw new Error('mount missing');
-    ReactDOM.createRoot(mount).render(<Widget />);
+    const mountEl = document.getElementById('inertia-matrix-animator');
+    if (mountEl) {
+      ReactDOM.createRoot(mountEl).render(<Widget />);
+    }
   } catch (e) {
     const mount = document.getElementById('inertia-matrix-animator');
     if (mount) mount.innerHTML = '<div class="widget-fail">Widget failed to load</div>';
