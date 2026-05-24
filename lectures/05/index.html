@@ -5172,19 +5172,489 @@ enforce symmetry: D[k][j] <- D[j][k]</pre>
   }
 })();
 </script>
-<!-- widget: complexity-grow-n (animator) -->
-<script>
-/* v0.3 widget-fail placeholder — original widget output was rejected by verifyWidget. */
-(function(){ try {
-  var m = document.getElementById("complexity-grow-n");
-  if (!m) return;
-  m.innerHTML =
-    '<div role="status" aria-live="polite" style="font-family:system-ui,sans-serif;background:#fff5f5;border:1px solid #fca5a5;color:#7f1d1d;border-radius:6px;padding:14px 16px;margin:12px 0;">' +
-    '<div style="font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#b91c1c;margin-bottom:4px;">widget failed to render</div>' +
-    '<div style="font-weight:600;margin-bottom:4px;color:#7f1d1d;">Animated cost curves · O(n⁴) vs O(n) as DOF grows</div>' +
-    '<div style="font-size:13px;color:#7f1d1d;line-height:1.5;">claude call failed: claude exited 1 (dump: C:\Users\eamer\AppData\Roaming\wizard-curator-v2\debug\fail-widget_complexity-grow-n-1779617817845.log)<br><span style="opacity:0.75">Regenerate this widget from the wizard to replace the placeholder.</span></div>' +
-    '</div>';
-} catch (e) { console.error(e); } })();
+<!-- widget: complexity-grow-n · rebuilt 2026-05-24T16:06:53.670Z -->
+<script type="text/babel">
+(function () {
+  try {
+    const { useState, useEffect, useRef, useMemo } = React;
+
+    function Widget() {
+      const [n, setN] = useState(2);
+      const [playing, setPlaying] = useState(false);
+      const [show, setShow] = useState({ n4: true, n3: true, n2: true, n1: true });
+      const rafRef = useRef(null);
+      const lastTickRef = useRef(0);
+      const dirRef = useRef(1);
+
+      const N_MIN = 2;
+      const N_MAX = 12;
+      const STEP_MS = 600;
+
+      // Ops/ms budget for a representative 1 GHz "useful" CPU core at 1 kHz.
+      // We model "ops per ms" as 1e6 useful FLOPs / ms for the budget line.
+      const OPS_PER_MS = 1e6;
+      const BUDGET = OPS_PER_MS; // ops allowed per 1 ms control tick at 1 kHz
+
+      // Coefficients chosen so n=6 matches the spec's "≈ 1296" for O(n⁴) and "≈ 6" for O(n).
+      const COEF = { n4: 1, n3: 1, n2: 1, n1: 1 };
+
+      const curves = useMemo(() => {
+        const data = [];
+        for (let k = N_MIN; k <= N_MAX; k++) {
+          data.push({
+            n: k,
+            n4: COEF.n4 * Math.pow(k, 4),
+            n3: COEF.n3 * Math.pow(k, 3),
+            n2: COEF.n2 * Math.pow(k, 2),
+            n1: COEF.n1 * k,
+          });
+        }
+        return data;
+      }, []);
+
+      const currentRow = curves[n - N_MIN];
+
+      useEffect(() => {
+        if (!playing) {
+          if (rafRef.current) cancelAnimationFrame(rafRef.current);
+          rafRef.current = null;
+          return;
+        }
+        lastTickRef.current = performance.now();
+        const loop = (t) => {
+          if (t - lastTickRef.current > STEP_MS) {
+            lastTickRef.current = t;
+            setN((prev) => {
+              let nxt = prev + dirRef.current;
+              if (nxt > N_MAX) { dirRef.current = -1; nxt = N_MAX - 1; }
+              if (nxt < N_MIN) { dirRef.current = 1; nxt = N_MIN + 1; }
+              return nxt;
+            });
+          }
+          rafRef.current = requestAnimationFrame(loop);
+        };
+        rafRef.current = requestAnimationFrame(loop);
+        return () => {
+          if (rafRef.current) cancelAnimationFrame(rafRef.current);
+        };
+      }, [playing]);
+
+      const reset = () => {
+        setPlaying(false);
+        dirRef.current = 1;
+        setN(N_MIN);
+      };
+
+      // -------- SVG layout --------
+      const W = 640, H = 360;
+      const M = { t: 24, r: 28, b: 44, l: 64 };
+      const innerW = W - M.l - M.r;
+      const innerH = H - M.t - M.b;
+
+      // Log-y scale
+      const yMin = 1;
+      const yMax = Math.pow(N_MAX, 4) * 1.2; // 12^4 = 20736
+      const logYmin = Math.log10(yMin);
+      const logYmax = Math.log10(yMax);
+      const yScale = (v) => {
+        const lv = Math.log10(Math.max(v, yMin));
+        return M.t + innerH * (1 - (lv - logYmin) / (logYmax - logYmin));
+      };
+      const xScale = (k) => M.l + innerW * (k - N_MIN) / (N_MAX - N_MIN);
+
+      const yTicks = [1, 10, 100, 1000, 10000];
+      const xTicks = [];
+      for (let k = N_MIN; k <= N_MAX; k++) xTicks.push(k);
+
+      const buildPath = (key) => {
+        return curves.map((d, i) => `${i === 0 ? 'M' : 'L'}${xScale(d.n).toFixed(2)},${yScale(d[key]).toFixed(2)}`).join(' ');
+      };
+
+      const seriesMeta = [
+        { key: 'n4', label: 'O(n⁴) · D(q) direct',     color: 'var(--bad)',     formula: 'n⁴' },
+        { key: 'n3', label: 'O(n³) · h(q,q̇)',          color: 'var(--accent-2)', formula: 'n³' },
+        { key: 'n2', label: 'O(n²) · c(q)',             color: 'var(--accent)',  formula: 'n²' },
+        { key: 'n1', label: 'O(n)  · Newton–Euler',     color: 'var(--good)',    formula: 'n'  },
+      ];
+
+      // Find smallest n where O(n^4) exceeds budget (none for current coefs, but compute defensively).
+      const crossoverN = (() => {
+        for (let k = N_MIN; k <= N_MAX; k++) {
+          if (Math.pow(k, 4) > BUDGET) return k;
+        }
+        return null;
+      })();
+
+      const fitsBudget = (v) => v <= BUDGET;
+
+      return (
+        <div className="cgn-widget">
+          <style>{`
+            .cgn-widget {
+              font-family: var(--font-body);
+              color: var(--ink);
+              background: var(--surface);
+              border: 1px solid var(--border);
+              border-radius: 10px;
+              padding: 18px 18px 14px;
+              max-width: 100%;
+              box-sizing: border-box;
+            }
+            .cgn-widget .cgn-title {
+              font-family: var(--font-display);
+              font-size: 0.92rem;
+              letter-spacing: 0.04em;
+              text-transform: uppercase;
+              color: var(--ink-soft);
+              margin: 0 0 10px;
+            }
+            .cgn-widget .cgn-controls {
+              display: flex;
+              flex-wrap: wrap;
+              gap: 14px 18px;
+              align-items: center;
+              margin-bottom: 12px;
+            }
+            .cgn-widget .cgn-slider-group {
+              display: flex;
+              align-items: center;
+              gap: 10px;
+              flex: 1 1 280px;
+              min-width: 240px;
+            }
+            .cgn-widget .cgn-slider-group input[type=range] {
+              flex: 1;
+              accent-color: var(--accent);
+            }
+            .cgn-widget .cgn-nval {
+              font-family: var(--font-mono);
+              font-size: 1.05rem;
+              color: var(--accent);
+              min-width: 3.5em;
+              text-align: right;
+            }
+            .cgn-widget .cgn-btn {
+              font-family: var(--font-body);
+              font-size: 0.85rem;
+              padding: 6px 14px;
+              border: 1px solid var(--border);
+              border-radius: 6px;
+              background: var(--page-bg);
+              color: var(--ink);
+              cursor: pointer;
+              transition: background 0.15s, border-color 0.15s;
+            }
+            .cgn-widget .cgn-btn:hover { border-color: var(--accent); color: var(--accent); }
+            .cgn-widget .cgn-btn.primary {
+              background: var(--accent);
+              color: #fff;
+              border-color: var(--accent);
+            }
+            .cgn-widget .cgn-btn.primary:hover { background: #093d54; }
+            .cgn-widget .cgn-toggles {
+              display: flex;
+              flex-wrap: wrap;
+              gap: 6px 10px;
+              margin-bottom: 10px;
+            }
+            .cgn-widget .cgn-toggle {
+              display: inline-flex;
+              align-items: center;
+              gap: 6px;
+              font-family: var(--font-mono);
+              font-size: 0.78rem;
+              padding: 4px 10px;
+              border-radius: 4px;
+              border: 1px solid var(--border);
+              cursor: pointer;
+              user-select: none;
+              background: var(--page-bg);
+            }
+            .cgn-widget .cgn-toggle input { margin: 0; }
+            .cgn-widget .cgn-swatch {
+              display: inline-block;
+              width: 10px; height: 10px;
+              border-radius: 2px;
+            }
+            .cgn-widget .cgn-svg-wrap {
+              width: 100%;
+              overflow-x: auto;
+            }
+            .cgn-widget svg { display: block; width: 100%; height: auto; max-width: ${W}px; margin: 0 auto; }
+            .cgn-widget .cgn-readout {
+              display: grid;
+              grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+              gap: 8px;
+              margin-top: 12px;
+              font-family: var(--font-mono);
+              font-size: 0.78rem;
+            }
+            .cgn-widget .cgn-card {
+              padding: 8px 10px;
+              border-radius: 6px;
+              border: 1px solid var(--border);
+              background: var(--page-bg);
+            }
+            .cgn-widget .cgn-card .cgn-label {
+              font-size: 0.7rem;
+              color: var(--ink-soft);
+              text-transform: uppercase;
+              letter-spacing: 0.05em;
+              margin-bottom: 2px;
+            }
+            .cgn-widget .cgn-card .cgn-val { font-size: 0.95rem; color: var(--ink); }
+            .cgn-widget .cgn-card .cgn-ok  { color: var(--good); }
+            .cgn-widget .cgn-card .cgn-bad { color: var(--bad);  }
+            .cgn-widget .cgn-caption {
+              margin-top: 10px;
+              font-size: 0.82rem;
+              color: var(--ink-soft);
+              line-height: 1.5;
+            }
+            .cgn-widget .cgn-preset-row {
+              display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px;
+            }
+            .cgn-widget .cgn-preset {
+              font-family: var(--font-mono);
+              font-size: 0.72rem;
+              padding: 3px 8px;
+              border: 1px dashed var(--border);
+              border-radius: 4px;
+              background: transparent;
+              cursor: pointer;
+              color: var(--ink-soft);
+            }
+            .cgn-widget .cgn-preset:hover { color: var(--accent); border-color: var(--accent); }
+            .widget-fail { color: var(--bad); font-family: var(--font-mono); padding: 12px; }
+          `}</style>
+
+          <div className="cgn-title">Computational cost vs degrees of freedom</div>
+
+          <div className="cgn-controls">
+            <div className="cgn-slider-group">
+              <label htmlFor="cgn-n" style={{ fontFamily: 'var(--font-mono)', fontSize: '0.85rem' }}>n =</label>
+              <input
+                id="cgn-n"
+                type="range"
+                min={N_MIN}
+                max={N_MAX}
+                step={1}
+                value={n}
+                onChange={(e) => { setPlaying(false); setN(parseInt(e.target.value, 10)); }}
+                aria-label="Degrees of freedom"
+              />
+              <span className="cgn-nval">{n} DOF</span>
+            </div>
+            <div style={{ display: 'flex', gap: 6 }}>
+              <button
+                className={`cgn-btn ${playing ? '' : 'primary'}`}
+                onClick={() => setPlaying(true)}
+                disabled={playing}
+                aria-label="Play"
+              >▶ Play</button>
+              <button
+                className="cgn-btn"
+                onClick={() => setPlaying(false)}
+                disabled={!playing}
+                aria-label="Pause"
+              >❚❚ Pause</button>
+              <button
+                className="cgn-btn"
+                onClick={reset}
+                aria-label="Reset"
+              >↺ Reset</button>
+            </div>
+          </div>
+
+          <div className="cgn-toggles" role="group" aria-label="Toggle curves">
+            {seriesMeta.map((s) => (
+              <label key={s.key} className="cgn-toggle">
+                <input
+                  type="checkbox"
+                  checked={show[s.key]}
+                  onChange={() => setShow((p) => ({ ...p, [s.key]: !p[s.key] }))}
+                />
+                <span className="cgn-swatch" style={{ background: s.color }}></span>
+                <span>{s.formula}</span>
+              </label>
+            ))}
+          </div>
+
+          <div className="cgn-svg-wrap">
+            <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Cost curves as DOF grows">
+              <defs>
+                <linearGradient id="cgn-budget-grad" x1="0" x2="1">
+                  <stop offset="0%"   stopColor="var(--accent)" stopOpacity="0.0"/>
+                  <stop offset="50%"  stopColor="var(--accent)" stopOpacity="0.25"/>
+                  <stop offset="100%" stopColor="var(--accent)" stopOpacity="0.0"/>
+                </linearGradient>
+                <marker id="cgn-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                  <path d="M0,0 L10,5 L0,10 z" fill="var(--ink-soft)"/>
+                </marker>
+              </defs>
+
+              {/* plot frame */}
+              <rect x={M.l} y={M.t} width={innerW} height={innerH} fill="var(--page-bg)" stroke="var(--border)" />
+
+              {/* y gridlines + labels (log decades) */}
+              {yTicks.map((tv) => {
+                const yy = yScale(tv);
+                return (
+                  <g key={`y${tv}`}>
+                    <line x1={M.l} y1={yy} x2={M.l + innerW} y2={yy} stroke="var(--border)" strokeDasharray="2,3" opacity="0.6"/>
+                    <text x={M.l - 8} y={yy + 4} textAnchor="end" fontFamily="var(--font-mono)" fontSize="10" fill="var(--ink-soft)">
+                      10{['⁰','¹','²','³','⁴'][Math.log10(tv)]}
+                    </text>
+                  </g>
+                );
+              })}
+
+              {/* x ticks + labels */}
+              {xTicks.map((k) => {
+                const xx = xScale(k);
+                const isCurrent = k === n;
+                return (
+                  <g key={`x${k}`}>
+                    <line x1={xx} y1={M.t + innerH} x2={xx} y2={M.t + innerH + 4} stroke="var(--ink-soft)" />
+                    <text x={xx} y={M.t + innerH + 16} textAnchor="middle" fontFamily="var(--font-mono)" fontSize="10"
+                      fill={isCurrent ? 'var(--accent)' : 'var(--ink-soft)'}
+                      fontWeight={isCurrent ? 700 : 400}>
+                      {k}
+                    </text>
+                  </g>
+                );
+              })}
+
+              {/* axis titles */}
+              <text x={M.l + innerW / 2} y={H - 6} textAnchor="middle" fontFamily="var(--font-body)" fontSize="11" fill="var(--ink-soft)">
+                n — degrees of freedom
+              </text>
+              <text x={14} y={M.t + innerH / 2} textAnchor="middle" fontFamily="var(--font-body)" fontSize="11" fill="var(--ink-soft)"
+                transform={`rotate(-90 14 ${M.t + innerH / 2})`}>
+                operations per control tick (log)
+              </text>
+
+              {/* 1 kHz budget line (1e6 ops/ms) */}
+              {(() => {
+                const by = yScale(BUDGET);
+                if (by < M.t || by > M.t + innerH) return null;
+                return (
+                  <g>
+                    <rect x={M.l} y={by - 8} width={innerW} height={16} fill="url(#cgn-budget-grad)" />
+                    <line x1={M.l} y1={by} x2={M.l + innerW} y2={by}
+                      stroke="var(--accent)" strokeWidth="1.5" strokeDasharray="6,4" />
+                    <text x={M.l + innerW - 6} y={by - 6} textAnchor="end"
+                      fontFamily="var(--font-mono)" fontSize="10" fill="var(--accent)">
+                      1 kHz budget · 10⁶ ops / ms
+                    </text>
+                  </g>
+                );
+              })()}
+
+              {/* current-n vertical guide */}
+              <line x1={xScale(n)} y1={M.t} x2={xScale(n)} y2={M.t + innerH}
+                stroke="var(--ink)" strokeOpacity="0.18" strokeWidth="2" />
+
+              {/* curves */}
+              {seriesMeta.map((s) => show[s.key] && (
+                <path key={`p${s.key}`} d={buildPath(s.key)} fill="none"
+                  stroke={s.color} strokeWidth="2.25"
+                  style={{ transition: 'opacity .2s' }} opacity="0.95" />
+              ))}
+
+              {/* points + labels at current n */}
+              {seriesMeta.map((s) => {
+                if (!show[s.key]) return null;
+                const v = currentRow[s.key];
+                const cx = xScale(n), cy = yScale(v);
+                const over = !fitsBudget(v);
+                return (
+                  <g key={`pt${s.key}`}>
+                    <circle cx={cx} cy={cy} r="4.5" fill={s.color} stroke="var(--surface)" strokeWidth="1.5" />
+                    {over && (
+                      <circle cx={cx} cy={cy} r="9" fill="none" stroke="var(--bad)" strokeWidth="1" opacity="0.5">
+                        <animate attributeName="r" values="6;11;6" dur="1.4s" repeatCount="indefinite"/>
+                        <animate attributeName="opacity" values="0.7;0.1;0.7" dur="1.4s" repeatCount="indefinite"/>
+                      </circle>
+                    )}
+                  </g>
+                );
+              })}
+
+              {/* end-of-line labels */}
+              {seriesMeta.map((s) => {
+                if (!show[s.key]) return null;
+                const last = curves[curves.length - 1];
+                const lx = xScale(last.n) + 4;
+                const ly = yScale(last[s.key]);
+                return (
+                  <text key={`lab${s.key}`} x={lx} y={ly + 3} fontFamily="var(--font-mono)" fontSize="10" fill={s.color}>
+                    {s.formula}
+                  </text>
+                );
+              })}
+            </svg>
+          </div>
+
+          <div className="cgn-readout" aria-live="polite">
+            {seriesMeta.map((s) => {
+              const v = currentRow[s.key];
+              const ok = fitsBudget(v);
+              return (
+                <div className="cgn-card" key={`r${s.key}`}>
+                  <div className="cgn-label">
+                    <span className="cgn-swatch" style={{ background: s.color, marginRight: 6 }}></span>
+                    {s.label}
+                  </div>
+                  <div className="cgn-val">
+                    {v.toLocaleString()} ops
+                    <span className={ok ? 'cgn-ok' : 'cgn-bad'} style={{ marginLeft: 8, fontSize: '0.75rem' }}>
+                      {ok ? '✓ fits 1 kHz' : '✗ over budget'}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="cgn-preset-row" aria-label="Presets">
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.72rem', color: 'var(--ink-soft)', marginRight: 4 }}>
+              presets →
+            </span>
+            {[
+              { n: 2,  label: 'n=2 · worked example' },
+              { n: 6,  label: 'n=6 · industrial arm' },
+              { n: 7,  label: 'n=7 · redundant' },
+              { n: 12, label: 'n=12 · hyper-redundant' },
+            ].map((p) => (
+              <button key={p.n} className="cgn-preset" onClick={() => { setPlaying(false); setN(p.n); }}>
+                {p.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="cgn-caption">
+            At <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--accent)' }}>n = {n}</span>:
+            direct inertia D(q) costs <strong>{currentRow.n4.toLocaleString()}</strong> ops, while Newton–Euler inverse dynamics costs just <strong>{currentRow.n1.toLocaleString()}</strong> — a {Math.round(currentRow.n4 / currentRow.n1).toLocaleString()}× gap.
+            {crossoverN
+              ? <> The O(n⁴) curve crosses the 1 kHz budget at n ≈ <strong>{crossoverN}</strong>; beyond that, only the O(n) recursion still fits a real-time control loop.</>
+              : <> At realistic core speeds (≥1 GFLOP/s), all four curves stay under the 1 kHz budget for n ≤ 12 — but the <em>gap</em> between them is what determines headroom for control, sensing, and safety.</>
+            }
+          </div>
+        </div>
+      );
+    }
+
+    const mount = document.getElementById('complexity-grow-n');
+    if (mount) {
+      ReactDOM.createRoot(mount).render(<Widget />);
+    }
+  } catch (e) {
+    const mount = document.getElementById('complexity-grow-n');
+    if (mount) mount.innerHTML = '<div class="widget-fail">Widget failed to load</div>';
+    console.error(e);
+  }
+})();
 </script>
 </body>
 </html>
