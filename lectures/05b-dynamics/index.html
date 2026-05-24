@@ -1,0 +1,2818 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- wizard-curator runtime (injected) -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+<script src="https://cdn.jsdelivr.net/npm/mathjs@12/lib/browser/math.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" onload="try{window.renderMathInElement&&renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false},{left:'\[',right:'\]',display:true},{left:'\(',right:'\)',display:false}],throwOnError:false});}catch(e){}"></script>
+<script>try{[800,2200].forEach(function(t){setTimeout(function(){window.renderMathInElement&&renderMathInElement(document.body,{delimiters:[{left:"$$",right:"$$",display:true},{left:"$",right:"$",display:false},{left:"\[",right:"\]",display:true},{left:"\(",right:"\)",display:false}],throwOnError:false});},t);});}catch(e){};</script>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>05b · Lagrangian Formulation for Robot Dynamics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --page-bg: #fbf7f0;
+  --surface: #ffffff;
+  --surface-alt: #f3ede0;
+  --ink: #1a1f2e;
+  --ink-soft: #5b6478;
+  --ink-faint: #8a8f9c;
+  --border: #d8d2c4;
+  --border-soft: #ebe5d6;
+  --accent: #b85c2a;
+  --accent-2: #2c5f7c;
+  --good: #2e7d4f;
+  --bad: #b3331a;
+  --font-display: 'Spectral', Georgia, serif;
+  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Courier New', monospace;
+}
+
+* { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--page-bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 17px;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+  background-image:
+    linear-gradient(to bottom, transparent 0, transparent calc(100% - 1px), rgba(216, 210, 196, 0.4) calc(100% - 1px)),
+    linear-gradient(to right, transparent 0, transparent calc(100% - 1px), rgba(216, 210, 196, 0.18) calc(100% - 1px));
+  background-size: 100% 32px, 32px 100%;
+}
+
+.page {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 56px 40px 96px;
+}
+
+/* ---------- HEADER ---------- */
+header.masthead {
+  display: grid;
+  grid-template-columns: 90px 1fr;
+  gap: 32px;
+  align-items: start;
+  padding: 32px 0 48px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 56px;
+}
+
+.mast-num {
+  font-family: var(--font-display);
+  font-weight: 300;
+  font-size: 84px;
+  line-height: 0.85;
+  color: var(--accent);
+  font-feature-settings: "lnum";
+  letter-spacing: -0.04em;
+}
+
+.mast-num .sub {
+  display: block;
+  font-size: 13px;
+  letter-spacing: 0.18em;
+  color: var(--ink-soft);
+  text-transform: uppercase;
+  font-family: var(--font-mono);
+  margin-top: 8px;
+  font-weight: 400;
+}
+
+.mast-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  margin: 0 0 12px;
+}
+
+.mast-title {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 52px;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  margin: 0 0 20px;
+}
+
+.mast-subtitle {
+  font-family: var(--font-display);
+  font-weight: 300;
+  font-style: italic;
+  font-size: 22px;
+  line-height: 1.45;
+  color: var(--ink-soft);
+  margin: 0 0 28px;
+  max-width: 64ch;
+}
+
+.mast-opening {
+  font-size: 17.5px;
+  line-height: 1.7;
+  color: var(--ink);
+  max-width: 68ch;
+  border-left: 3px solid var(--accent);
+  padding-left: 22px;
+  margin: 32px 0 0;
+}
+
+.mast-opening em { color: var(--accent); font-style: italic; font-weight: 500; }
+
+/* ---------- TOC ---------- */
+nav.toc {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 20px 24px;
+  margin-bottom: 64px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  position: relative;
+}
+
+nav.toc::before {
+  content: "CONTENTS";
+  position: absolute;
+  top: -8px;
+  left: 18px;
+  background: var(--page-bg);
+  padding: 0 8px;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  color: var(--ink-soft);
+}
+
+nav.toc a {
+  color: var(--ink);
+  text-decoration: none;
+  padding: 6px 12px;
+  border-radius: 3px;
+  border: 1px solid transparent;
+  transition: all 0.15s ease;
+}
+
+nav.toc a:hover {
+  border-color: var(--border);
+  background: var(--surface-alt);
+  color: var(--accent);
+}
+
+nav.toc a .num {
+  color: var(--accent);
+  font-weight: 500;
+  margin-right: 6px;
+}
+
+/* ---------- SECTIONS ---------- */
+section.lec {
+  display: grid;
+  grid-template-columns: 90px 1fr;
+  gap: 32px;
+  padding: 48px 0;
+  border-top: 1px solid var(--border-soft);
+}
+
+section.lec:first-of-type { border-top: none; padding-top: 0; }
+
+.sec-num {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 58px;
+  line-height: 0.9;
+  color: var(--accent);
+  letter-spacing: -0.03em;
+  position: sticky;
+  top: 24px;
+  height: max-content;
+}
+
+.sec-num .label {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  color: var(--ink-faint);
+  text-transform: uppercase;
+  margin-top: 6px;
+  font-weight: 400;
+}
+
+.sec-body { min-width: 0; }
+
+.sec-title {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 34px;
+  line-height: 1.15;
+  letter-spacing: -0.015em;
+  color: var(--ink);
+  margin: 0 0 24px;
+  max-width: 36ch;
+}
+
+.sec-body p { margin: 0 0 18px; max-width: 70ch; }
+.sec-body p:last-child { margin-bottom: 0; }
+
+.sec-body strong { color: var(--ink); font-weight: 600; }
+
+/* ---------- VOICE PULL QUOTE ---------- */
+.voice {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 400;
+  font-size: 20px;
+  line-height: 1.5;
+  color: var(--accent);
+  border-left: 2px solid var(--accent);
+  padding: 4px 0 4px 22px;
+  margin: 32px 0;
+  max-width: 60ch;
+}
+
+.voice em { font-style: normal; color: var(--ink); font-weight: 500; }
+
+/* ---------- CALLOUTS ---------- */
+.callouts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+  margin: 28px 0;
+}
+
+.callout {
+  padding: 18px 20px;
+  border-radius: 4px;
+  border-left: 3px solid;
+  background: var(--surface);
+  border-top: 1px solid var(--border-soft);
+  border-right: 1px solid var(--border-soft);
+  border-bottom: 1px solid var(--border-soft);
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.callout-title {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  margin: 0 0 8px;
+  font-weight: 500;
+}
+
+.callout-body { margin: 0; color: var(--ink); }
+.callout-body p { margin: 0; max-width: none; }
+.callout-body strong { color: var(--ink); }
+
+.callout.blue   { border-left-color: #3a72a8; } .callout.blue   .callout-title { color: #3a72a8; }
+.callout.purple { border-left-color: #6e4c93; } .callout.purple .callout-title { color: #6e4c93; }
+.callout.amber  { border-left-color: #c08a2e; } .callout.amber  .callout-title { color: #c08a2e; }
+.callout.teal   { border-left-color: #2f8a85; } .callout.teal   .callout-title { color: #2f8a85; }
+.callout.red    { border-left-color: var(--bad); } .callout.red  .callout-title { color: var(--bad); }
+.callout.green  { border-left-color: var(--good); } .callout.green .callout-title { color: var(--good); }
+
+/* ---------- CODE BLOCKS ---------- */
+.codeblock {
+  margin: 28px 0;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: #faf6ec;
+  overflow: hidden;
+}
+
+.codeblock-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  padding: 10px 16px;
+  background: var(--surface-alt);
+  border-bottom: 1px solid var(--border);
+}
+
+.codeblock pre {
+  margin: 0;
+  padding: 18px 20px;
+  font-family: var(--font-mono);
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--ink);
+  overflow-x: auto;
+  white-space: pre;
+}
+
+/* ---------- WIDGET PLACEHOLDER ---------- */
+.widget-lead {
+  margin: 36px 0 12px;
+  padding: 14px 18px;
+  background: var(--surface-alt);
+  border-left: 3px solid var(--accent-2);
+  font-size: 15px;
+  border-radius: 0 4px 4px 0;
+}
+
+.widget-lead .tag {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent-2);
+  margin-right: 10px;
+  font-weight: 600;
+}
+
+.widget-slot {
+  margin: 0 0 36px;
+  min-height: 60px;
+}
+
+/* ---------- MATH DISPLAY ---------- */
+.katex-display { margin: 18px 0 !important; overflow-x: auto; overflow-y: hidden; }
+.katex { font-size: 1.04em !important; }
+
+/* ---------- CONCEPTS ---------- */
+.concepts {
+  margin: 64px 0 48px;
+  padding: 32px 36px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.concepts h2 {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 22px;
+  margin: 0 0 6px;
+  color: var(--ink);
+}
+
+.concepts p.sub {
+  font-size: 14px;
+  color: var(--ink-soft);
+  margin: 0 0 20px;
+}
+
+.concept-cloud {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chip {
+  display: inline-block;
+  padding: 6px 12px;
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 13.5px;
+  color: var(--ink);
+  font-family: var(--font-body);
+}
+
+/* ---------- HOMEWORK ---------- */
+section.homework {
+  margin-top: 80px;
+  padding-top: 56px;
+  border-top: 3px double var(--border);
+}
+
+.hw-head {
+  display: grid;
+  grid-template-columns: 90px 1fr;
+  gap: 32px;
+  margin-bottom: 40px;
+}
+
+.hw-head .sec-num { color: var(--accent-2); }
+
+.hw-head h2 {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 34px;
+  line-height: 1.15;
+  letter-spacing: -0.015em;
+  margin: 0 0 12px;
+  color: var(--ink);
+}
+
+.hw-sub {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 18px;
+  color: var(--ink-soft);
+  max-width: 64ch;
+  margin: 0;
+}
+
+.hw-item {
+  margin: 0 0 40px;
+  padding: 28px 32px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  position: relative;
+}
+
+.hw-item h3 {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 21px;
+  margin: 0 0 14px;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+}
+
+.hw-body { margin-bottom: 20px; }
+.hw-body p { margin: 0 0 12px; max-width: 70ch; }
+.hw-body p:last-child { margin-bottom: 0; }
+
+.hw-selfcheck {
+  margin: 20px 0;
+  padding: 14px 18px;
+  background: var(--surface-alt);
+  border-left: 3px solid var(--accent-2);
+  border-radius: 0 4px 4px 0;
+  font-size: 14.5px;
+}
+
+.hw-selfcheck-label {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent-2);
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.hw-selfcheck p { margin: 0; }
+
+.hw-solution {
+  margin-top: 18px;
+  border-top: 1px dashed var(--border);
+  padding-top: 14px;
+}
+
+.hw-solution summary {
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent);
+  font-weight: 600;
+  padding: 8px 0;
+  list-style: none;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.hw-solution summary::-webkit-details-marker { display: none; }
+
+.hw-solution summary::before {
+  content: "▸";
+  display: inline-block;
+  transition: transform 0.15s ease;
+  font-size: 14px;
+}
+
+.hw-solution[open] summary::before { transform: rotate(90deg); }
+
+.hw-solution summary:hover { color: var(--ink); }
+
+.hw-solution-body {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border-soft);
+  font-size: 16px;
+}
+
+.hw-solution-body p { margin: 0 0 14px; }
+.hw-solution-body p:last-child { margin-bottom: 0; }
+
+/* ---------- FOOTER ---------- */
+footer.colophon {
+  margin-top: 80px;
+  padding: 32px 0 0;
+  border-top: 1px solid var(--border);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--ink-faint);
+  text-align: center;
+  letter-spacing: 0.06em;
+}
+
+/* ---------- RESPONSIVE ---------- */
+@media (max-width: 760px) {
+  .page { padding: 32px 20px 64px; }
+  header.masthead,
+  section.lec,
+  .hw-head { grid-template-columns: 1fr; gap: 18px; }
+  .mast-num, .sec-num { font-size: 48px; position: static; }
+  .mast-title { font-size: 36px; }
+  .mast-subtitle { font-size: 18px; }
+  .sec-title { font-size: 26px; }
+  .hw-item { padding: 22px 20px; }
+}
+</style>
+</head>
+<body>
+<script>(function(){
+  function go(){ if(window.TSIBuddy){ TSIBuddy.mount({"systemPrompt":"You are TSI Buddy, a friendly tutor on the lecture page \"Lagrangian Formulation for Robot Dynamics\". (Lecture 05b · Module 3 · Robot Manipulator Dynamics)\n\nYour knowledge is ONLY the LECTURE NOTES and PAGE TEXT printed below.\n\nRules:\n1. Answer from that material. Read it for meaning — explaining,\n   rephrasing, working its examples and connecting its points is\n   your job. Synthesising an answer from what the material says is\n   not \"inventing\".\n2. If the material does not cover something, say so in one sentence\n   and stop. Never invent facts, names, emails, links, places,\n   rooms, dates, or anything not in the material — a plain \"that is\n   not in the lecture material\" is the correct answer to a gap.\n3. Keep replies short — 2–4 sentences — unless the student asks for\n   more depth or worked steps. Mirror the student's language.\n4. Don't hand over self-check / quiz answers; point to the section\n   that explains them instead.\n5. Write maths with $...$ (inline) and $$...$$ (display).\n\n── LECTURE NOTES ──\nSCOPE\nThis lecture develops the Lagrangian formulation of robot manipulator dynamics from first principles, taking an $n$-link serial arm with revolute or prismatic joints and producing the closed-form equation of motion $\\mathbf{D}(\\mathbf{q})\\ddot{\\mathbf{q}}+\\mathbf{h}(\\mathbf{q},\\dot{\\mathbf{q}})+\\mathbf{c}(\\mathbf{q})=\\boldsymbol{\\tau}$. It covers: (1) velocity propagation via partial derivatives of homogeneous transforms, (2) the inertia matrix $\\mathbf{D}(\\mathbf{q})$ from kinetic energy, (3) Coriolis/centrifugal terms via Christoffel symbols, (4) gravity terms from potential energy, (5) a complete 2-DOF planar-arm worked example, and (6) computational complexity and real-time implementation strategies. It deliberately does NOT cover: the recursive Newton-Euler derivation itself (only mentioned for cost comparison), joint friction, actuator dynamics, flexible-link effects, contact/impact dynamics, parameter identification, or specific controller designs (those are flagged as Module 4 territory). The \"Case Study — Mitsubishi MoveMaster RV-M1\" is named as coming-up content, not delivered here.\n\nKEY DEFINITIONS\n- Homogeneous transformation matrix ${}^{j-1}\\mathbf{A}_j$: the $4\\times4$ matrix mapping coordinates from frame $j$ into frame $j-1$.\n- Position-vector chain (eq. 3.1): ${}^0\\mathbf{r}_i = {}^0\\mathbf{A}_1\\,{}^1\\mathbf{A}_2\\cdots{}^{i-1}\\mathbf{A}_i\\,{}^i\\mathbf{r}_i$ — a point fixed in link $i$ expressed in base coordinates.\n- Structural matrix $\\mathbf{Q}_j$: a fixed $4\\times4$ matrix that encodes the *type* of joint $j$. For a revolute joint it is the skew-pattern matrix with $-1$ at (1,2) and $+1$ at (2,1); for a prismatic joint it is zero except for a $+1$ at (3,4). It satisfies $\\partial {}^0\\mathbf{A}_i/\\partial q_j = {}^0\\mathbf{A}_j\\,\\mathbf{Q}_j\\,{}^j\\mathbf{A}_i$ (eq. 3.6).\n- Velocity influence coefficient $\\mathbf{U}_{ij}$ (eq. 3.7): $\\mathbf{U}_{ij} = \\partial {}^0\\mathbf{A}_i/\\partial q_j = {}^0\\mathbf{A}_j\\,\\mathbf{Q}_j\\,{}^j\\mathbf{A}_i$ for $j\\le i$, and $\\mathbf{0}$ for $j>i$.\n- Velocity coupling coefficient $\\mathbf{U}_{ijk}=\\partial\\mathbf{U}_{ij}/\\partial q_k$ (eq. 3.9): a second-derivative quantity that encodes how joint $j$'s influence on link $i$ changes as joint $k$ moves; zero unless $i\\ge\\max(j,k)$.\n- Pseudo-inertia matrix $\\mathbf{J}_i$: the $4\\times4$ inertia matrix of link $i$ expressed in its own frame; combines mass, first moments and second moments so that link kinetic energy reads as a trace.\n- Inertia matrix $\\mathbf{D}(\\mathbf{q})$ (eq. 3.12): the symmetric, positive-definite, configuration-dependent matrix with entries $D_{jk}=\\sum_{i=1}^{n}\\operatorname{Tr}(\\mathbf{U}_{ij}\\mathbf{J}_i\\mathbf{U}_{ik}^T)$.\n- Christoffel symbol of the first kind $\\Gamma_{ijk}$ (eq. 3.16): $\\tfrac{1}{2}(\\partial D_{ij}/\\partial q_k+\\partial D_{ik}/\\partial q_j-\\partial D_{jk}/\\partial q_i)$.\n- Coriolis/centrifugal vector $\\mathbf{h}(\\mathbf{q},\\dot{\\mathbf{q}})$ (eq. 3.17): $h_i=\\sum_{j,k}\\Gamma_{ijk}\\dot q_j\\dot q_k$.\n- Coriolis matrix $\\mathbf{C}(\\mathbf{q},\\dot{\\mathbf{q}})$ (eq. 3.19): $C_{ij}=\\sum_k\\Gamma_{ikj}\\dot q_k$, so that $\\mathbf{h}=\\mathbf{C}\\dot{\\mathbf{q}}$.\n- Centrifugal term: a contribution to $h_i$ proportional to $\\dot q_j^2$ (single-joint self-coupling).\n- Coriolis term: a contribution to $h_i$ proportional to $\\dot q_j\\dot q_k$ with $j\\ne k$ (two-joint cross-coupling).\n- Gravity vector $\\mathbf{c}(\\mathbf{q})$ (eq. 3.25): $c_i=\\sum_{j=i}^{n}m_j\\mathbf{g}^T\\mathbf{U}_{ji}\\,{}^j\\mathbf{r}_{cj}$, obtained from $\\partial V/\\partial q_i$.\n- Inverse dynamics: given $(\\mathbf{q},\\dot{\\mathbf{q}},\\ddot{\\mathbf{q}})$, compute $\\boldsymbol{\\tau}$.\n- Forward dynamics: given $\\boldsymbol{\\tau}$, solve $\\ddot{\\mathbf{q}}=\\mathbf{D}^{-1}(\\boldsymbol{\\tau}-\\mathbf{h}-\\mathbf{c})$ (eq. 3.28).\n- Skew-symmetry property (eq. 3.20): $\\dot{\\mathbf{D}}-2\\mathbf{C}$ is skew-symmetric; this is the algebraic statement of energy conservation/passivity.\n\nKEY EQUATIONS & RESULTS\n- Position chain: $${}^0\\mathbf{r}_i = {}^0\\mathbf{A}_1\\,{}^1\\mathbf{A}_2\\cdots{}^{i-1}\\mathbf{A}_i\\,{}^i\\mathbf{r}_i$$ (eq. 3.1). Holds for any point fixed in link $i$; ${}^i\\mathbf{r}_i$ is constant in frame $i$.\n- Velocity via chain rule: $${}^0\\mathbf{v}_i = \\sum_{j=1}^{i}\\frac{\\partial {}^0\\mathbf{A}_i}{\\partial q_j}\\dot q_j\\,{}^i\\mathbf{r}_i$$ (eq. 3.3). The sum stops at $i$ because outboard joints cannot move points on link $i$.\n- Partial derivative of a transform: $$\\frac{\\partial {}^0\\mathbf{A}_i}{\\partial q_j} = {}^0\\mathbf{A}_j\\,\\mathbf{Q}_j\\,{}^j\\mathbf{A}_i$$ (eq. 3.6). Valid for $j\\le i$; zero otherwise.\n- $\\mathbf{Q}_j$ (revolute, eq. 3.4): zero except $(\\mathbf{Q}_j)_{12}=-1$, $(\\mathbf{Q}_j)_{21}=+1$. $\\mathbf{Q}_j$ (prismatic, eq. 3.5): zero except $(\\mathbf{Q}_j)_{34}=+1$.\n- Compact velocity: $${}^0\\mathbf{v}_i=\\Big(\\sum_{j=1}^{i}\\mathbf{U}_{ij}\\dot q_j\\Big){}^i\\mathbf{r}_i$$ (eq. 3.8).\n- Total kinetic energy (trace form, eq. 3.10): $$T=\\tfrac12\\sum_{i=1}^{n}\\operatorname{Tr}\\!\\Big[\\sum_{j,k}\\mathbf{U}_{ij}\\mathbf{J}_i\\mathbf{U}_{ik}^T\\dot q_j\\dot q_k\\Big].$$\n- Quadratic form: $T=\\tfrac12\\dot{\\mathbf{q}}^T\\mathbf{D}(\\mathbf{q})\\dot{\\mathbf{q}}$.\n- Inertia-matrix element (eq. 3.12): $$D_{jk}(\\mathbf{q})=\\sum_{i=1}^{n}\\operatorname{Tr}\\!\\big(\\mathbf{U}_{ij}\\mathbf{J}_i\\mathbf{U}_{ik}^T\\big).$$ Symmetric ($D_{jk}=D_{kj}$), positive definite, bounded for finite $\\mathbf{q}$, configuration-dependent because of $\\mathbf{U}_{ij}$.\n- Euler-Lagrange equation: $\\tfrac{d}{dt}(\\partial T/\\partial\\dot q_i)-\\partial T/\\partial q_i=\\tau_i$ (eq. 3.13).\n- Expanded LHS pieces (eqs. 3.14–3.15): $\\tfrac{d}{dt}(\\partial T/\\partial\\dot q_i)=\\sum_jD_{ij}\\ddot q_j+\\sum_{j,k}(\\partial D_{ij}/\\partial q_k)\\dot q_k\\dot q_j$, and $\\partial T/\\partial q_i=\\tfrac12\\sum_{j,k}(\\partial D_{jk}/\\partial q_i)\\dot q_j\\dot q_k$.\n- Christoffel symbols (eq. 3.16): $$\\Gamma_{ijk}=\\tfrac12\\!\\left(\\tfrac{\\partial D_{ij}}{\\partial q_k}+\\tfrac{\\partial D_{ik}}{\\partial q_j}-\\tfrac{\\partial D_{jk}}{\\partial q_i}\\right).$$\n- Coriolis/centrifugal vector (eq. 3.17): $h_i=\\sum_{j,k}\\Gamma_{ijk}\\dot q_j\\dot q_k$, with $\\mathbf{h}=\\mathbf{C}\\dot{\\mathbf{q}}$ and $C_{ij}=\\sum_k\\Gamma_{ikj}\\dot q_k$ (eqs. 3.18–3.19).\n- Skew-symmetry (eq. 3.20): $\\dot{\\mathbf{D}}-2\\mathbf{C}$ is skew-symmetric. Holds for the *consistent* choice of $\\mathbf{C}$ from the Christoffel construction; underpins passivity-based control.\n- Potential energy (eq. 3.21): $V=\\sum_{i=1}^{n}m_i\\mathbf{g}^T\\,{}^0\\mathbf{r}_{ci}$.\n- Gravity vector in base coords (eq. 3.22): $\\mathbf{g}=[0,0,-g,0]^T$, $g=9.81$ m/s² for terrestrial use.\n- Gravity term (eqs. 3.23–3.25): $$c_i(\\mathbf{q})=\\frac{\\partial V}{\\partial q_i}=\\sum_{j=i}^{n}m_j\\mathbf{g}^T\\,\\mathbf{U}_{ji}\\,{}^j\\mathbf{r}_{cj}.$$ The sum starts at $j=i$ because joint $i$ cannot lift links inboard of itself.\n- Complete dynamic equation (eq. 3.26): $$\\boxed{\\mathbf{D}(\\mathbf{q})\\ddot{\\mathbf{q}}+\\mathbf{h}(\\mathbf{q},\\dot{\\mathbf{q}})+\\mathbf{c}(\\mathbf{q})=\\boldsymbol{\\tau}}.$$\n- Forward dynamics (eq. 3.28): $\\ddot{\\mathbf{q}}=\\mathbf{D}^{-1}(\\mathbf{q})[\\boldsymbol{\\tau}-\\mathbf{h}(\\mathbf{q},\\dot{\\mathbf{q}})-\\mathbf{c}(\\mathbf{q})]$.\n- State-space form (eq. 3.29): $[\\dot{\\mathbf{q}};\\ddot{\\mathbf{q}}]=[\\dot{\\mathbf{q}};\\;\\mathbf{D}^{-1}(\\boldsymbol{\\tau}-\\mathbf{h}-\\mathbf{c})]$.\n- Linearised form around $(\\mathbf{q}_0,\\dot{\\mathbf{q}}_0)$ (eq. 3.30): $\\mathbf{D}_0\\Delta\\ddot{\\mathbf{q}}+\\mathbf{C}_0\\Delta\\dot{\\mathbf{q}}+\\mathbf{K}_0\\Delta\\mathbf{q}=\\Delta\\boldsymbol{\\tau}$. Valid for small deviations; lets you apply LTI control theory locally.\n- Complexity (Sec. 3.7): direct Lagrangian inertia matrix $O(n^4)$, Coriolis $O(n^3)$, gravity $O(n^2)$, total $O(n^4)$. Recursive Newton-Euler: inverse dynamics $O(n)$, forward dynamics $O(n^3)$ (matrix inversion dominated).\n- 2-DOF arm — inertia matrix (eqs. 3.39–3.41):\n  $D_{11}=m_1L_1^2/4+I_1+m_2[L_1^2+L_2^2/4+L_1L_2\\cos\\theta_2]+I_2$;\n  $D_{12}=D_{21}=m_2[L_2^2/4+L_1L_2\\cos\\theta_2/2]+I_2$;\n  $D_{22}=m_2L_2^2/4+I_2$.\n- 2-DOF arm — Christoffel symbols (eqs. 3.43–3.44):\n  $\\Gamma_{122}=\\Gamma_{212}=-m_2L_1L_2\\sin\\theta_2/2$; $\\Gamma_{211}=+m_2L_1L_2\\sin\\theta_2/2$; all others zero.\n- 2-DOF arm — Coriolis/centrifugal (eqs. 3.45–3.46):\n  $h_1=-m_2L_1L_2\\sin\\theta_2\\,\\dot\\theta_1\\dot\\theta_2-(m_2L_1L_2\\sin\\theta_2/2)\\dot\\theta_2^2$;\n  $h_2=(m_2L_1L_2\\sin\\theta_2/2)\\dot\\theta_1^2$.\n- 2-DOF arm — potential energy (eq. 3.42):\n  $V=m_1g(L_1/2)\\sin\\theta_1+m_2g[L_1\\sin\\theta_1+(L_2/2)\\sin(\\theta_1+\\theta_2)]$.\n- 2-DOF arm — gravity (eqs. 3.47–3.48):\n  $c_1=m_1g(L_1/2)\\cos\\theta_1+m_2gL_1\\cos\\theta_1+m_2g(L_2/2)\\cos(\\theta_1+\\theta_2)$;\n  $c_2=m_2g(L_2/2)\\cos(\\theta_1+\\theta_2)$.\n\nNOTATION & CONVENTIONS\n- Joint variable $q_i$: generic coordinate; $\\theta_i$ for revolute, $d_i$ for prismatic. For the 2-DOF example, $q_1=\\theta_1$ measured from the horizontal, $q_2=\\theta_2$ measured *relative to link 1* (not absolute).\n- Leading superscript denotes the frame a quantity is expressed in: ${}^0\\mathbf{r}_i$ is in base coordinates, ${}^i\\mathbf{r}_i$ is in link-$i$ coordinates.\n- All transformation matrices are $4\\times 4$ homogeneous; vectors are correspondingly augmented (a position has a trailing 1, a free vector a trailing 0). The gravity vector is written as $[0,0,-g,0]^T$ — note the trailing 0 (it is a free vector, not a position).\n- Indices: $i$ ranges over links, $j$ and $k$ over joints. In $D_{jk}$, $j$ is the row, $k$ the column. In $\\Gamma_{ijk}$ the first index $i$ is the row of $\\mathbf{h}$; $j,k$ are the velocity indices being multiplied.\n- Coordinates: 2-DOF arm lives in the vertical plane; $x$ horizontal, $y$ vertical (positive up); gravity acts in $-y$.\n- Inertia of a *uniform rod* of length $L$ and mass $m$ about its center of mass is $mL^2/12$, but the problem writes $I_i$ as a free symbol — the formulas hold for any centroidal inertia.\n- The Coriolis matrix $\\mathbf{C}$ in this lecture is built via the Christoffel construction $C_{ij}=\\sum_k\\Gamma_{ikj}\\dot q_k$; this specific choice makes $\\dot{\\mathbf{D}}-2\\mathbf{C}$ skew-symmetric. Other valid factorisations of $\\mathbf{h}=\\mathbf{C}\\dot{\\mathbf{q}}$ exist but generally do not have this property.\n- \"Pseudo-inertia matrix\" $\\mathbf{J}_i$ is the $4\\times4$ object used inside the trace, not the standard $3\\times3$ inertia tensor. Trace form is needed because we are working in homogeneous coordinates.\n\nWORKED EXAMPLES\nWorked example (only one fully worked in the lecture): **2-DOF planar arm, vertical plane, two uniform rods, revolute joints, frictionless.**\n\nInputs:\n- Link 1: length $L_1$, mass $m_1$, centroidal inertia $I_1$, COM at the midpoint.\n- Link 2: length $L_2$, mass $m_2$, centroidal inertia $I_2$, COM at the midpoint.\n- $\\theta_1$ measured from horizontal; $\\theta_2$ measured from link 1; $g=9.81$ m/s² acting in $-y$.\n\nStep 1 — COM positions (eqs. 3.31–3.32):\n$\\mathbf{r}_{c1}=[L_1\\cos\\theta_1/2,\\;L_1\\sin\\theta_1/2]^T$;\n$\\mathbf{r}_{c2}=[L_1\\cos\\theta_1+(L_2/2)\\cos(\\theta_1+\\theta_2),\\;L_1\\sin\\theta_1+(L_2/2)\\sin(\\theta_1+\\theta_2)]^T$.\n\nStep 2 — COM velocities (eqs. 3.33–3.34):\n$\\mathbf{v}_{c1}=[-L_1\\sin\\theta_1/2,\\;L_1\\cos\\theta_1/2]^T\\dot\\theta_1$;\n$\\mathbf{v}_{c2}$ split into a \"$\\dot\\theta_1$ part\" $[-L_1\\sin\\theta_1-(L_2/2)\\sin(\\theta_1+\\theta_2),\\;L_1\\cos\\theta_1+(L_2/2)\\cos(\\theta_1+\\theta_2)]^T\\dot\\theta_1$ plus a \"$\\dot\\theta_2$ part\" $[-(L_2/2)\\sin(\\theta_1+\\theta_2),\\;(L_2/2)\\cos(\\theta_1+\\theta_2)]^T\\dot\\theta_2$.\n\nStep 3 — kinetic energies (eqs. 3.35–3.37):\n$T_1=\\tfrac12(m_1L_1^2/4+I_1)\\dot\\theta_1^2$.\n$\\mathbf{v}_{c2}^T\\mathbf{v}_{c2}=[L_1^2+L_1L_2\\cos\\theta_2+L_2^2/4]\\dot\\theta_1^2+(L_2^2/4)\\dot\\theta_2^2+[L_1L_2\\cos\\theta_2+L_2^2/2]\\dot\\theta_1\\dot\\theta_2$.\n$T_2=\\tfrac12 m_2\\mathbf{v}_{c2}^T\\mathbf{v}_{c2}+\\tfrac12 I_2(\\dot\\theta_1+\\dot\\theta_2)^2$.\n\nStep 4 — inertia-matrix readoff (eqs. 3.39–3.41): see KEY EQUATIONS above. Key feature: only $D_{11}$ and $D_{12}$ depend on $\\theta_2$; $D_{22}$ is configuration-independent.\n\nStep 5 — potential energy (eq. 3.42): see above.\n\nStep 6 — Christoffel symbols (eqs. 3.43–3.44): the only non-zero ones are $\\Gamma_{122}=\\Gamma_{212}=-m_2L_1L_2\\sin\\theta_2/2$ and $\\Gamma_{211}=+m_2L_1L_2\\sin\\theta_2/2$. All others vanish because they involve derivatives w.r.t. $\\theta_1$ (and nothing depends on $\\theta_1$) or derivatives of $D_{22}$ (which is constant).\n\nStep 7 — Coriolis/centrifugal $\\mathbf{h}$ (eqs. 3.45–3.46): $h_1$ has both a Coriolis term ($\\dot\\theta_1\\dot\\theta_2$) and a centrifugal term ($\\dot\\theta_2^2$); $h_2$ has only a centrifugal term ($\\dot\\theta_1^2$).\n\nStep 8 — gravity $\\mathbf{c}$ (eqs. 3.47–3.48): $c_1$ supports both links against gravity; $c_2$ supports only link 2.\n\nStep 9 — assemble equation 3.49: $\\mathbf{D}\\ddot{\\boldsymbol\\theta}+\\mathbf{h}+\\mathbf{c}=\\boldsymbol\\tau$ as in the matlab snippet in section 6 of the page.\n\nKey analytical observations (from the §3.6 analysis box): coupling between joints comes through $\\cos\\theta_2$ and *vanishes* at $\\theta_2=\\pi/2$ in $D_{12\n\n── PAGE TEXT (what the student is reading) ──\n05b · Lagrangian Formulation for Robot Dynamics 05b M·3 Lecture 05b · Module 3 · Robot Manipulator Dynamics Lagrangian Formulation for Robot Dynamics From link velocities to the full equation of motion $\\mathbf{D}(\\mathbf{q})\\ddot{\\mathbf{q}}+\\mathbf{h}(\\mathbf{q},\\dot{\\mathbf{q}})+\\mathbf{c}(\\mathbf{q})=\\boldsymbol{\\tau}$. Kinematics told us where the end-effector is. Today we ask the harder question: what torques does each motor need to push it there? We will build the dynamic model piece by piece — first the link velocities, then the kinetic and potential energies, and finally the inertia, Coriolis, and gravity terms that snap together into a single elegant matrix equation. By the end of the hour you will recognise every symbol in $\\mathbf{D}\\ddot{\\mathbf{q}}+\\mathbf{h}+\\mathbf{c}=\\boldsymbol{\\tau}$ — and you will have derived it yourself for a 2-DOF arm. 0 Overview 1 Velocity propagation 2 Inertia matrix $\\mathbf{D}$ 3 Coriolis & centrifugal 4 Gravity vector $\\mathbf{c}$ 5 The full model 6 2-DOF worked example 7 Real-time cost ★ Practice 0 Overview What this lecture covers This lecture develops the Lagrangian formulation of robot manipulator dynamics from first principles. We start by extending homogeneous transformation matrices from positions to velocities, then assemble the kinetic and potential energies of an $n$-link arm. From those energies we read off the three terms of the equation of motion: the inertia matrix $\\mathbf{D}(\\mathbf{q})$, the Coriolis/centrifugal vector $\\mathbf{h}(\\mathbf{q},\\dot{\\mathbf{q}})$, and the gravity vector $\\mathbf{c}(\\mathbf{q})$. The payoff is the compact equation $\\mathbf{D}(\\mathbf{q})\\ddot{\\mathbf{q}}+\\mathbf{h}(\\mathbf{q},\\dot{\\mathbf{q}})+\\mathbf{c}(\\mathbf{q})=\\boldsymbol{\\tau}$, which we apply end-to-end to a 2-DOF planar arm and then discuss in terms of computational cost for real-time control. If you remember nothing else, remember those three letters: $\\mathbf{D}$, $\\mathbf{h}$, $\\mathbf{c}$. Inertia, motion-coupling, gravity. Every robot controller on the planet is doing battle with these three terms. Learning objectives Velocity propagation via transformation matrices · derivation of $\\mathbf{D}(\\mathbf{q})$ from kinetic energy · Christoffel symbols and $\\mathbf{h}(\\mathbf{q},\\dot{\\mathbf{q}})$ · gravity terms from potential energy · full 2-DOF worked example · $O(n^4)$ vs recursive complexity. Why Lagrangian, not Newton-Euler? Lagrangian gives you a symbolic model with clear physical interpretation. Newton-Euler is faster computationally — but harder to reason about when designing controllers. 1 § 3.1 Velocity propagation through the kinematic chain Robot kinematics already tells us how to express a point fixed in link $i$ in base coordinates using a product of homogeneous transforms: $${}^0\\mathbf{r}_i = {}^0\\mathbf{A}_1\\,{}^1\\mathbf{A}_2\\cdots{}^{i-1}\\mathbf{A}_i\\,{}^i\\mathbf{r}_i.$$ Differentiating in time and applying the chain rule — noting that ${}^i\\mathbf{r}_i$ is constant in frame $i$ — gives ${}^0\\mathbf{v}_i = \\sum_{j=1}^{i} \\frac{\\partial {}^0\\mathbf{A}_i}{\\partial q_j}\\dot{q}_j\\,{}^i\\mathbf{r}_i$. The partial derivative of a transformation matrix with respect to a joint variable has a beautiful closed form: $\\frac{\\partial {}^0\\mathbf{A}_i}{\\partial q_j} = {}^0\\mathbf{A}_j\\,\\mathbf{Q}_j\\,{}^j\\mathbf{A}_i$, where $\\mathbf{Q}_j$ is a fixed $4\\times 4$ structural matrix that depends only on whether joint $j$ is revolute or prismatic. We bundle this into the velocity influence coefficient $\\mathbf{U}_{ij}$. The miracle of $\\mathbf{Q}_j$ : an entire family of partial derivatives collapses into one matrix multiplication with a constant sparse pattern. Causality rule $\\mathbf{U}_{ij} = \\mathbf{0}$ for $j > i$. Joints further out cannot move points on earlier links — only joints between the base and link $i$ contribute to its velocity. The structural matrix Q for revolute and prismatic joints Revolute joint: Prismatic joint: Q_j = | 0 -1 0 0 | Q_j = | 0 0 0 0 | | 1 0 0 0 | | 0 0 0 0 | | 0 0 0 0 | | 0 0 0 1 | | 0 0 0 0 | | 0 0 0 0 | &#8706;A_i/&#8706;q_j = A_j &middot; Q_j &middot; A_i^(j&rarr;i) Try it Now you choose the joint type and watch the structural matrix $\\mathbf{Q}_j$ snap into place — then see which entry of $\\partial\\mathbf{A}_i/\\partial q_j$ lights up as a result. Watch Watch the sum $\\sum_{j=1}^{i}\\mathbf{U}_{ij}\\dot{q}_j$ build link by link — the cursor sweeps from base to link $i$, accumulating one influence coefficient per joint while joints outside the chain stay grey. 2 § 3.2 Kinetic energy and the inertia matrix $\\mathbf{D}(\\mathbf{q})$ Summing the kinetic energy of every link and rearranging the triple sum gives the total kinetic energy as a quadratic form in the joint velocities: $$T = \\tfrac{1}{2}\\dot{\\mathbf{q}}^T\\mathbf{D}(\\mathbf{q})\\dot{\\mathbf{q}}, \\quad D_{jk}(\\mathbf{q}) = \\sum_{i=1}^{n}\\operatorname{Tr}\\!\\left(\\mathbf{U}_{ij}\\,\\mathbf{J}_i\\,\\mathbf{U}_{ik}^{T}\\right).$$ Here $\\mathbf{J}_i$ is the pseudo-inertia matrix of link $i$ in its own frame, and the trace operation handles the fact that we are working in $4\\times 4$ homogeneous coordinates. The matrix $\\mathbf{D}(\\mathbf{q})$ is symmetric , positive definite , and configuration-dependent — three properties you will lean on constantly in control design. The diagonal entry $D_{jj}$ is the effective inertia your $j$ -th motor 'feels' when only joint $j$ is moving. The off-diagonal $D_{jk}$ is the inertial cross-talk between joints $j$ and $k$ . Three properties that matter Symmetric ($D_{jk}=D_{kj}$) · positive definite (kinetic energy is always positive) · bounded for any finite configuration. Many control proofs hinge on these. Algorithm 3.1 — inertia matrix in pseudocode D &larr; zeros(n, n) for i = 1..n: compute ^0A_1, ^0A_2, ..., ^0A_i for j = 1..i: for k = 1..i: D[j,k] += trace( U_ij &middot; J_i &middot; U_ik^T ) enforce symmetry: D[k,j] = D[j,k] Build it Now you assemble $\\mathbf{D}(\\mathbf{q})$ for the 2-DOF arm yourself: drag the right terms into each cell of the 2×2 matrix and watch the form check itself against symmetry and positive-definiteness. 3 § 3.3 Coriolis and centrifugal terms via Christoffel symbols Because $\\mathbf{D}(\\mathbf{q})$ depends on configuration, the Euler-Lagrange equation $\\tfrac{d}{dt}\\!\\left(\\partial T/\\partial\\dot{q}_i\\right) - \\partial T/\\partial q_i = \\tau_i$ produces velocity-dependent forces in addition to the obvious $\\mathbf{D}\\ddot{\\mathbf{q}}$ term. These collect into the Christoffel symbols : $$\\Gamma_{ijk} = \\tfrac{1}{2}\\!\\left(\\tfrac{\\partial D_{ij}}{\\partial q_k} + \\tfrac{\\partial D_{ik}}{\\partial q_j} - \\tfrac{\\partial D_{jk}}{\\partial q_i}\\right),\\quad h_i = \\sum_{j,k}\\Gamma_{ijk}\\,\\dot{q}_j\\dot{q}_k.$$ Terms with $j\\ne k$ are Coriolis (two different joints moving create force on a third); terms with $j=k$ are centrifugal (a single joint's motion reacts on itself through the changing inertia distribution). A subtle but important property: $\\dot{\\mathbf{D}} - 2\\mathbf{C}$ is skew-symmetric , which is the algebraic statement of energy conservation and underpins almost every passivity-based controller. At high speed, $\\mathbf{h}$ can swallow 20–40% of your actuator budget. Ignore it and your trajectory tracking will drift the moment the arm moves fast. Why two names for one vector? Centrifugal = self-coupling ($\\dot{q}_j^2$ terms) — a joint reacting on itself. Coriolis = cross-coupling ($\\dot{q}_j\\dot{q}_k$, $j\\ne k$) — two joints moving together generate force on a third. Both live inside the same $\\mathbf{h}(\\mathbf{q},\\dot{\\mathbf{q}})$. Skew-symmetry → passivity $\\dot{\\mathbf{D}}-2\\mathbf{C}$ being skew-symmetric is the hook for Lyapunov stability proofs in robot control. It is not a coincidence — it falls out of energy conservation. Derive Now you derive $\\Gamma_{122}$ step by step: pick which partial-derivative production rule fires next, and watch the formula expand until only the surviving terms remain. 4 § 3.4 Gravity terms from potential energy Of the three terms, gravity is the easiest. The potential energy of the arm is just the sum of $m_i\\mathbf{g}^T{}^0\\mathbf{r}_{ci}$ over all links, and the gravity vector falls out as $\\mathbf{c}(\\mathbf{q})=\\partial V/\\partial\\mathbf{q}$: $$c_i(\\mathbf{q}) = \\sum_{j=i}^{n} m_j\\,\\mathbf{g}^T\\,\\mathbf{U}_{ji}\\,{}^j\\mathbf{r}_{cj}.$$ Note the lower limit: only links outboard of joint $i$ contribute, because joint $i$ does not have to support anything closer to the base than itself. For a large industrial arm, $\\mathbf{c}(\\mathbf{q})$ can be 10–50× larger than the dynamic terms during normal operation — which is why gravity compensation is the first feedforward term most controllers implement. Hold an industrial robot's brake release while powered down — it falls. The torque the brakes were resisting was almost entirely $\\mathbf{c}(\\mathbf{q})$ . Posture matters A horizontal link has the full moment arm; a vertical link has none. Gravity torque scales with $\\sin\\theta$ for the link's pitch rel","contextLabel":"Lagrangian Formulation for Robot Dynamics","openingLine":"I'm reading Lagrangian Formulation for Robot Dynamics. Can you walk me through…","temperature":0.15,"model":"mistral-small-latest"}); } else { setTimeout(go, 60); } }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", go); else go();
+})();</script>
+
+<div class="page">
+
+<header class="masthead">
+  <div class="mast-num">
+    05b
+    <span class="sub">M·3</span>
+  </div>
+  <div>
+    <p class="mast-eyebrow">Lecture 05b · Module 3 · Robot Manipulator Dynamics</p>
+    <h1 class="mast-title">Lagrangian Formulation for Robot Dynamics</h1>
+    <p class="mast-subtitle">From link velocities to the full equation of motion $\mathbf{D}(\mathbf{q})\ddot{\mathbf{q}}+\mathbf{h}(\mathbf{q},\dot{\mathbf{q}})+\mathbf{c}(\mathbf{q})=\boldsymbol{\tau}$.</p>
+    <p class="mast-opening">Kinematics told us <em>where</em> the end-effector is. Today we ask the harder question: <em>what torques does each motor need to push it there?</em> We will build the dynamic model piece by piece — first the link velocities, then the kinetic and potential energies, and finally the inertia, Coriolis, and gravity terms that snap together into a single elegant matrix equation. By the end of the hour you will recognise every symbol in $\mathbf{D}\ddot{\mathbf{q}}+\mathbf{h}+\mathbf{c}=\boldsymbol{\tau}$ — and you will have derived it yourself for a 2-DOF arm.</p>
+  </div>
+</header>
+
+<script>/* TSI Buddy — vanilla-JS chat widget for the TSI Dynamics course.
+ *
+ * Mount once per page:
+ *
+ *   TSIBuddy.mount({
+ *     systemPrompt: "You are TSI Buddy ...",   // required, the AUDITOR prompt
+ *     contextLabel: "docs/01_F_equals_ma.md",  // shown in the modal subtitle
+ *     openingLine:  "I'm reading the F=ma chapter ..."   // optional pre-fill
+ *   });
+ *
+ * The widget mounts a floating button (top-right of the viewport), a settings
+ * modal where the student pastes their Mistral API key, and a chat panel that
+ * streams responses progressively. API key persists in localStorage.
+ *
+ * Streams via Mistral's SSE endpoint (stream: true). Falls back to a single
+ * non-streaming response if the runtime doesn't expose ReadableStream.
+ *
+ * Designed to coexist with the React+htm widget already inside each hook
+ * page. They use the same localStorage keys so a student who pastes their
+ * key once gets it everywhere.
+ */
+(function () {
+  try {
+    'use strict';
+
+  if (window.TSIBuddy && window.TSIBuddy.__loaded) return;
+
+  var KEY_LS    = 'tsi_mistral_key';
+  var MODEL_LS  = 'tsi_mistral_model';
+  var ENABLE_LS = 'tsi_buddy_enabled';
+
+  function lsGet(k, fb) { try { var v = localStorage.getItem(k); return v == null ? fb : v; } catch (e) { return fb; } }
+  function lsSet(k, v)  { try { localStorage.setItem(k, v); } catch (e) {} }
+
+  /* ---------- Styles (injected once) ---------- */
+  var STYLE = `
+.tsi-buddy-btn {
+  position: fixed; top: 14px; right: 14px; z-index: 9000;
+  background: rgba(255,255,255,0.95); color: #1a3a5c;
+  border: 1px solid #cbd5e1; border-radius: 999px;
+  padding: 8px 14px; font: 600 13px/1 'Inter', system-ui, sans-serif;
+  box-shadow: 0 2px 6px rgba(15,23,42,0.12);
+  cursor: pointer; display: flex; align-items: center; gap: 8px;
+  transition: transform 0.12s, box-shadow 0.12s;
+}
+.tsi-buddy-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 10px rgba(15,23,42,0.18); }
+.tsi-buddy-btn .tsi-buddy-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: #94a3b8;
+}
+.tsi-buddy-btn.tsi-on .tsi-buddy-dot { background: #16a34a; box-shadow: 0 0 0 2px rgba(34,197,94,0.25); }
+.tsi-buddy-btn.tsi-on { border-color: #16a34a; color: #166534; }
+
+.tsi-buddy-overlay {
+  position: fixed; inset: 0; background: rgba(15,23,42,0.55); z-index: 9100;
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+}
+.tsi-buddy-overlay[hidden] { display: none; }
+
+.tsi-buddy-modal {
+  background: white; border-radius: 12px;
+  max-width: 480px; width: 100%;
+  padding: 24px 26px;
+  box-shadow: 0 20px 60px rgba(15,23,42,0.35);
+  font: 400 14px/1.55 'Inter', system-ui, sans-serif;
+  color: #1e293b;
+}
+.tsi-buddy-modal h3 { margin: 0 0 8px; font-size: 1.2rem; color: #0f172a; }
+.tsi-buddy-modal .tsi-buddy-sub { color: #64748b; font-size: 0.92em; margin: 0 0 16px; }
+.tsi-buddy-modal label { display: block; margin-top: 14px; font-weight: 600; color: #334155; font-size: 0.9em; }
+.tsi-buddy-modal input[type="password"],
+.tsi-buddy-modal select,
+.tsi-buddy-modal textarea {
+  margin-top: 6px; width: 100%; box-sizing: border-box;
+  padding: 9px 12px; border: 1px solid #cbd5e1; border-radius: 6px;
+  font: inherit; color: #1e293b; background: #f8fafc;
+}
+.tsi-buddy-modal input[type="password"] { font-family: ui-monospace, Menlo, monospace; font-size: 0.92em; }
+.tsi-buddy-modal .tsi-buddy-toggle { display: flex; align-items: center; gap: 8px; margin-top: 14px; cursor: pointer; }
+.tsi-buddy-modal .tsi-buddy-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 22px; }
+.tsi-buddy-modal button {
+  font: 600 13px/1 'Inter', system-ui, sans-serif;
+  padding: 9px 16px; border-radius: 6px; border: none; cursor: pointer;
+}
+.tsi-buddy-modal .tsi-buddy-secondary { background: white; color: #475569; border: 1px solid #cbd5e1; }
+.tsi-buddy-modal .tsi-buddy-primary   { background: #1565c0; color: white; }
+.tsi-buddy-modal .tsi-buddy-primary:hover { background: #0d47a1; }
+.tsi-buddy-modal .tsi-buddy-secondary:hover { background: #f1f5f9; }
+.tsi-buddy-modal small { color: #64748b; }
+
+.tsi-buddy-chat {
+  position: fixed; right: 14px; bottom: 14px; z-index: 9000;
+  width: 380px; max-width: calc(100vw - 28px);
+  height: 540px; max-height: calc(100vh - 80px);
+  background: white; border: 1px solid #cbd5e1; border-radius: 12px;
+  box-shadow: 0 12px 40px rgba(15,23,42,0.25);
+  display: flex; flex-direction: column;
+  overflow: hidden;
+  font: 400 14px/1.55 'Inter', system-ui, sans-serif; color: #1e293b;
+}
+.tsi-buddy-chat[hidden] { display: none; }
+.tsi-buddy-chat-head {
+  background: linear-gradient(135deg, #1a3a5c 0%, #1e4d8c 100%);
+  color: white; padding: 12px 14px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.tsi-buddy-chat-head strong { font-size: 0.95em; }
+.tsi-buddy-chat-head small  { color: rgba(255,255,255,0.78); font-size: 0.78em; display: block; margin-top: 2px; }
+.tsi-buddy-chat-head button { background: transparent; border: none; color: white; cursor: pointer; font-size: 1.1em; line-height: 1; padding: 4px 8px; border-radius: 4px; }
+.tsi-buddy-chat-head button:hover { background: rgba(255,255,255,0.16); }
+.tsi-buddy-chat-body {
+  flex: 1 1 auto; overflow-y: auto; padding: 14px 14px 6px;
+  background: #f8fafc;
+}
+.tsi-buddy-bubble {
+  margin: 8px 0; padding: 10px 13px; border-radius: 10px;
+  word-wrap: break-word; overflow-wrap: anywhere; font-size: 0.93em;
+}
+.tsi-buddy-bubble.tsi-user      { background: #e3f2fd; color: #1a3a5c; border-bottom-right-radius: 2px; margin-left: 32px; }
+.tsi-buddy-bubble.tsi-assistant { background: white; border: 1px solid #e2e8f0; margin-right: 32px; }
+.tsi-buddy-bubble .tsi-buddy-role { font-size: 0.72em; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 4px; }
+.tsi-buddy-bubble.tsi-thinking { color: #94a3b8; font-style: italic; }
+/* Markdown typography inside bubbles (rendered for assistant replies). */
+.tsi-buddy-bubble .tsi-buddy-text > * { margin: 0; }
+.tsi-buddy-bubble .tsi-buddy-text > * + * { margin-top: 6px; }
+.tsi-buddy-bubble .tsi-buddy-text p { line-height: 1.55; }
+.tsi-buddy-bubble .tsi-buddy-text strong { font-weight: 700; color: #0f172a; }
+.tsi-buddy-bubble .tsi-buddy-text em { font-style: italic; }
+.tsi-buddy-bubble .tsi-buddy-text ul,
+.tsi-buddy-bubble .tsi-buddy-text ol { padding-left: 22px; }
+.tsi-buddy-bubble .tsi-buddy-text li { margin: 2px 0; }
+.tsi-buddy-bubble .tsi-buddy-text code {
+  background: rgba(15,23,42,0.06); padding: 0 4px; border-radius: 3px;
+  font-family: ui-monospace, Menlo, monospace; font-size: 0.92em;
+}
+.tsi-buddy-bubble .tsi-buddy-text pre {
+  background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px;
+  padding: 8px 10px; overflow-x: auto;
+}
+.tsi-buddy-bubble .tsi-buddy-text pre code { background: transparent; padding: 0; }
+.tsi-buddy-bubble .tsi-buddy-text blockquote {
+  border-left: 3px solid #cbd5e1; padding: 2px 10px; color: #475569;
+  background: #f8fafc; border-radius: 4px;
+}
+.tsi-buddy-bubble .tsi-buddy-text h1,
+.tsi-buddy-bubble .tsi-buddy-text h2,
+.tsi-buddy-bubble .tsi-buddy-text h3,
+.tsi-buddy-bubble .tsi-buddy-text h4 { font-weight: 700; color: #0f172a; }
+.tsi-buddy-bubble .tsi-buddy-text h1 { font-size: 1.05em; }
+.tsi-buddy-bubble .tsi-buddy-text h2 { font-size: 1.0em; }
+.tsi-buddy-bubble .tsi-buddy-text h3,
+.tsi-buddy-bubble .tsi-buddy-text h4 { font-size: 0.95em; }
+.tsi-buddy-bubble .tsi-buddy-text hr { border: none; border-top: 1px solid #e2e8f0; }
+.tsi-buddy-bubble .tsi-buddy-text a { color: #1565c0; text-decoration: underline; }
+.tsi-buddy-error {
+  background: #fee2e2; color: #7f1d1d; border: 1px solid #fecaca;
+  padding: 8px 10px; border-radius: 6px; margin: 8px 14px; font-size: 0.85em;
+}
+.tsi-buddy-chat-foot {
+  border-top: 1px solid #e2e8f0; padding: 10px 12px;
+  display: flex; gap: 8px; align-items: flex-end;
+  background: white;
+}
+.tsi-buddy-chat-foot textarea {
+  flex: 1 1 auto; resize: none; min-height: 36px; max-height: 140px;
+  padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px;
+  font: inherit; color: #1e293b;
+}
+.tsi-buddy-chat-foot button {
+  font: 600 13px/1 'Inter', system-ui, sans-serif;
+  padding: 9px 14px; border-radius: 6px; border: none; cursor: pointer;
+  background: #1565c0; color: white;
+}
+.tsi-buddy-chat-foot button:disabled { background: #94a3b8; cursor: default; }
+.tsi-buddy-chat-foot button:hover:not(:disabled) { background: #0d47a1; }
+.tsi-buddy-startbar {
+  display: flex; gap: 8px; padding: 12px 14px;
+  border-bottom: 1px solid #e2e8f0; background: #fafbfc;
+}
+.tsi-buddy-startbar button {
+  flex: 1 1 auto; font: 600 13px/1 'Inter', system-ui, sans-serif;
+  padding: 9px 12px; border-radius: 6px; border: 1px solid #1565c0;
+  background: white; color: #1565c0; cursor: pointer;
+}
+.tsi-buddy-startbar button:hover { background: #e3f2fd; }
+@media (max-width: 480px) {
+  .tsi-buddy-chat { width: calc(100vw - 16px); right: 8px; bottom: 8px; height: calc(100vh - 90px); }
+}
+`;
+
+  function injectStyles() {
+    if (document.getElementById('tsi-buddy-styles')) return;
+    var s = document.createElement('style');
+    s.id = 'tsi-buddy-styles';
+    s.textContent = STYLE;
+    document.head.appendChild(s);
+  }
+
+  /* ---------- Markdown rendering ---------- */
+  // The buddy returns markdown (bold, italic, lists, code, headers).
+  // We lazily load `marked` from CDN and render assistant replies through it.
+  // Until marked is loaded (or if it fails to load), we fall back to plain
+  // text with newlines preserved as <br>.
+  function loadMarked() {
+    if (window.marked) return Promise.resolve(window.marked);
+    if (window.__tsiMarkedLoading) return window.__tsiMarkedLoading;
+    window.__tsiMarkedLoading = new Promise(function (resolve) {
+      var s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js';
+      s.async = true;
+      s.onload  = function () { resolve(window.marked || null); };
+      s.onerror = function () { resolve(null); };
+      document.head.appendChild(s);
+    });
+    return window.__tsiMarkedLoading;
+  }
+
+  /* ---------- KaTeX (for math in replies) ----------
+     Lazy-load KaTeX + CSS when the host page doesn't already have it, so
+     $...$ / $$...$$ in replies typeset instead of showing raw. */
+  var KATEX_OPTS = {
+    delimiters: [
+      { left: '$$',  right: '$$',  display: true  },
+      { left: '\\[', right: '\\]', display: true  },
+      { left: '\\(', right: '\\)', display: false },
+      { left: '$',   right: '$',   display: false }
+    ],
+    throwOnError: false
+  };
+  function loadKatex() {
+    if (window.katex && window.katex.renderToString) return Promise.resolve(window.katex);
+    if (window.__tsiKatexLoading) return window.__tsiKatexLoading;
+    window.__tsiKatexLoading = new Promise(function (resolve) {
+      if (!document.querySelector('link[data-tsi-katex]')) {
+        var link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = 'https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css';
+        link.setAttribute('data-tsi-katex', '1');
+        document.head.appendChild(link);
+      }
+      var s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js';
+      s.onload  = function () { resolve(window.katex || null); };
+      s.onerror = function () { resolve(null); };
+      document.head.appendChild(s);
+    });
+    return window.__tsiKatexLoading;
+  }
+
+  // Light DOM sanitiser: walks the parsed tree and removes any tags / attrs
+  // that could execute code if the model went rogue. Allow-listing all
+  // safe markdown tags; strip everything else's dangerous attributes.
+  function sanitizeHTML(html) {
+    var div = document.createElement('div');
+    div.innerHTML = html;
+    var deny = ['script', 'style', 'iframe', 'object', 'embed', 'form',
+                'input', 'button', 'textarea', 'select', 'meta', 'link', 'base'];
+    deny.forEach(function (tag) {
+      Array.from(div.getElementsByTagName(tag)).forEach(function (n) { n.remove(); });
+    });
+    Array.from(div.querySelectorAll('*')).forEach(function (n) {
+      Array.from(n.attributes).forEach(function (a) {
+        var name = a.name.toLowerCase();
+        if (name.indexOf('on') === 0) { n.removeAttribute(a.name); return; }
+        if (name === 'href' || name === 'src' || name === 'srcset') {
+          var v = (a.value || '').replace(/\s/g, '');
+          if (/^javascript:/i.test(v) || /^data:text\/html/i.test(v)) {
+            n.removeAttribute(a.name);
+          }
+        }
+      });
+      // External links: open in new tab safely
+      if (n.tagName === 'A' && n.getAttribute('href')) {
+        n.setAttribute('target', '_blank');
+        n.setAttribute('rel', 'noopener noreferrer');
+      }
+    });
+    return div.innerHTML;
+  }
+
+  function escapeHTML(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  function renderContent(text, isAssistant) {
+    var div = document.createElement('div');
+    div.className = 'tsi-buddy-text';
+    var raw = text == null ? '' : String(text);
+    if (isAssistant && window.marked && window.marked.parse) {
+      try {
+        /* Protect math from markdown (it mangles _ * \ inside $…$), then
+           restore + typeset with KaTeX. */
+        var math = [];
+        var protectedSrc = raw
+          .replace(/\$\$([\s\S]+?)\$\$/g, function (_m, body) {
+            math.push({ display: true, tex: body }); return ' @@TSIMATH' + (math.length - 1) + '@@ ';
+          })
+          .replace(/\$([^\$\n]+?)\$/g, function (_m, body) {
+            math.push({ display: false, tex: body }); return '@@TSIMATH' + (math.length - 1) + '@@';
+          });
+        var html = sanitizeHTML(window.marked.parse(protectedSrc, { breaks: true, gfm: true, mangle: false, headerIds: false }));
+        var katexReady = window.katex && window.katex.renderToString;
+        html = html.replace(/@@TSIMATH(\d+)@@/g, function (_m, i) {
+          var item = math[Number(i)];
+          if (!item) return '';
+          if (katexReady) {
+            try { return window.katex.renderToString(item.tex, { displayMode: item.display, throwOnError: false }); }
+            catch (e) {}
+          }
+          var d = item.display ? '$$' : '$';
+          return d + escapeHTML(item.tex) + d;
+        });
+        div.innerHTML = html;
+        if (math.length && !katexReady) {
+          loadKatex().then(function (k) {
+            if (k && window.renderMathInElement) { try { window.renderMathInElement(div, KATEX_OPTS); } catch (e) {} }
+          });
+        }
+        return div;
+      } catch (e) { /* fall through to plain text */ }
+    }
+    // Plain-text fallback (user messages, or assistant before marked loads)
+    div.innerHTML = escapeHTML(raw).replace(/\n/g, '<br>');
+    return div;
+  }
+
+  /* ---------- Streaming Mistral call ---------- */
+  function callMistralChat(apiKey, model, systemPrompt, messages, onDelta) {
+    return fetch('https://api.mistral.ai/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + apiKey, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: model || 'mistral-small-latest',
+        temperature: 0.4,
+        max_tokens: 1500,
+        stream: true,
+        messages: [{ role: 'system', content: systemPrompt }].concat(messages)
+      })
+    }).then(function (r) {
+      if (!r.ok) {
+        return r.text().then(function (t) {
+          throw new Error('Mistral ' + r.status + ': ' + (t || 'request failed'));
+        });
+      }
+      if (!r.body || !r.body.getReader) {
+        return r.json().then(function (data) {
+          if (!data.choices || !data.choices[0]) throw new Error('Mistral returned no choices.');
+          var full = (data.choices[0].message.content || '').trim();
+          if (onDelta) onDelta(full);
+          return full;
+        });
+      }
+      var reader = r.body.getReader();
+      var decoder = new TextDecoder();
+      var buf = '';
+      var full = '';
+      function pump() {
+        return reader.read().then(function (res) {
+          if (res.done) return full.trim();
+          buf += decoder.decode(res.value, { stream: true });
+          var lines = buf.split('\n');
+          buf = lines.pop();
+          for (var i = 0; i < lines.length; i++) {
+            var ln = lines[i];
+            if (ln.indexOf('data: ') !== 0) continue;
+            var s = ln.substring(6).trim();
+            if (s === '[DONE]') return full.trim();
+            try {
+              var d = JSON.parse(s);
+              if (d.choices && d.choices[0] && d.choices[0].delta && d.choices[0].delta.content) {
+                full += d.choices[0].delta.content;
+                if (onDelta) onDelta(full);
+              }
+            } catch (e) {}
+          }
+          return pump();
+        });
+      }
+      return pump();
+    });
+  }
+
+  /* ---------- DOM helpers ---------- */
+  function el(tag, attrs, kids) {
+    var n = document.createElement(tag);
+    if (attrs) for (var k in attrs) {
+      if (k === 'class') n.className = attrs[k];
+      else if (k === 'html') n.innerHTML = attrs[k];
+      else if (k === 'text') n.textContent = attrs[k];
+      else if (k.indexOf('on') === 0 && typeof attrs[k] === 'function') n.addEventListener(k.substring(2), attrs[k]);
+      else if (attrs[k] === true) n.setAttribute(k, '');
+      else if (attrs[k] != null && attrs[k] !== false) n.setAttribute(k, attrs[k]);
+    }
+    if (kids) (Array.isArray(kids) ? kids : [kids]).forEach(function (c) {
+      if (c == null) return;
+      n.appendChild(typeof c === 'string' ? document.createTextNode(c) : c);
+    });
+    return n;
+  }
+
+  /* ---------- Mount ---------- */
+  function mount(opts) {
+    if (!opts || !opts.systemPrompt) {
+      console.warn('TSIBuddy.mount: systemPrompt required');
+      return null;
+    }
+    injectStyles();
+
+    // ---- State (closure-scoped) ----
+    var state = {
+      apiKey:  lsGet(KEY_LS, ''),
+      model:   lsGet(MODEL_LS, 'mistral-small-latest'),
+      enabled: lsGet(ENABLE_LS, '') === '1',
+      messages: [],     // {role, content}
+      pending: '',
+      status:  'idle',  // idle | loading | error
+      error:   '',
+      open:    false    // chat panel visible
+    };
+    if (state.apiKey) state.enabled = true; // having a key implies enabled
+
+    // ---- Floating button ----
+    var btnDot   = el('span', { class: 'tsi-buddy-dot' });
+    var btnLabel = el('span', null, '🤖 TSI Buddy');
+    var btnState = el('span', null, '');
+    var btn = el('button', {
+      class: 'tsi-buddy-btn',
+      title: 'TSI Buddy — your study companion',
+      onclick: function () {
+        if (state.apiKey) toggleChat();
+        else openSettings();
+      }
+    }, [btnDot, btnLabel, btnState]);
+    document.body.appendChild(btn);
+
+    // ---- Settings modal ----
+    var keyInput = el('input', {
+      type: 'password', autocomplete: 'off',
+      placeholder: 'paste your Mistral key (starts with "sk-…")',
+      value: state.apiKey,
+      oninput: function (e) { state.apiKey = e.target.value; }
+    });
+    var modelSelect = el('select', {
+      onchange: function (e) { state.model = e.target.value; }
+    }, ['mistral-small-latest', 'mistral-medium-latest', 'mistral-large-latest'].map(function (m) {
+      var o = el('option', { value: m }, m + (m === 'mistral-small-latest' ? ' (recommended)' : ''));
+      if (m === state.model) o.selected = true;
+      return o;
+    }));
+    var enableBox = el('input', {
+      type: 'checkbox',
+      onchange: function (e) { state.enabled = !!e.target.checked; }
+    });
+    enableBox.checked = state.enabled;
+    var modalCard = el('div', { class: 'tsi-buddy-modal', onclick: function (e) { e.stopPropagation(); } }, [
+      el('h3', null, '🤖 TSI Buddy'),
+      el('p', { class: 'tsi-buddy-sub' }, opts.contextLabel
+        ? ('You are reading: ' + opts.contextLabel + '. The buddy reads the page context and helps you understand worked examples — it does not give you the answer to your homework.')
+        : 'A study companion. The buddy helps you understand the worked examples on this page.'),
+      el('label', { class: 'tsi-buddy-toggle' }, [enableBox, el('span', null, 'Enable TSI Buddy on this page')]),
+      el('label', null, 'Mistral API key'),
+      keyInput,
+      el('label', null, 'Model'),
+      modelSelect,
+      el('p', null, [el('small', null, 'Get a free key at '), el('a', { href: 'https://console.mistral.ai/api-keys/', target: '_blank' }, 'console.mistral.ai'), el('small', null, '. The key stays in your browser only.')]),
+      el('div', { class: 'tsi-buddy-actions' }, [
+        el('button', { class: 'tsi-buddy-secondary', onclick: function () { state.apiKey = ''; keyInput.value = ''; } }, 'Clear key'),
+        el('button', { class: 'tsi-buddy-primary',   onclick: function () { saveSettings(); } }, 'Save')
+      ])
+    ]);
+    var modalOverlay = el('div', { class: 'tsi-buddy-overlay', hidden: true, onclick: function () { closeSettings(); } }, [modalCard]);
+    document.body.appendChild(modalOverlay);
+
+    // ---- Chat panel ----
+    var chatBody = el('div', { class: 'tsi-buddy-chat-body' });
+    var chatErr  = el('div', { class: 'tsi-buddy-error', hidden: true });
+    var inputBox = el('textarea', {
+      rows: 1, placeholder: 'Ask about this page…',
+      onkeydown: function (e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          sendUserMessage();
+        }
+      },
+      oninput: function (e) { state.pending = e.target.value; sendBtn.disabled = !canSend(); autosize(e.target); }
+    });
+    var sendBtn = el('button', {
+      onclick: function () { sendUserMessage(); }
+    }, 'Send');
+    sendBtn.disabled = true;
+
+    var startBar = el('div', { class: 'tsi-buddy-startbar' });
+
+    var chatFoot = el('div', { class: 'tsi-buddy-chat-foot' }, [inputBox, sendBtn]);
+
+    var chatHead = el('div', { class: 'tsi-buddy-chat-head' }, [
+      el('div', null, [
+        el('strong', null, '🤖 TSI Buddy'),
+        opts.contextLabel ? el('small', null, opts.contextLabel) : null
+      ]),
+      el('div', null, [
+        el('button', { title: 'Settings', onclick: function () { openSettings(); } }, '⚙'),
+        el('button', { title: 'Reset chat', onclick: function () { resetChat(); } }, '↺'),
+        el('button', { title: 'Close', onclick: function () { closeChat(); } }, '×')
+      ])
+    ]);
+
+    var chatPanel = el('div', { class: 'tsi-buddy-chat', hidden: true }, [
+      chatHead, startBar, chatErr, chatBody, chatFoot
+    ]);
+    document.body.appendChild(chatPanel);
+
+    // ---- Render ----
+    function refreshButton() {
+      if (state.apiKey && state.enabled) { btn.classList.add('tsi-on'); btnState.textContent = 'ON'; }
+      else                                { btn.classList.remove('tsi-on'); btnState.textContent = 'off'; }
+    }
+    function autosize(t) {
+      t.style.height = 'auto';
+      t.style.height = Math.min(140, Math.max(36, t.scrollHeight)) + 'px';
+    }
+    function canSend() {
+      return !!(state.apiKey && state.enabled && state.pending.trim() && state.status !== 'loading');
+    }
+    function refreshSendBtn() { sendBtn.disabled = !canSend(); }
+    function refreshStartBar() {
+      while (startBar.firstChild) startBar.removeChild(startBar.firstChild);
+      if (state.messages.length > 0) { startBar.style.display = 'none'; return; }
+      startBar.style.display = 'flex';
+      if (opts.openingLine) {
+        startBar.appendChild(el('button', {
+          onclick: function () { startWith(opts.openingLine); }
+        }, '🚀 Start with: "' + opts.openingLine.substring(0, 50) + (opts.openingLine.length > 50 ? '…' : '') + '"'));
+      }
+      startBar.appendChild(el('button', {
+        onclick: function () { startWith('Help me understand the worked example on this page.'); }
+      }, '💡 Generic walkthrough'));
+    }
+    function refreshChat() {
+      while (chatBody.firstChild) chatBody.removeChild(chatBody.firstChild);
+      state.messages.forEach(function (m, i) {
+        var thinking = (state.status === 'loading' && i === state.messages.length - 1 && m.role === 'assistant' && !m.content);
+        var displayText = m.content || (thinking ? '…' : '');
+        var contentDiv = thinking
+          ? (function () { var d = document.createElement('div'); d.className = 'tsi-buddy-text'; d.textContent = '…'; return d; })()
+          : renderContent(displayText, m.role === 'assistant');
+        var bubble = el('div', { class: 'tsi-buddy-bubble tsi-' + m.role }, [
+          el('div', { class: 'tsi-buddy-role' }, m.role === 'assistant' ? '🤖 TSI Buddy' : '🧑 You'),
+          contentDiv
+        ]);
+        if (thinking) bubble.classList.add('tsi-thinking');
+        chatBody.appendChild(bubble);
+      });
+      if (state.status === 'error' && state.error) {
+        chatErr.textContent = 'API error: ' + state.error;
+        chatErr.hidden = false;
+      } else {
+        chatErr.hidden = true;
+      }
+      // scroll to bottom
+      requestAnimationFrame(function () { chatBody.scrollTop = chatBody.scrollHeight; });
+      refreshStartBar();
+      refreshSendBtn();
+    }
+
+    // ---- Behaviour ----
+    function openSettings()  { modalOverlay.hidden = false; setTimeout(function () { keyInput.focus(); }, 50); }
+    function closeSettings() { modalOverlay.hidden = true; }
+    function saveSettings() {
+      lsSet(KEY_LS, state.apiKey || '');
+      lsSet(MODEL_LS, state.model || 'mistral-small-latest');
+      lsSet(ENABLE_LS, state.enabled ? '1' : '');
+      closeSettings();
+      refreshButton();
+      if (state.apiKey && state.enabled) openChat();
+    }
+    function openChat()  { state.open = true; chatPanel.hidden = false; refreshChat(); inputBox.focus(); }
+    function closeChat() { state.open = false; chatPanel.hidden = true; }
+    function toggleChat(){ state.open ? closeChat() : openChat(); }
+    function resetChat() { state.messages = []; state.pending = ''; state.status = 'idle'; state.error = ''; inputBox.value = ''; refreshChat(); }
+    function startWith(line) {
+      inputBox.value = line;
+      state.pending = line;
+      autosize(inputBox);
+      sendUserMessage();
+    }
+    function sendUserMessage() {
+      var draft = (state.pending || '').trim();
+      if (!draft || !state.apiKey || state.status === 'loading') return;
+      var userMsg = { role: 'user', content: draft };
+      state.messages.push(userMsg);
+      state.messages.push({ role: 'assistant', content: '' });
+      state.pending = ''; inputBox.value = ''; autosize(inputBox);
+      state.status = 'loading'; state.error = '';
+      refreshChat();
+      callMistralChat(state.apiKey, state.model, opts.systemPrompt, state.messages.slice(0, -1), function (full) {
+        var last = state.messages[state.messages.length - 1];
+        if (last && last.role === 'assistant') {
+          last.content = full;
+          refreshChat();
+        }
+      }).then(function () {
+        state.status = 'idle';
+        refreshChat();
+      }).catch(function (err) {
+        var last = state.messages[state.messages.length - 1];
+        if (last && last.role === 'assistant' && !last.content) state.messages.pop();
+        state.status = 'error';
+        state.error = (err && err.message) || String(err);
+        refreshChat();
+      });
+    }
+
+    refreshButton();
+    refreshChat();
+
+    // Lazily fetch marked so assistant replies render markdown. If it
+    // arrives mid-conversation, re-render so any plain-text bubbles get
+    // upgraded to formatted ones.
+    loadMarked().then(function (m) { if (m) refreshChat(); });
+
+    // First-time arrival: nudge the modal open if no key set
+    // (but not too aggressively — only on explicit click of the button).
+
+    return {
+      open: openChat, close: closeChat, toggle: toggleChat,
+      reset: resetChat,
+      destroy: function () {
+        try { document.body.removeChild(btn); } catch (e) {}
+        try { document.body.removeChild(modalOverlay); } catch (e) {}
+        try { document.body.removeChild(chatPanel); } catch (e) {}
+      }
+    };
+  }
+
+  window.TSIBuddy = { mount: mount, __loaded: true };
+  } catch (e) {
+    try { console.error('TSIBuddy bootstrap error', e); } catch (_) {}
+  }
+})();
+</script>
+
+<nav class="toc">
+  <a href="#overview"><span class="num">0</span>Overview</a>
+  <a href="#velocity-formulation"><span class="num">1</span>Velocity propagation</a>
+  <a href="#inertia-matrix"><span class="num">2</span>Inertia matrix $\mathbf{D}$</a>
+  <a href="#coriolis-centrifugal"><span class="num">3</span>Coriolis &amp; centrifugal</a>
+  <a href="#gravity-terms"><span class="num">4</span>Gravity vector $\mathbf{c}$</a>
+  <a href="#complete-equation"><span class="num">5</span>The full model</a>
+  <a href="#two-dof-worked-example"><span class="num">6</span>2-DOF worked example</a>
+  <a href="#computational-considerations"><span class="num">7</span>Real-time cost</a>
+  <a href="#practice"><span class="num">★</span>Practice</a>
+</nav>
+
+<main>
+
+<section class="lec" id="overview">
+  <div class="sec-num">0<span class="label">Overview</span></div>
+  <div class="sec-body">
+    <h2 class="sec-title">What this lecture covers</h2>
+
+    <p>This lecture develops the <strong>Lagrangian formulation</strong> of robot manipulator dynamics from first principles. We start by extending homogeneous transformation matrices from positions to velocities, then assemble the kinetic and potential energies of an $n$-link arm. From those energies we read off the three terms of the equation of motion: the <strong>inertia matrix</strong> $\mathbf{D}(\mathbf{q})$, the <strong>Coriolis/centrifugal vector</strong> $\mathbf{h}(\mathbf{q},\dot{\mathbf{q}})$, and the <strong>gravity vector</strong> $\mathbf{c}(\mathbf{q})$.</p>
+
+    <p>The payoff is the compact equation $\mathbf{D}(\mathbf{q})\ddot{\mathbf{q}}+\mathbf{h}(\mathbf{q},\dot{\mathbf{q}})+\mathbf{c}(\mathbf{q})=\boldsymbol{\tau}$, which we apply end-to-end to a 2-DOF planar arm and then discuss in terms of computational cost for real-time control.</p>
+
+    <div class="voice"><em>If you remember nothing else, remember those three letters:</em> $\mathbf{D}$, $\mathbf{h}$, $\mathbf{c}$. Inertia, motion-coupling, gravity. <em>Every robot controller on the planet is doing battle with these three terms.</em></div>
+
+    <div class="callouts">
+      <div class="callout blue">
+        <p class="callout-title">Learning objectives</p>
+        <div class="callout-body"><p>Velocity propagation via transformation matrices · derivation of $\mathbf{D}(\mathbf{q})$ from kinetic energy · Christoffel symbols and $\mathbf{h}(\mathbf{q},\dot{\mathbf{q}})$ · gravity terms from potential energy · full 2-DOF worked example · $O(n^4)$ vs recursive complexity.</p></div>
+      </div>
+      <div class="callout purple">
+        <p class="callout-title">Why Lagrangian, not Newton-Euler?</p>
+        <div class="callout-body"><p>Lagrangian gives you a <em>symbolic</em> model with clear physical interpretation. Newton-Euler is faster computationally — but harder to reason about when designing controllers.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="lec" id="velocity-formulation">
+  <div class="sec-num">1<span class="label">§ 3.1</span></div>
+  <div class="sec-body">
+    <h2 class="sec-title">Velocity propagation through the kinematic chain</h2>
+
+    <p>Robot kinematics already tells us how to express a point fixed in link $i$ in base coordinates using a product of homogeneous transforms:</p>
+
+    $${}^0\mathbf{r}_i = {}^0\mathbf{A}_1\,{}^1\mathbf{A}_2\cdots{}^{i-1}\mathbf{A}_i\,{}^i\mathbf{r}_i.$$
+
+    <p>Differentiating in time and applying the chain rule — noting that ${}^i\mathbf{r}_i$ is constant in frame $i$ — gives ${}^0\mathbf{v}_i = \sum_{j=1}^{i} \frac{\partial {}^0\mathbf{A}_i}{\partial q_j}\dot{q}_j\,{}^i\mathbf{r}_i$.</p>
+
+    <p>The partial derivative of a transformation matrix with respect to a joint variable has a beautiful closed form: $\frac{\partial {}^0\mathbf{A}_i}{\partial q_j} = {}^0\mathbf{A}_j\,\mathbf{Q}_j\,{}^j\mathbf{A}_i$, where $\mathbf{Q}_j$ is a fixed $4\times 4$ structural matrix that depends only on whether joint $j$ is revolute or prismatic. We bundle this into the <strong>velocity influence coefficient</strong> $\mathbf{U}_{ij}$.</p>
+
+    <div class="voice"><em>The miracle of</em> $\mathbf{Q}_j$<em>: an entire family of partial derivatives collapses into one matrix multiplication with a constant sparse pattern.</em></div>
+
+    <div class="callouts">
+      <div class="callout amber">
+        <p class="callout-title">Causality rule</p>
+        <div class="callout-body"><p>$\mathbf{U}_{ij} = \mathbf{0}$ for $j > i$. Joints further out cannot move points on earlier links — only joints between the base and link $i$ contribute to its velocity.</p></div>
+      </div>
+    </div>
+
+    <div class="codeblock">
+      <div class="codeblock-label">The structural matrix Q for revolute and prismatic joints</div>
+      <pre>Revolute joint:           Prismatic joint:
+Q_j = | 0 -1  0  0 |    Q_j = | 0  0  0  0 |
+      | 1  0  0  0 |          | 0  0  0  0 |
+      | 0  0  0  0 |          | 0  0  0  1 |
+      | 0  0  0  0 |          | 0  0  0  0 |
+
+  &#8706;A_i/&#8706;q_j  =  A_j &middot; Q_j &middot; A_i^(j&rarr;i)</pre>
+    </div>
+
+    <div class="widget-lead">
+      <span class="tag">Try it</span>Now you choose the joint type and watch the structural matrix $\mathbf{Q}_j$ snap into place — then see which entry of $\partial\mathbf{A}_i/\partial q_j$ lights up as a result.
+    </div>
+    <div id="q-matrix-picker" class="widget-slot"></div>
+
+    <div class="widget-lead">
+      <span class="tag">Watch</span>Watch the sum $\sum_{j=1}^{i}\mathbf{U}_{ij}\dot{q}_j$ build link by link — the cursor sweeps from base to link $i$, accumulating one influence coefficient per joint while joints outside the chain stay grey.
+    </div>
+    <div id="velocity-cursor-animator" class="widget-slot"></div>
+  </div>
+</section>
+
+<section class="lec" id="inertia-matrix">
+  <div class="sec-num">2<span class="label">§ 3.2</span></div>
+  <div class="sec-body">
+    <h2 class="sec-title">Kinetic energy and the inertia matrix $\mathbf{D}(\mathbf{q})$</h2>
+
+    <p>Summing the kinetic energy of every link and rearranging the triple sum gives the total kinetic energy as a quadratic form in the joint velocities:</p>
+
+    $$T = \tfrac{1}{2}\dot{\mathbf{q}}^T\mathbf{D}(\mathbf{q})\dot{\mathbf{q}}, \quad D_{jk}(\mathbf{q}) = \sum_{i=1}^{n}\operatorname{Tr}\!\left(\mathbf{U}_{ij}\,\mathbf{J}_i\,\mathbf{U}_{ik}^{T}\right).$$
+
+    <p>Here $\mathbf{J}_i$ is the <em>pseudo-inertia</em> matrix of link $i$ in its own frame, and the trace operation handles the fact that we are working in $4\times 4$ homogeneous coordinates. The matrix $\mathbf{D}(\mathbf{q})$ is <strong>symmetric</strong>, <strong>positive definite</strong>, and <strong>configuration-dependent</strong> — three properties you will lean on constantly in control design.</p>
+
+    <div class="voice"><em>The diagonal entry</em> $D_{jj}$ <em>is the effective inertia your</em> $j$<em>-th motor 'feels' when only joint</em> $j$ <em>is moving. The off-diagonal</em> $D_{jk}$ <em>is the inertial cross-talk between joints</em> $j$ <em>and</em> $k$<em>.</em></div>
+
+    <div class="callouts">
+      <div class="callout teal">
+        <p class="callout-title">Three properties that matter</p>
+        <div class="callout-body"><p><strong>Symmetric</strong> ($D_{jk}=D_{kj}$) · <strong>positive definite</strong> (kinetic energy is always positive) · <strong>bounded</strong> for any finite configuration. Many control proofs hinge on these.</p></div>
+      </div>
+    </div>
+
+    <div class="codeblock">
+      <div class="codeblock-label">Algorithm 3.1 — inertia matrix in pseudocode</div>
+      <pre>D &larr; zeros(n, n)
+for i = 1..n:
+    compute ^0A_1, ^0A_2, ..., ^0A_i
+    for j = 1..i:
+        for k = 1..i:
+            D[j,k] += trace( U_ij &middot; J_i &middot; U_ik^T )
+enforce symmetry: D[k,j] = D[j,k]</pre>
+    </div>
+
+    <div class="widget-lead">
+      <span class="tag">Build it</span>Now you assemble $\mathbf{D}(\mathbf{q})$ for the 2-DOF arm yourself: drag the right terms into each cell of the 2×2 matrix and watch the form check itself against symmetry and positive-definiteness.
+    </div>
+    <div id="inertia-matrix-builder" class="widget-slot"></div>
+  </div>
+</section>
+
+<section class="lec" id="coriolis-centrifugal">
+  <div class="sec-num">3<span class="label">§ 3.3</span></div>
+  <div class="sec-body">
+    <h2 class="sec-title">Coriolis and centrifugal terms via Christoffel symbols</h2>
+
+    <p>Because $\mathbf{D}(\mathbf{q})$ depends on configuration, the Euler-Lagrange equation $\tfrac{d}{dt}\!\left(\partial T/\partial\dot{q}_i\right) - \partial T/\partial q_i = \tau_i$ produces velocity-dependent forces in addition to the obvious $\mathbf{D}\ddot{\mathbf{q}}$ term. These collect into the <strong>Christoffel symbols</strong>:</p>
+
+    $$\Gamma_{ijk} = \tfrac{1}{2}\!\left(\tfrac{\partial D_{ij}}{\partial q_k} + \tfrac{\partial D_{ik}}{\partial q_j} - \tfrac{\partial D_{jk}}{\partial q_i}\right),\quad h_i = \sum_{j,k}\Gamma_{ijk}\,\dot{q}_j\dot{q}_k.$$
+
+    <p>Terms with $j\ne k$ are <strong>Coriolis</strong> (two different joints moving create force on a third); terms with $j=k$ are <strong>centrifugal</strong> (a single joint's motion reacts on itself through the changing inertia distribution). A subtle but important property: $\dot{\mathbf{D}} - 2\mathbf{C}$ is <strong>skew-symmetric</strong>, which is the algebraic statement of energy conservation and underpins almost every passivity-based controller.</p>
+
+    <div class="voice"><em>At high speed,</em> $\mathbf{h}$ <em>can swallow 20–40% of your actuator budget. Ignore it and your trajectory tracking will drift the moment the arm moves fast.</em></div>
+
+    <div class="callouts">
+      <div class="callout red">
+        <p class="callout-title">Why two names for one vector?</p>
+        <div class="callout-body"><p><strong>Centrifugal</strong> = self-coupling ($\dot{q}_j^2$ terms) — a joint reacting on itself. <strong>Coriolis</strong> = cross-coupling ($\dot{q}_j\dot{q}_k$, $j\ne k$) — two joints moving together generate force on a third. Both live inside the same $\mathbf{h}(\mathbf{q},\dot{\mathbf{q}})$.</p></div>
+      </div>
+      <div class="callout green">
+        <p class="callout-title">Skew-symmetry → passivity</p>
+        <div class="callout-body"><p>$\dot{\mathbf{D}}-2\mathbf{C}$ being skew-symmetric is <em>the</em> hook for Lyapunov stability proofs in robot control. It is not a coincidence — it falls out of energy conservation.</p></div>
+      </div>
+    </div>
+
+    <div class="widget-lead">
+      <span class="tag">Derive</span>Now you derive $\Gamma_{122}$ step by step: pick which partial-derivative production rule fires next, and watch the formula expand until only the surviving terms remain.
+    </div>
+    <div id="christoffel-derive" class="widget-slot"></div>
+  </div>
+</section>
+
+<section class="lec" id="gravity-terms">
+  <div class="sec-num">4<span class="label">§ 3.4</span></div>
+  <div class="sec-body">
+    <h2 class="sec-title">Gravity terms from potential energy</h2>
+
+    <p>Of the three terms, gravity is the easiest. The potential energy of the arm is just the sum of $m_i\mathbf{g}^T{}^0\mathbf{r}_{ci}$ over all links, and the gravity vector falls out as $\mathbf{c}(\mathbf{q})=\partial V/\partial\mathbf{q}$:</p>
+
+    $$c_i(\mathbf{q}) = \sum_{j=i}^{n} m_j\,\mathbf{g}^T\,\mathbf{U}_{ji}\,{}^j\mathbf{r}_{cj}.$$
+
+    <p>Note the lower limit: only links <em>outboard</em> of joint $i$ contribute, because joint $i$ does not have to support anything closer to the base than itself. For a large industrial arm, $\mathbf{c}(\mathbf{q})$ can be <strong>10–50× larger</strong> than the dynamic terms during normal operation — which is why gravity compensation is the first feedforward term most controllers implement.</p>
+
+    <div class="voice"><em>Hold an industrial robot's brake release while powered down — it falls. The torque the brakes were resisting was almost entirely</em> $\mathbf{c}(\mathbf{q})$<em>.</em></div>
+
+    <div class="callouts">
+      <div class="callout green">
+        <p class="callout-title">Posture matters</p>
+        <div class="callout-body"><p>A horizontal link has the full moment arm; a vertical link has none. Gravity torque scales with $\sin\theta$ for the link's pitch relative to the gravity axis.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="lec" id="complete-equation">
+  <div class="sec-num">5<span class="label">§ 3.5</span></div>
+  <div class="sec-body">
+    <h2 class="sec-title">Assembling the full dynamic model</h2>
+
+    <p>Putting all three terms together yields the equation that governs every serial manipulator on Earth:</p>
+
+    $$\boxed{\mathbf{D}(\mathbf{q})\ddot{\mathbf{q}} + \mathbf{h}(\mathbf{q},\dot{\mathbf{q}}) + \mathbf{c}(\mathbf{q}) = \boldsymbol{\tau}}$$
+
+    <p>This form is called the <strong>inverse dynamics</strong> equation — given a desired motion $(\mathbf{q},\dot{\mathbf{q}},\ddot{\mathbf{q}})$ it tells you the torques required. Solving for $\ddot{\mathbf{q}}$ instead gives <strong>forward dynamics</strong>, $\ddot{\mathbf{q}}=\mathbf{D}^{-1}(\boldsymbol{\tau}-\mathbf{h}-\mathbf{c})$, which is what a simulator runs at every time step. For controller design we often linearise around an operating point to get $\mathbf{D}_0\Delta\ddot{\mathbf{q}}+\mathbf{C}_0\Delta\dot{\mathbf{q}}+\mathbf{K}_0\Delta\mathbf{q}=\Delta\boldsymbol{\tau}$, a linear time-invariant system to which all of classical control theory applies.</p>
+
+    <div class="voice"><em>Three terms. Two directions: feed the model torques and ask 'how does it move?', or feed it a motion and ask 'what torques do I need?' Both are this same equation, rearranged.</em></div>
+
+    <div class="callouts">
+      <div class="callout purple">
+        <p class="callout-title">Forward vs inverse dynamics</p>
+        <div class="callout-body"><p><strong>Inverse</strong> (controller): given $\ddot{\mathbf{q}}$, find $\boldsymbol{\tau}$ — $O(n)$ with Newton-Euler. <strong>Forward</strong> (simulator): given $\boldsymbol{\tau}$, find $\ddot{\mathbf{q}}$ — needs $\mathbf{D}^{-1}$, $O(n^3)$.</p></div>
+      </div>
+    </div>
+
+    <div class="widget-lead">
+      <span class="tag">Check</span>Four checks on whether you can read $\mathbf{D}\ddot{\mathbf{q}}+\mathbf{h}+\mathbf{c}=\boldsymbol{\tau}$ as physics, not just algebra — pick the term that explains each scenario.
+    </div>
+    <div id="complete-equation-roles-mcq" class="widget-slot"></div>
+  </div>
+</section>
+
+<section class="lec" id="two-dof-worked-example">
+  <div class="sec-num">6<span class="label">§ 3.6</span></div>
+  <div class="sec-body">
+    <h2 class="sec-title">Worked example — 2-DOF planar arm, end-to-end</h2>
+
+    <p>Two uniform rods of length $L_i$ and mass $m_i$, joined by revolute joints, moving in the vertical plane. $\theta_1$ is link 1's angle from horizontal; $\theta_2$ is link 2's angle relative to link 1.</p>
+
+    <p><strong>Centres of mass:</strong></p>
+
+    $$\mathbf{r}_{c1}=\tfrac{L_1}{2}\!\begin{pmatrix}\cos\theta_1\\\sin\theta_1\end{pmatrix},\quad \mathbf{r}_{c2}=\!\begin{pmatrix}L_1\cos\theta_1+\tfrac{L_2}{2}\cos(\theta_1+\theta_2)\\L_1\sin\theta_1+\tfrac{L_2}{2}\sin(\theta_1+\theta_2)\end{pmatrix}.$$
+
+    <p><strong>Inertia matrix</strong> (after expanding $T$ and matching the quadratic form):</p>
+
+    $$\begin{aligned}D_{11}&=m_1\tfrac{L_1^2}{4}+I_1+m_2\!\left[L_1^2+\tfrac{L_2^2}{4}+L_1L_2\cos\theta_2\right]+I_2,\\D_{12}&=D_{21}=m_2\!\left[\tfrac{L_2^2}{4}+\tfrac{L_1L_2}{2}\cos\theta_2\right]+I_2,\\D_{22}&=m_2\tfrac{L_2^2}{4}+I_2.\end{aligned}$$
+
+    <p><strong>Coriolis/centrifugal:</strong></p>
+
+    $$h_1=-m_2L_1L_2\sin\theta_2\,\dot{\theta}_1\dot{\theta}_2-\tfrac{m_2L_1L_2\sin\theta_2}{2}\dot{\theta}_2^2,\quad h_2=\tfrac{m_2L_1L_2\sin\theta_2}{2}\dot{\theta}_1^2.$$
+
+    <p><strong>Gravity:</strong></p>
+
+    $$c_1=\!\left(m_1\tfrac{L_1}{2}+m_2L_1\right)\!g\cos\theta_1+m_2g\tfrac{L_2}{2}\cos(\theta_1+\theta_2),\quad c_2=m_2g\tfrac{L_2}{2}\cos(\theta_1+\theta_2).$$
+
+    <p>Three observations to take with you: the coupling term $L_1L_2\cos\theta_2$ <strong>vanishes at $\theta_2=\pm\pi/2$</strong> (joints momentarily decouple inertially); the Coriolis terms are largest when $\sin\theta_2$ is largest; and even this tiny arm already displays the full zoo of nonlinearity, coupling, and configuration dependence.</p>
+
+    <div class="voice"><em>Two rods. Two joints. Six pages of algebra. Welcome to robot dynamics — and remember, every additional DOF multiplies the cross-coupling terms.</em></div>
+
+    <div class="callouts">
+      <div class="callout amber">
+        <p class="callout-title">Decoupling configurations</p>
+        <div class="callout-body"><p>At $\theta_2=\pm 90°$ the inertial coupling $D_{12}$ collapses to its constant part $m_2L_2^2/4+I_2$ — the <em>kinematic</em> coupling persists, but the configuration-dependent coupling is zero.</p></div>
+      </div>
+    </div>
+
+    <div class="codeblock">
+      <div class="codeblock-label">The final 2-DOF model in matrix form (MATLAB)</div>
+      <pre>% q = [theta1; theta2], qd = [theta1d; theta2d]
+D = [ m1*L1^2/4 + I1 + m2*(L1^2 + L2^2/4 + L1*L2*cos(q(2))) + I2,  ...
+      m2*(L2^2/4 + L1*L2/2*cos(q(2))) + I2;
+      m2*(L2^2/4 + L1*L2/2*cos(q(2))) + I2,                       ...
+      m2*L2^2/4 + I2 ];
+
+h = [ -m2*L1*L2*sin(q(2)) * qd(1)*qd(2) ...
+      - m2*L1*L2*sin(q(2))/2 * qd(2)^2;
+        m2*L1*L2*sin(q(2))/2 * qd(1)^2 ];
+
+c = [ (m1*L1/2 + m2*L1)*g*cos(q(1)) + m2*g*L2/2*cos(q(1)+q(2));
+                                       m2*g*L2/2*cos(q(1)+q(2)) ];
+
+tau = D*qdd + h + c;</pre>
+    </div>
+
+    <div class="widget-lead">
+      <span class="tag">Drive it</span>Drive the 2-DOF arm yourself: slide $\theta_1,\theta_2,\dot{\theta}_1,\dot{\theta}_2,\ddot{\theta}_1,\ddot{\theta}_2$ and watch each term of $\mathbf{D}\ddot{\mathbf{q}}+\mathbf{h}+\mathbf{c}=\boldsymbol{\tau}$ recompute live — see when gravity dominates, when Coriolis takes over, and where coupling disappears.
+    </div>
+    <div id="two-dof-playground" class="widget-slot"></div>
+  </div>
+</section>
+
+<section class="lec" id="computational-considerations">
+  <div class="sec-num">7<span class="label">§ 3.7</span></div>
+  <div class="sec-body">
+    <h2 class="sec-title">Computational cost and real-time implementation</h2>
+
+    <p>A naive evaluation of the Lagrangian formulas costs $O(n^4)$ for the inertia matrix alone — fine for symbolic derivation, painful at a 4 kHz control loop. Two big tricks make this practical:</p>
+
+    <p><strong>1. Recursive Newton-Euler</strong> for inverse dynamics drops the cost to $O(n)$ — linear in the number of joints. Forward dynamics still needs $\mathbf{D}^{-1}$ at $O(n^3)$, but Cholesky decomposition exploits the symmetry and positive-definiteness of $\mathbf{D}$.</p>
+
+    <p><strong>2. Symbolic preprocessing.</strong> Derive the equations once in a CAS (MATLAB Symbolic, Mathematica, SymPy), simplify, and emit hand-tuned C code per robot. Industrial controllers (KUKA KR QUANTEC, ABB IRB 6700, FANUC M-20iD) all do some variant of this to hit kHz-rate gravity and Coriolis compensation.</p>
+
+    <p>Near kinematic singularities $\mathbf{D}$ becomes ill-conditioned — practitioners add a small regulariser $\lambda\mathbf{I}$, switch to an SVD-based pseudo-inverse, or project onto the feasible motion subspace.</p>
+
+    <div class="voice"><em>Lagrangian for understanding. Newton-Euler for shipping.</em></div>
+
+    <div class="callouts">
+      <div class="callout blue">
+        <p class="callout-title">Cost summary</p>
+        <div class="callout-body"><p>Direct Lagrangian: $O(n^4)$ · Recursive Newton-Euler inverse: $O(n)$ · Forward dynamics: $O(n^3)$ (matrix inversion dominated). Symbolic preprocessing closes most of the constant-factor gap.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="concepts">
+  <h2>Concept inventory</h2>
+  <p class="sub">Every term we touched today — if any one of these still feels fuzzy, that's where to point the buddy.</p>
+  <div class="concept-cloud">
+    <span class="chip">Lagrangian formulation</span>
+    <span class="chip">homogeneous transformation matrix</span>
+    <span class="chip">velocity influence coefficient $\mathbf{U}_{ij}$</span>
+    <span class="chip">structural matrix $\mathbf{Q}_j$ (revolute vs prismatic)</span>
+    <span class="chip">pseudo-inertia matrix $\mathbf{J}_i$</span>
+    <span class="chip">inertia matrix $\mathbf{D}(\mathbf{q})$</span>
+    <span class="chip">Christoffel symbols $\Gamma_{ijk}$</span>
+    <span class="chip">Coriolis matrix $\mathbf{C}(\mathbf{q},\dot{\mathbf{q}})$</span>
+    <span class="chip">centrifugal vs Coriolis terms</span>
+    <span class="chip">gravity vector $\mathbf{c}(\mathbf{q})$</span>
+    <span class="chip">Euler-Lagrange equation</span>
+    <span class="chip">skew-symmetry of $\dot{\mathbf{D}}-2\mathbf{C}$ (passivity)</span>
+    <span class="chip">forward vs inverse dynamics</span>
+    <span class="chip">kinematic singularity</span>
+  </div>
+</div>
+
+<section class="homework" id="practice">
+  <div class="hw-head">
+    <div class="sec-num">★<span class="label">Practice</span></div>
+    <div>
+      <h2>Practice — try these on your own</h2>
+      <p class="hw-sub">Small activities to test your grip on today's ideas. Try each one first, then reveal the worked solution to compare. These are formative — not graded, not a hand-in.</p>
+    </div>
+  </div>
+
+  <div class="hw-item">
+    <h3>1 · Derive $D_{22}$ for the 2-DOF arm from scratch</h3>
+    <div class="hw-body">
+      <p>Starting from link 2's velocity expression $\mathbf{v}_{c2}$ given in the lecture, isolate the coefficient of $\dot{\theta}_2^2$ in the total kinetic energy and show that</p>
+      $$D_{22} = m_2\,\frac{L_2^2}{4} + I_2.$$
+      <p>Do not skip the rotational kinetic energy term $\tfrac{1}{2}I_2(\dot{\theta}_1+\dot{\theta}_2)^2$ — it contributes too.</p>
+    </div>
+    <div class="hw-selfcheck">
+      <span class="hw-selfcheck-label">Self-check after you've tried</span>
+      <p>Your answer should contain <strong>no $\theta$-dependence</strong> (unlike $D_{11}$ and $D_{12}$) · units must be kg·m² · setting $I_2=0$ should leave the moment of inertia of a point mass $m_2$ at distance $L_2/2$.</p>
+    </div>
+    <details class="hw-solution">
+      <summary>Show worked solution</summary>
+      <div class="hw-solution-body">
+        <p>Group the velocity of link 2's COM by which joint rate it depends on:</p>
+        $$\mathbf{v}_{c2} = \mathbf{J}_1\dot{\theta}_1 + \mathbf{J}_2\dot{\theta}_2,\qquad \mathbf{J}_2 = \begin{bmatrix}-\tfrac{L_2}{2}\sin(\theta_1+\theta_2)\\\tfrac{L_2}{2}\cos(\theta_1+\theta_2)\end{bmatrix}.$$
+        <p>The translational KE of link 2 is $\tfrac{1}{2}m_2\mathbf{v}_{c2}^T\mathbf{v}_{c2}$. The coefficient of $\dot{\theta}_2^2$ comes only from $\mathbf{J}_2^T\mathbf{J}_2$:</p>
+        $$\mathbf{J}_2^T\mathbf{J}_2 = \tfrac{L_2^2}{4}\!\left[\sin^2(\theta_1+\theta_2)+\cos^2(\theta_1+\theta_2)\right] = \tfrac{L_2^2}{4}.$$
+        <p>So the translational contribution to $D_{22}$ is $m_2\,L_2^2/4$. Now the rotational KE of link 2 is $\tfrac{1}{2}I_2(\dot{\theta}_1+\dot{\theta}_2)^2$; the coefficient of $\dot{\theta}_2^2$ here is $I_2$. Adding:</p>
+        $$\boxed{D_{22} = m_2\,\frac{L_2^2}{4} + I_2.}$$
+        <p>Notice the result is <strong>independent of configuration</strong> — link 2's own inertia about its own joint does not change as the arm folds. That is why $D_{22}$ alone is constant while $D_{11}$ and $D_{12}$ carry $\cos\theta_2$ terms.</p>
+      </div>
+    </details>
+  </div>
+
+  <div class="hw-item">
+    <h3>2 · Compute the Christoffel symbol $\Gamma_{122}$</h3>
+    <div class="hw-body">
+      <p>Using the inertia matrix elements $D_{11}, D_{12}, D_{22}$ from the lecture, evaluate</p>
+      $$\Gamma_{122} = \tfrac{1}{2}\!\left(\tfrac{\partial D_{12}}{\partial q_2} + \tfrac{\partial D_{12}}{\partial q_2} - \tfrac{\partial D_{22}}{\partial q_1}\right).$$
+      <p>Show that the answer is $-\tfrac{m_2 L_1 L_2 \sin\theta_2}{2}$, and explain in one sentence why the $\partial D_{22}/\partial q_1$ term vanishes.</p>
+    </div>
+    <div class="hw-selfcheck">
+      <span class="hw-selfcheck-label">Self-check after you've tried</span>
+      <p>Sign should be <strong>negative</strong> (it appears as $-\sin\theta_2$) · result should vanish at $\theta_2 = 0$ and $\theta_2 = \pi$ · only $D_{12}$ contributes — $D_{22}$ derivative is zero.</p>
+    </div>
+    <details class="hw-solution">
+      <summary>Show worked solution</summary>
+      <div class="hw-solution-body">
+        <p>Take the three derivatives one by one.</p>
+        <p><strong>Derivative 1:</strong> $\frac{\partial D_{12}}{\partial q_2} = \frac{\partial}{\partial \theta_2}\!\left[m_2\!\left(\tfrac{L_2^2}{4}+\tfrac{L_1L_2}{2}\cos\theta_2\right)+I_2\right] = -\tfrac{m_2 L_1 L_2}{2}\sin\theta_2.$</p>
+        <p><strong>Derivative 2:</strong> same as Derivative 1 (the formula has $\partial D_{12}/\partial q_2$ twice when $i=1, j=k=2$).</p>
+        <p><strong>Derivative 3:</strong> $\frac{\partial D_{22}}{\partial q_1} = 0$, because $D_{22}=m_2 L_2^2/4 + I_2$ contains <strong>no $\theta_1$ dependence</strong>. Physically: rotating link 1 as a rigid unit with link 2 does not change link 2's inertia about its own joint.</p>
+        <p>Assembling:</p>
+        $$\Gamma_{122} = \tfrac{1}{2}\!\left(-\tfrac{m_2L_1L_2}{2}\sin\theta_2 \;-\;\tfrac{m_2L_1L_2}{2}\sin\theta_2 \;-\; 0\right) = \boxed{-\tfrac{m_2L_1L_2}{2}\sin\theta_2.}$$
+        <p>This matches equation (3.43) in the lecture and is the Christoffel symbol that drives the Coriolis term $h_1$.</p>
+      </div>
+    </details>
+  </div>
+
+  <div class="hw-item">
+    <h3>3 · Find the configurations where the inertial coupling vanishes</h3>
+    <div class="hw-body">
+      <p>For the 2-DOF planar arm, find every value of $\theta_2 \in [0, 2\pi)$ at which the configuration-dependent part of $D_{12}$ — that is, the $\cos\theta_2$ term — equals zero. Then sketch (in words is fine) what the arm looks like at those configurations, and explain <em>physically</em> why the inertial coupling between the two joints disappears there.</p>
+    </div>
+    <div class="hw-selfcheck">
+      <span class="hw-selfcheck-label">Self-check after you've tried</span>
+      <p>Two answers in $[0,2\pi)$ · both should be quarter-turn offsets · at these poses, the link-2 COM moves <em>perpendicular</em> to the line from joint 1 to itself when joint 1 rotates.</p>
+    </div>
+    <details class="hw-solution">
+      <summary>Show worked solution</summary>
+      <div class="hw-solution-body">
+        <p>Setting $\cos\theta_2 = 0$ gives $\theta_2 = \pi/2$ or $\theta_2 = 3\pi/2$ — link 2 sticks out at a right angle to link 1, either to the 'left' or to the 'right'.</p>
+        <p>At these configurations $D_{12}$ collapses to its constant residual $m_2 L_2^2/4 + I_2$, the inertia coming purely from link 2's own moment about its own joint. The full <em>configuration-driven</em> coupling is gone.</p>
+        <p><strong>Physical picture.</strong> When joint 1 alone rotates with $\theta_2=\pi/2$, the COM of link 2 sweeps along an arc whose instantaneous velocity is exactly perpendicular to the radial direction from joint 1. Because of this geometric arrangement, an angular acceleration at joint 1 produces no <em>tangential</em> push on the line connecting joint 1 to link 2's COM, and so no extra reaction torque at joint 2 beyond link 2's own rotational inertia. Geometry has momentarily decoupled the two joints — for that instant only. The moment $\theta_2$ moves off $\pi/2$, the cosine wakes up again and the coupling returns.</p>
+      </div>
+    </details>
+  </div>
+
+  <div class="hw-item">
+    <h3>4 · Verify skew-symmetry on the 2-DOF arm</h3>
+    <div class="hw-body">
+      <p>Pick the simplest non-trivial state: $\theta_2 = \pi/4$, $\dot{\theta}_1 = 1$ rad/s, $\dot{\theta}_2 = 0$. Form the Coriolis matrix $\mathbf{C}$ from the Christoffel symbols and compute $\dot{\mathbf{D}}$ directly from $D_{jk}(\theta_2)$ using the chain rule (only $\theta_2$ appears, so $\dot{D}_{jk}=\frac{\partial D_{jk}}{\partial \theta_2}\dot{\theta}_2$ — but wait!). Then verify that the matrix $\dot{\mathbf{D}} - 2\mathbf{C}$ is skew-symmetric.</p>
+      <p><em>Hint: $\dot{\theta}_2 = 0$ is a trap; the relation must hold for the general velocity state, so use symbolic $\dot{\theta}_1, \dot{\theta}_2$ and check the algebra.</em></p>
+    </div>
+    <div class="hw-selfcheck">
+      <span class="hw-selfcheck-label">Self-check after you've tried</span>
+      <p>$(\dot{\mathbf{D}}-2\mathbf{C})^T = -(\dot{\mathbf{D}}-2\mathbf{C})$ means the diagonal entries are zero and the (1,2) entry is minus the (2,1) entry · result must hold for <strong>all</strong> $\dot{\theta}_1, \dot{\theta}_2$, not just one numerical state · if your diagonal is nonzero, you wrote $\mathbf{C}$ with the wrong index convention.</p>
+    </div>
+    <details class="hw-solution">
+      <summary>Show worked solution</summary>
+      <div class="hw-solution-body">
+        <p>Let $s = \sin\theta_2$ and abbreviate $\alpha = m_2 L_1 L_2$. The configuration-dependent parts of $\mathbf{D}$ are:</p>
+        $$D_{11}\supset \alpha\cos\theta_2,\quad D_{12}=D_{21}\supset \tfrac{\alpha}{2}\cos\theta_2,\quad D_{22}=\text{const}.$$
+        <p>Differentiating in time (only $\theta_2$ varies):</p>
+        $$\dot{\mathbf{D}} = -\alpha\,s\,\dot{\theta}_2\begin{bmatrix}1 & \tfrac{1}{2}\\ \tfrac{1}{2} & 0\end{bmatrix}.$$
+        <p>From the Christoffel symbols computed earlier ($\Gamma_{122}=\Gamma_{212}=-\tfrac{\alpha s}{2}$, $\Gamma_{211}=\tfrac{\alpha s}{2}$, all others zero), and using $C_{ij}=\sum_k \Gamma_{ikj}\dot{q}_k$:</p>
+        $$\mathbf{C} = \begin{bmatrix}C_{11}&C_{12}\\ C_{21}&C_{22}\end{bmatrix} = \begin{bmatrix}-\tfrac{\alpha s}{2}\dot{\theta}_2 & -\tfrac{\alpha s}{2}(\dot{\theta}_1+\dot{\theta}_2)\\ \tfrac{\alpha s}{2}\dot{\theta}_1 & 0\end{bmatrix}.$$
+        <p>Now compute $\mathbf{N} = \dot{\mathbf{D}} - 2\mathbf{C}$:</p>
+        <ul>
+          <li>$N_{11} = -\alpha s\dot{\theta}_2 - 2(-\tfrac{\alpha s}{2}\dot{\theta}_2) = 0.$ ✓</li>
+          <li>$N_{22} = 0 - 0 = 0.$ ✓</li>
+          <li>$N_{12} = -\tfrac{\alpha s}{2}\dot{\theta}_2 - 2(-\tfrac{\alpha s}{2}(\dot{\theta}_1+\dot{\theta}_2)) = -\tfrac{\alpha s}{2}\dot{\theta}_2 + \alpha s(\dot{\theta}_1+\dot{\theta}_2) = \alpha s\dot{\theta}_1 + \tfrac{\alpha s}{2}\dot{\theta}_2.$</li>
+          <li>$N_{21} = -\tfrac{\alpha s}{2}\dot{\theta}_2 - 2(\tfrac{\alpha s}{2}\dot{\theta}_1) = -\alpha s\dot{\theta}_1 - \tfrac{\alpha s}{2}\dot{\theta}_2.$</li>
+        </ul>
+        <p>Clearly $N_{21} = -N_{12}$ and the diagonal is zero, so</p>
+        $$\boxed{\dot{\mathbf{D}} - 2\mathbf{C} = \begin{bmatrix}0 & \alpha s(\dot{\theta}_1+\tfrac{1}{2}\dot{\theta}_2)\\ -\alpha s(\dot{\theta}_1+\tfrac{1}{2}\dot{\theta}_2) & 0\end{bmatrix}}$$
+        <p>is skew-symmetric for <strong>all</strong> $\dot{\theta}_1, \dot{\theta}_2$ — exactly as the Euler-Lagrange theory promises. This is not a coincidence; it is energy conservation expressed in matrix form, and it is the structural property that makes Lyapunov-based robot controllers possible.</p>
+      </div>
+    </details>
+  </div>
+</section>
+
+</main>
+
+<footer class="colophon">
+  Lecture 05b · Module 3 · Robot Manipulator Dynamics &nbsp;·&nbsp; $\mathbf{D}\ddot{\mathbf{q}} + \mathbf{h} + \mathbf{c} = \boldsymbol{\tau}$
+</footer>
+
+</div>
+<!-- widget: q-matrix-picker (picker) -->
+<script type="text/babel">
+(function () {
+  try {
+    const { useState, useEffect } = React;
+
+    const mount = document.getElementById('q-matrix-picker');
+    if (!mount) { console.warn('q-matrix-picker mount missing'); return; }
+
+    const Q_PRISMATIC = [[0,0,0,0],[0,0,0,0],[0,0,0,1],[0,0,0,0]];
+    const Q_REVOLUTE  = [[0,-1,0,0],[1,0,0,0],[0,0,0,0],[0,0,0,0]];
+
+    const RES_P = [[0,0,0,1],[0,0,0,1],[0,0,0,1],[0,0,0,0]];
+    const RES_R = [[1,1,1,1],[1,1,1,1],[1,1,1,1],[0,0,0,0]];
+
+    const choices = [
+      {
+        id: 'prismatic',
+        label: 'Prismatic along z',
+        sub: 'translation only',
+        q: Q_PRISMATIC,
+        result: RES_P,
+        countLabel: '1 structural nonzero',
+        caption: 'The lone 1 in slot (3,4) translates the origin along z. Pure displacement — no rotation generated.',
+        productNote: 'The product lights up only column 4 (rows 1–3) — the translation column of the homogeneous transform. Joint motion slides every outboard origin along the z-axis of frame j.',
+      },
+      {
+        id: 'revolute',
+        label: 'Revolute about z',
+        sub: 'infinitesimal rotation',
+        q: Q_REVOLUTE,
+        result: RES_R,
+        countLabel: '2 structural nonzeros',
+        caption: 'The skew 2×2 block is the infinitesimal rotation generator — it spins x into y, y into −x.',
+        productNote: 'The product fills the upper 3×4 block — rotation mixes the x and y axes of every outboard frame and produces a moment-arm translation r × ẑ.',
+      },
+      {
+        id: 'free',
+        label: 'Free 6-DOF',
+        sub: 'composite, not primitive',
+        q: null,
+        result: null,
+        countLabel: '—',
+        caption: 'A 6-DOF connection is not a primitive joint. Build it from six stacked single-DOF Q matrices — three prismatic (x, y, z) and three revolute (x, y, z).',
+        productNote: null,
+      },
+    ];
+
+    const MINI_DECOMP = [
+      { lbl: 'P,x', q: [[0,0,0,1],[0,0,0,0],[0,0,0,0],[0,0,0,0]] },
+      { lbl: 'P,y', q: [[0,0,0,0],[0,0,0,1],[0,0,0,0],[0,0,0,0]] },
+      { lbl: 'P,z', q: [[0,0,0,0],[0,0,0,0],[0,0,0,1],[0,0,0,0]] },
+      { lbl: 'R,x', q: [[0,0,0,0],[0,0,-1,0],[0,1,0,0],[0,0,0,0]] },
+      { lbl: 'R,y', q: [[0,0,1,0],[0,0,0,0],[-1,0,0,0],[0,0,0,0]] },
+      { lbl: 'R,z', q: Q_REVOLUTE },
+    ];
+
+    function fmt(v) {
+      if (v === 0) return '0';
+      if (v === 1) return '1';
+      if (v === -1) return '−1';
+      return String(v);
+    }
+
+    function QMatrix({ data }) {
+      const cells = [];
+      for (let i = 0; i < 4; i++) {
+        for (let j = 0; j < 4; j++) {
+          const v = data[i][j];
+          const hi = v !== 0;
+          cells.push(
+            <div key={`${i}-${j}`} className={`qcell ${hi ? 'qcell-hi' : 'qcell-zero'}`}>
+              <span className="qcoord">{i+1},{j+1}</span>
+              <span className="qval">{fmt(v)}</span>
+            </div>
+          );
+        }
+      }
+      return <div className="qmat">{cells}</div>;
+    }
+
+    function PatternMatrix({ data }) {
+      const cells = [];
+      for (let i = 0; i < 4; i++) {
+        for (let j = 0; j < 4; j++) {
+          const on = data[i][j] === 1;
+          cells.push(
+            <div key={`${i}-${j}`} className={`pcell ${on ? 'pcell-on' : 'pcell-off'}`}>
+              <span className="pcoord">{i+1},{j+1}</span>
+              <span className="pdot">{on ? '●' : '·'}</span>
+            </div>
+          );
+        }
+      }
+      return <div className="qmat">{cells}</div>;
+    }
+
+    function MiniQ({ data }) {
+      const cells = [];
+      for (let i = 0; i < 4; i++) {
+        for (let j = 0; j < 4; j++) {
+          const v = data[i][j];
+          const hi = v !== 0;
+          cells.push(
+            <div key={`${i}-${j}`} className={`qcell qcell-mini ${hi ? 'qcell-hi' : 'qcell-zero'}`}>
+              {fmt(v)}
+            </div>
+          );
+        }
+      }
+      return <div className="qmat qmat-mini">{cells}</div>;
+    }
+
+    function FreeDecomposition() {
+      return (
+        <div className="freegrid">
+          {MINI_DECOMP.map((m, i) => {
+            const [k, ax] = m.lbl.split(',');
+            return (
+              <div key={i} className="freecard">
+                <div className="freelabel">
+                  Q<sub>{k}<small>,</small>{ax}</sub>
+                </div>
+                <MiniQ data={m.q} />
+              </div>
+            );
+          })}
+        </div>
+      );
+    }
+
+    function Widget() {
+      const [pickId, setPickId] = useState('prismatic');
+      const pick = choices.find(c => c.id === pickId);
+
+      useEffect(() => {
+        const s = document.createElement('style');
+        s.setAttribute('data-qwid', '1');
+        s.textContent = `
+          #q-matrix-picker .qwid {
+            font-family: var(--font-body);
+            color: var(--ink);
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 22px 24px;
+            max-width: 920px;
+            margin: 0 auto;
+            box-sizing: border-box;
+          }
+          #q-matrix-picker .qwid, #q-matrix-picker .qwid * { box-sizing: border-box; }
+          #q-matrix-picker .qhead {
+            font-family: var(--font-display);
+            font-size: 1.08rem;
+            color: var(--ink);
+            margin: 0 0 4px 0;
+            line-height: 1.35;
+          }
+          #q-matrix-picker .qsub {
+            font-size: 0.86rem;
+            color: var(--ink-soft);
+            margin: 0 0 18px 0;
+            line-height: 1.45;
+          }
+          #q-matrix-picker .qpicker {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 22px;
+          }
+          #q-matrix-picker .qbtn {
+            background: var(--surface-alt);
+            border: 1.5px solid var(--border);
+            border-radius: 10px;
+            padding: 12px 14px;
+            text-align: left;
+            cursor: pointer;
+            font: inherit;
+            color: var(--ink);
+            transition: border-color 0.18s ease, transform 0.15s ease, box-shadow 0.18s ease, background 0.18s ease;
+          }
+          #q-matrix-picker .qbtn:hover {
+            border-color: var(--accent-2);
+            transform: translateY(-1px);
+          }
+          #q-matrix-picker .qbtn:focus-visible {
+            outline: 2px solid var(--accent-2);
+            outline-offset: 2px;
+          }
+          #q-matrix-picker .qbtn-on {
+            background: var(--surface);
+            border-color: var(--accent);
+            box-shadow: 0 0 0 1px var(--accent) inset, 0 3px 10px rgba(184,92,42,0.15);
+          }
+          #q-matrix-picker .qbtn-label {
+            font-weight: 600;
+            font-size: 0.95rem;
+            margin-bottom: 2px;
+            color: var(--ink);
+          }
+          #q-matrix-picker .qbtn-on .qbtn-label { color: var(--accent); }
+          #q-matrix-picker .qbtn-sub {
+            font-size: 0.78rem;
+            color: var(--ink-soft);
+          }
+          #q-matrix-picker .qpanels {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            gap: 16px;
+            align-items: center;
+            justify-items: center;
+          }
+          #q-matrix-picker .qpanel {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+          }
+          #q-matrix-picker .qpanel-title {
+            font-family: var(--font-mono);
+            font-size: 0.82rem;
+            color: var(--ink-soft);
+            margin-bottom: 10px;
+            letter-spacing: 0.01em;
+            text-align: center;
+          }
+          #q-matrix-picker .qpanel-title b {
+            color: var(--ink);
+            font-weight: 700;
+          }
+          #q-matrix-picker .qmat {
+            display: grid;
+            grid-template-columns: repeat(4, 56px);
+            grid-template-rows: repeat(4, 56px);
+            gap: 4px;
+            padding: 10px;
+            background: var(--surface-alt);
+            border: 1px solid var(--border-soft);
+            border-radius: 10px;
+          }
+          #q-matrix-picker .qcell {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--surface);
+            border: 1px solid var(--border-soft);
+            border-radius: 6px;
+            font-family: var(--font-mono);
+            font-size: 1.05rem;
+            transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
+          }
+          #q-matrix-picker .qcell-zero {
+            color: var(--ink-faint);
+          }
+          #q-matrix-picker .qcell-hi {
+            background: var(--accent);
+            color: #fff;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px rgba(184,92,42,0.22), 0 2px 8px rgba(184,92,42,0.18);
+            transform: scale(1.04);
+            font-weight: 700;
+          }
+          #q-matrix-picker .qcoord {
+            position: absolute;
+            top: 3px;
+            left: 4px;
+            font-size: 0.55rem;
+            color: var(--ink-faint);
+            opacity: 0.7;
+            letter-spacing: 0;
+          }
+          #q-matrix-picker .qcell-hi .qcoord { color: #fff; opacity: 0.7; }
+          #q-matrix-picker .qval { line-height: 1; }
+          #q-matrix-picker .pcell {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--surface);
+            border: 1px solid var(--border-soft);
+            border-radius: 6px;
+            font-family: var(--font-mono);
+            transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
+          }
+          #q-matrix-picker .pcell-off { color: var(--ink-faint); }
+          #q-matrix-picker .pcell-on {
+            background: var(--accent-2);
+            color: #fff;
+            border-color: var(--accent-2);
+            box-shadow: 0 0 0 2px rgba(44,95,124,0.22), 0 2px 8px rgba(44,95,124,0.18);
+            transform: scale(1.04);
+          }
+          #q-matrix-picker .pcoord {
+            position: absolute;
+            top: 3px;
+            left: 4px;
+            font-size: 0.55rem;
+            opacity: 0.65;
+          }
+          #q-matrix-picker .pdot { font-size: 1.15rem; line-height: 1; }
+          #q-matrix-picker .qarrow {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: var(--ink-soft);
+            font-family: var(--font-mono);
+            font-size: 0.78rem;
+            gap: 4px;
+            padding: 0 4px;
+          }
+          #q-matrix-picker .qarrow svg { display: block; }
+          #q-matrix-picker .qcount {
+            margin-top: 12px;
+            font-size: 0.76rem;
+            color: var(--ink-soft);
+            font-family: var(--font-mono);
+            letter-spacing: 0.02em;
+          }
+          #q-matrix-picker .qcaption {
+            margin-top: 20px;
+            padding: 14px 16px;
+            background: var(--surface-alt);
+            border-left: 3px solid var(--accent);
+            border-radius: 4px;
+            font-size: 0.93rem;
+            color: var(--ink);
+            line-height: 1.55;
+          }
+          #q-matrix-picker .qcaption-prod {
+            margin-top: 10px;
+            padding: 14px 16px;
+            background: var(--surface-alt);
+            border-left: 3px solid var(--accent-2);
+            border-radius: 4px;
+            font-size: 0.93rem;
+            color: var(--ink);
+            line-height: 1.55;
+          }
+          #q-matrix-picker .qfeedback {
+            margin-top: 18px;
+            padding-top: 14px;
+            border-top: 1px dashed var(--border);
+            font-size: 0.85rem;
+            color: var(--ink-soft);
+            line-height: 1.55;
+          }
+          #q-matrix-picker .qfeedback b {
+            color: var(--ink);
+            font-weight: 600;
+          }
+          #q-matrix-picker .freegrid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            width: 100%;
+          }
+          #q-matrix-picker .freecard {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 10px;
+            background: var(--surface-alt);
+            border: 1px solid var(--border-soft);
+            border-radius: 8px;
+          }
+          #q-matrix-picker .freelabel {
+            font-family: var(--font-mono);
+            font-size: 0.82rem;
+            color: var(--ink);
+            margin-bottom: 6px;
+            font-weight: 600;
+          }
+          #q-matrix-picker .qmat-mini {
+            grid-template-columns: repeat(4, 26px);
+            grid-template-rows: repeat(4, 26px);
+            gap: 2px;
+            padding: 5px;
+          }
+          #q-matrix-picker .qcell-mini {
+            font-size: 0.72rem;
+            border-radius: 3px;
+          }
+          #q-matrix-picker .qcell-mini .qcoord { display: none; }
+          #q-matrix-picker .widget-fail {
+            padding: 14px 18px;
+            background: var(--surface-alt);
+            border: 1px dashed var(--bad);
+            border-radius: 8px;
+            color: var(--bad);
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+          }
+          @media (max-width: 720px) {
+            #q-matrix-picker .qpicker { grid-template-columns: 1fr; }
+            #q-matrix-picker .qpanels { grid-template-columns: 1fr; }
+            #q-matrix-picker .qarrow svg { transform: rotate(90deg); }
+            #q-matrix-picker .qmat {
+              grid-template-columns: repeat(4, 48px);
+              grid-template-rows: repeat(4, 48px);
+            }
+            #q-matrix-picker .freegrid { grid-template-columns: repeat(2, 1fr); }
+          }
+        `;
+        document.head.appendChild(s);
+        return () => { try { document.head.removeChild(s); } catch (e) {} };
+      }, []);
+
+      const renderPanels = () => {
+        if (pick.id === 'free') {
+          return (
+            <div style={{ width: '100%' }}>
+              <div className="qpanel-title" style={{ marginBottom: 14 }}>
+                Decomposed: <b>six single-DOF Q matrices stacked in series</b>
+              </div>
+              <FreeDecomposition />
+            </div>
+          );
+        }
+        return (
+          <div className="qpanels">
+            <div className="qpanel">
+              <div className="qpanel-title">
+                <b>Q<sub>j</sub></b> — structural matrix
+              </div>
+              <QMatrix data={pick.q} />
+              <div className="qcount">{pick.countLabel}</div>
+            </div>
+            <div className="qarrow" aria-hidden="true">
+              <svg width="36" height="20" viewBox="0 0 36 20">
+                <defs>
+                  <marker id="qarrowhead" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                    <path d="M0,0 L10,5 L0,10 z" fill="var(--ink-soft)" />
+                  </marker>
+                </defs>
+                <line x1="2" y1="10" x2="30" y2="10" stroke="var(--ink-soft)" strokeWidth="1.5" markerEnd="url(#qarrowhead)" />
+              </svg>
+              <span>A<sub>j</sub> · Q<sub>j</sub> · A<sub>i</sub></span>
+            </div>
+            <div className="qpanel">
+              <div className="qpanel-title">
+                <b>∂A<sub>i</sub> / ∂q<sub>j</sub></b> — nonzero pattern
+              </div>
+              <PatternMatrix data={pick.result} />
+              <div className="qcount">{pick.id === 'prismatic' ? '3 active cells (column 4)' : '12 active cells (upper 3×4 block)'}</div>
+            </div>
+          </div>
+        );
+      };
+
+      return (
+        <div className="qwid">
+          <div className="qhead">
+            Pick a joint type and watch Q<sub>j</sub> snap into place
+          </div>
+          <div className="qsub">
+            Then see which entries of ∂A<sub>i</sub>/∂q<sub>j</sub> = A<sub>j</sub> · Q<sub>j</sub> · A<sub>i</sub> light up as a result.
+          </div>
+
+          <div className="qpicker" role="radiogroup" aria-label="Joint type for Q_j">
+            {choices.map(c => (
+              <button
+                key={c.id}
+                type="button"
+                role="radio"
+                aria-checked={pickId === c.id}
+                className={`qbtn ${pickId === c.id ? 'qbtn-on' : ''}`}
+                onClick={() => setPickId(c.id)}
+              >
+                <div className="qbtn-label">{c.label}</div>
+                <div className="qbtn-sub">{c.sub}</div>
+              </button>
+            ))}
+          </div>
+
+          {renderPanels()}
+
+          <div className="qcaption">{pick.caption}</div>
+          {pick.productNote ? <div className="qcaption-prod">{pick.productNote}</div> : null}
+
+          <div className="qfeedback">
+            <b>Why this matters.</b> Both prismatic and revolute Q matrices have just one or two structural nonzeros — that's exactly why the partial derivative ∂A<sub>i</sub>/∂q<sub>j</sub> collapses to a single matrix multiplication regardless of which joint type you pick. The sparsity of Q does the heavy lifting.
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(mount).render(<Widget />);
+  } catch (e) {
+    const m = document.getElementById('q-matrix-picker');
+    if (m) m.innerHTML = '<div class="widget-fail">Widget failed to load</div>';
+    console.error(e);
+  }
+})();
+</script>
+<!-- widget: velocity-cursor-animator (animator) -->
+<script type="text/babel">
+(function () {
+  try {
+    const { useState, useEffect, useMemo } = React;
+
+    function Widget() {
+      const [n, setN] = useState(3);
+      const [iLink, setILink] = useState(2);
+      const [qActive, setQActive] = useState([true, true, true, true, true, true]);
+      const [playing, setPlaying] = useState(false);
+      const [cursor, setCursor] = useState(0);
+
+      const effectiveI = Math.min(Math.max(iLink, 1), n);
+
+      useEffect(() => {
+        if (iLink > n) setILink(n);
+        if (iLink < 1) setILink(1);
+      }, [n, iLink]);
+
+      useEffect(() => {
+        if (!playing) return;
+        const id = setInterval(() => {
+          setCursor(c => {
+            if (c >= effectiveI) { setPlaying(false); return c; }
+            return c + 1;
+          });
+        }, 1100);
+        return () => clearInterval(id);
+      }, [playing, effectiveI]);
+
+      const reset = () => { setCursor(0); setPlaying(false); };
+
+      const togglePlay = () => {
+        if (cursor >= effectiveI) setCursor(0);
+        setPlaying(p => !p);
+      };
+
+      const stepFwd = () => setCursor(c => Math.min(effectiveI, c + 1));
+
+      const applyPreset = (key) => {
+        setCursor(0); setPlaying(false);
+        if (key === 'p1') { setN(2); setILink(2); setQActive([true, true, false, false, false, false]); }
+        else if (key === 'p2') { setN(3); setILink(2); setQActive([true, false, false, false, false, false]); }
+        else if (key === 'p3') { setN(3); setILink(3); setQActive([true, true, true, false, false, false]); }
+        else if (key === 'p4') { setN(6); setILink(4); setQActive([true, true, true, true, true, true]); }
+      };
+
+      const toggleQ = (idx) => {
+        setQActive(arr => { const nx = [...arr]; nx[idx] = !nx[idx]; return nx; });
+        setCursor(0); setPlaying(false);
+      };
+
+      const links = useMemo(() => {
+        const result = [];
+        const L = Math.max(40, Math.min(60, 330 / n));
+        const dTheta = Math.PI / (2 * (n + 1));
+        let theta = -Math.PI / 8;
+        let x = 0, y = 0;
+        for (let k = 1; k <= n; k++) {
+          x += L * Math.cos(theta);
+          y += L * Math.sin(theta);
+          result.push([x, y]);
+          theta += dTheta;
+        }
+        return result;
+      }, [n]);
+
+      const bounds = useMemo(() => {
+        let minX = -30, maxX = 30, minY = -30, maxY = 30;
+        for (const [x, y] of links) {
+          minX = Math.min(minX, x); maxX = Math.max(maxX, x);
+          minY = Math.min(minY, y); maxY = Math.max(maxY, y);
+        }
+        const pad = 70;
+        return { x: minX - pad, y: -maxY - pad, w: maxX - minX + 2 * pad, h: maxY - minY + 2 * pad };
+      }, [links]);
+
+      const computeContrib = (j) => {
+        if (j > effectiveI || j < 1) return [0, 0];
+        const pi = links[effectiveI - 1];
+        const pj = j === 1 ? [0, 0] : links[j - 2];
+        const dx = pi[0] - pj[0];
+        const dy = pi[1] - pj[1];
+        const a = qActive[j - 1] ? 1 : 0;
+        const scale = 0.45;
+        return [-dy * a * scale, dx * a * scale];
+      };
+
+      const accumulated = useMemo(() => {
+        let vx = 0, vy = 0;
+        for (let j = 1; j <= cursor; j++) {
+          const [cx, cy] = computeContrib(j);
+          vx += cx; vy += cy;
+        }
+        return [vx, vy];
+      }, [cursor, effectiveI, qActive, links]);
+
+      const showSkipped = cursor >= effectiveI && cursor > 0;
+
+      const status = (() => {
+        if (cursor === 0) return `Ready — cursor at base. Target: link i = ${effectiveI} of n = ${n}.`;
+        if (showSkipped) {
+          if (n > effectiveI) return `Sweep complete. Next would be j = ${effectiveI + 1}, but U_${effectiveI},${effectiveI + 1} = 0 — causality stops us here.`;
+          return `Sweep complete. i = n, so the chain ends here.`;
+        }
+        const j = cursor;
+        const a = qActive[j - 1];
+        return a
+          ? `Cursor at j = ${j}: adding U_${effectiveI},${j} · q̇_${j} to the running sum.`
+          : `Cursor at j = ${j}: q̇_${j} = 0, so this term contributes nothing.`;
+      })();
+
+      const vb = `${bounds.x} ${bounds.y} ${bounds.w} ${bounds.h}`;
+      const accentRGB = '184, 92, 42';
+
+      return (
+        <div className="vca-root">
+          <style>{`
+            .vca-root { font-family: var(--font-body); color: var(--ink); background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 18px; box-sizing: border-box; max-width: 100%; }
+            .vca-grid { display: grid; grid-template-columns: minmax(280px, 1.05fr) minmax(280px, 1fr); gap: 14px; align-items: stretch; }
+            .vca-panel { background: var(--surface-alt); border: 1px solid var(--border-soft); border-radius: 6px; padding: 12px 14px; display: flex; flex-direction: column; min-height: 340px; }
+            .vca-panel h4 { margin: 0 0 8px 0; font-family: var(--font-display); font-size: 0.95rem; color: var(--ink-soft); font-weight: 600; letter-spacing: 0.02em; }
+            .vca-svg { display: block; width: 100%; max-height: 340px; flex: 1; }
+            .vca-status { margin-top: 10px; padding: 8px 12px; background: var(--surface); border-left: 3px solid var(--accent-2); border-radius: 3px; font-size: 0.82rem; font-family: var(--font-mono); color: var(--ink); min-height: 22px; line-height: 1.45; }
+            .vca-eq { font-family: var(--font-mono); font-size: 1.05rem; line-height: 2.2; color: var(--ink); padding: 16px 14px; background: var(--surface); border-radius: 4px; border: 1px solid var(--border-soft); min-height: 76px; word-wrap: break-word; }
+            .vca-term { display: inline-block; margin: 0 2px; padding: 4px 7px; border-radius: 4px; transition: opacity 0.45s ease, background 0.3s, color 0.3s, transform 0.4s ease, box-shadow 0.3s; }
+            .vca-term.hidden { opacity: 0; transform: translateY(8px); }
+            .vca-term.visible { opacity: 1; transform: translateY(0); }
+            .vca-term.current { background: var(--accent); color: white; box-shadow: 0 0 0 3px rgba(${accentRGB}, 0.25); }
+            .vca-term.zero { opacity: 0.42; text-decoration: line-through; color: var(--ink-soft); }
+            .vca-skipped { margin-top: 12px; padding: 10px 12px; background: rgba(138, 143, 156, 0.12); border-left: 3px solid var(--ink-faint); border-radius: 3px; font-size: 0.83rem; color: var(--ink-soft); opacity: 0; transition: opacity 0.4s; }
+            .vca-skipped.show { opacity: 1; }
+            .vca-controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 12px; }
+            .vca-btn { background: var(--surface); border: 1px solid var(--border); color: var(--ink); padding: 6px 14px; border-radius: 4px; font-family: var(--font-body); font-size: 0.85rem; cursor: pointer; transition: background 0.15s, border-color 0.15s, opacity 0.15s; }
+            .vca-btn:hover:not(:disabled) { background: var(--surface-alt); border-color: var(--accent); }
+            .vca-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+            .vca-btn.primary { background: var(--accent); color: white; border-color: var(--accent); }
+            .vca-btn.primary:hover:not(:disabled) { filter: brightness(1.08); }
+            .vca-btn.ghost { background: transparent; border-color: var(--border-soft); color: var(--ink-soft); }
+            .vca-row { display: flex; align-items: center; gap: 10px; min-width: 200px; flex: 1; }
+            .vca-label { font-size: 0.78rem; color: var(--ink-soft); font-family: var(--font-mono); min-width: 44px; }
+            .vca-slider { flex: 1; accent-color: var(--accent); }
+            .vca-qbox { display: inline-flex; align-items: center; font-size: 0.8rem; font-family: var(--font-mono); background: var(--surface); border: 1px solid var(--border-soft); padding: 4px 11px; border-radius: 12px; cursor: pointer; user-select: none; color: var(--ink-soft); transition: all 0.15s; }
+            .vca-qbox.active { background: var(--accent-2); color: white; border-color: var(--accent-2); }
+            .vca-qbox:hover { border-color: var(--accent); }
+            .vca-preset { background: var(--surface); border: 1px solid var(--border); padding: 5px 10px; border-radius: 12px; font-size: 0.75rem; color: var(--ink-soft); font-family: var(--font-body); cursor: pointer; transition: all 0.15s; }
+            .vca-preset:hover { color: var(--accent); border-color: var(--accent); }
+            .vca-presets { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; align-items: center; }
+            .widget-fail { padding: 16px; background: var(--surface-alt); color: var(--bad); font-family: var(--font-mono); border-radius: 4px; border: 1px solid var(--border); }
+            @media (max-width: 720px) { .vca-grid { grid-template-columns: 1fr; } }
+          `}</style>
+
+          <div className="vca-grid">
+            <div className="vca-panel">
+              <h4>Manipulator — cursor sweeps from base to link i</h4>
+              <svg viewBox={vb} className="vca-svg" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Stick-figure manipulator with cursor highlighting current joint">
+                <defs>
+                  <marker id="vca-vhead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+                    <path d="M0,0 L10,5 L0,10 z" fill="var(--accent)" />
+                  </marker>
+                </defs>
+
+                <rect x={-22} y={-2} width={44} height={16} fill="var(--ink-soft)" rx={2} />
+                {Array.from({ length: 5 }).map((_, k) => (
+                  <line key={`h-${k}`} x1={-22 + k * 11} y1={14} x2={-30 + k * 11} y2={26} stroke="var(--ink-soft)" strokeWidth={1.4} />
+                ))}
+
+                {links.map(([x, y], idx) => {
+                  const j = idx + 1;
+                  const prev = idx === 0 ? [0, 0] : links[idx - 1];
+                  const inChain = j <= effectiveI;
+                  const isTarget = j === effectiveI;
+                  const stroke = isTarget ? 'var(--accent-2)' : (inChain ? 'var(--ink)' : 'var(--ink-faint)');
+                  const opacity = inChain ? 1 : 0.32;
+                  const sw = isTarget ? 7 : 5;
+                  return (
+                    <line key={`L-${j}`} x1={prev[0]} y1={-prev[1]} x2={x} y2={-y}
+                      stroke={stroke} strokeWidth={sw} strokeLinecap="round" opacity={opacity} />
+                  );
+                })}
+
+                <circle cx={0} cy={0} r={5} fill="var(--ink-soft)" />
+                <text x={0} y={-16} fontSize={10} fill="var(--ink-soft)" textAnchor="middle" fontFamily="var(--font-mono)">base</text>
+
+                {links.map(([x, y], idx) => {
+                  const j = idx + 1;
+                  const isCursor = j === cursor;
+                  const isVisited = j < cursor && cursor > 0;
+                  const inChain = j <= effectiveI;
+                  const isActive = qActive[j - 1] && inChain;
+
+                  let fill = 'var(--surface)';
+                  let stroke = 'var(--accent-2)';
+                  let sw = 2;
+                  if (!inChain) { fill = 'var(--surface-alt)'; stroke = 'var(--ink-faint)'; }
+                  else if (isCursor) { fill = 'var(--accent)'; stroke = 'var(--accent)'; sw = 3; }
+                  else if (isVisited) {
+                    fill = isActive ? 'var(--good)' : 'var(--ink-faint)';
+                    stroke = isActive ? 'var(--good)' : 'var(--ink-faint)';
+                  }
+
+                  const opacity = inChain ? 1 : 0.42;
+                  const r = isCursor ? 11 : 8;
+                  const labelExtra = !inChain ? ' (j > i)' : (qActive[j - 1] ? '' : ' (q̇=0)');
+
+                  return (
+                    <g key={`J-${j}`} opacity={opacity}>
+                      {isCursor && (
+                        <circle cx={x} cy={-y} r={14} fill="none" stroke="var(--accent)" strokeWidth={2}>
+                          <animate attributeName="r" values="11;22;11" dur="1.4s" repeatCount="indefinite" />
+                          <animate attributeName="opacity" values="0.6;0;0.6" dur="1.4s" repeatCount="indefinite" />
+                        </circle>
+                      )}
+                      <circle cx={x} cy={-y} r={r} fill={fill} stroke={stroke} strokeWidth={sw} />
+                      <text x={x} y={-y - 16} fontSize={10} fill={inChain ? 'var(--ink-soft)' : 'var(--ink-faint)'} textAnchor="middle" fontFamily="var(--font-mono)">
+                        j={j}{labelExtra}
+                      </text>
+                    </g>
+                  );
+                })}
+
+                {effectiveI >= 1 && (() => {
+                  const [tx, ty] = links[effectiveI - 1];
+                  return (
+                    <text x={tx} y={-ty + 26} fontSize={11} fill="var(--accent-2)" textAnchor="middle" fontWeight="bold" fontFamily="var(--font-display)">
+                      ← target link i
+                    </text>
+                  );
+                })()}
+
+                {cursor > 0 && (() => {
+                  const [tx, ty] = links[effectiveI - 1];
+                  const [vx, vy] = accumulated;
+                  if (Math.abs(vx) + Math.abs(vy) < 1) return null;
+                  return (
+                    <g>
+                      <line x1={tx} y1={-ty} x2={tx + vx} y2={-ty - vy}
+                        stroke="var(--accent)" strokeWidth={2.5} markerEnd="url(#vca-vhead)" />
+                      <text x={tx + vx + 8} y={-ty - vy - 4} fontSize={12} fill="var(--accent)" fontFamily="var(--font-mono)" fontWeight="bold">
+                        ⁰v_{effectiveI}
+                      </text>
+                    </g>
+                  );
+                })()}
+              </svg>
+
+              <div className="vca-status" aria-live="polite">{status}</div>
+            </div>
+
+            <div className="vca-panel">
+              <h4>Running sum — terms accumulate as cursor visits each joint</h4>
+              <div className="vca-eq" aria-live="polite">
+                <span style={{ color: 'var(--ink-soft)' }}>⁰v</span>
+                <sub style={{ color: 'var(--ink-soft)' }}>{effectiveI}</sub>
+                <span style={{ color: 'var(--ink-soft)' }}> = </span>
+                <span style={{ color: 'var(--ink-faint)', fontSize: '1.3em' }}>(</span>
+                {Array.from({ length: effectiveI }).map((_, idx) => {
+                  const j = idx + 1;
+                  const visible = cursor >= j;
+                  const current = cursor === j;
+                  const active = qActive[j - 1];
+                  let cls = 'vca-term ' + (visible ? 'visible' : 'hidden');
+                  if (current) cls += ' current';
+                  if (visible && !active) cls += ' zero';
+                  return (
+                    <span key={j} className={cls}>
+                      {j > 1 && <span style={{ marginRight: 4, color: 'var(--ink-soft)' }}>+</span>}
+                      U<sub>{effectiveI},{j}</sub> q̇<sub>{j}</sub>
+                    </span>
+                  );
+                })}
+                <span style={{ color: 'var(--ink-faint)', fontSize: '1.3em' }}>)</span>
+                <span style={{ color: 'var(--ink-soft)' }}> · ⁱr</span>
+                <sub style={{ color: 'var(--ink-soft)' }}>{effectiveI}</sub>
+              </div>
+
+              <div className={'vca-skipped' + (showSkipped ? ' show' : '')}>
+                <strong>Causality rule:</strong>{' '}
+                U<sub>{effectiveI},j</sub> = 0 for j &gt; {effectiveI}.{' '}
+                {n > effectiveI ? (
+                  <>Joints {Array.from({ length: n - effectiveI }, (_, k) => effectiveI + 1 + k).join(', ')} cannot move link {effectiveI} — they stay grey in the diagram.</>
+                ) : (
+                  <>Here i = n, so no outboard joints exist. Increase n to see them sit out.</>
+                )}
+              </div>
+
+              <div className="vca-controls">
+                <button className="vca-btn primary" onClick={togglePlay} aria-label={playing ? 'Pause animation' : 'Play animation'}>
+                  {playing ? '❚❚ Pause' : (cursor >= effectiveI ? '↻ Replay' : '▶ Play')}
+                </button>
+                <button className="vca-btn" onClick={stepFwd} disabled={cursor >= effectiveI || playing}>Step ▸</button>
+                <button className="vca-btn ghost" onClick={reset}>Reset</button>
+              </div>
+            </div>
+          </div>
+
+          <div className="vca-controls">
+            <div className="vca-row">
+              <label className="vca-label">n = {n}</label>
+              <input type="range" min={2} max={6} value={n}
+                onChange={e => { setN(+e.target.value); reset(); }} className="vca-slider"
+                aria-label="Number of joints" />
+            </div>
+            <div className="vca-row">
+              <label className="vca-label">i = {effectiveI}</label>
+              <input type="range" min={1} max={n} value={effectiveI}
+                onChange={e => { setILink(+e.target.value); reset(); }} className="vca-slider"
+                aria-label="Target link index" />
+            </div>
+          </div>
+
+          <div className="vca-controls" style={{ marginTop: 4 }}>
+            <span className="vca-label" style={{ alignSelf: 'center' }}>non-zero q̇:</span>
+            {Array.from({ length: n }).map((_, idx) => {
+              const j = idx + 1;
+              const a = qActive[idx];
+              return (
+                <span key={idx} className={`vca-qbox ${a ? 'active' : ''}`} onClick={() => toggleQ(idx)}
+                  role="checkbox" aria-checked={a} tabIndex={0}
+                  onKeyDown={(e) => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); toggleQ(idx); } }}>
+                  q̇<sub>{j}</sub>
+                </span>
+              );
+            })}
+          </div>
+
+          <div className="vca-presets">
+            <span className="vca-label">presets:</span>
+            <button className="vca-preset" onClick={() => applyPreset('p1')}>2-link · i=2 · both moving</button>
+            <button className="vca-preset" onClick={() => applyPreset('p2')}>3-link · i=2 · only q̇₁</button>
+            <button className="vca-preset" onClick={() => applyPreset('p3')}>3-link · i=3 · all moving</button>
+            <button className="vca-preset" onClick={() => applyPreset('p4')}>6-link · i=4 · 5,6 grey</button>
+          </div>
+        </div>
+      );
+    }
+
+    const mount = document.getElementById('velocity-cursor-animator');
+    if (mount) {
+      ReactDOM.createRoot(mount).render(<Widget />);
+    }
+  } catch (e) {
+    const m = document.getElementById('velocity-cursor-animator');
+    if (m) m.innerHTML = '<div class="widget-fail">Widget failed to load</div>';
+    console.error(e);
+  }
+})();
+</script>
+<!-- widget: inertia-matrix-builder (builder) -->
+<script type="text/babel">
+(function () {
+  try {
+    const { useState, useMemo } = React;
+
+    const OPERATIONS = [
+      { id: 'op-coriolis-trap',    label: '− m₂·L₁·L₂·sin(θ₂)·θ̇₂',        symbol: '−m₂L₁L₂sinθ₂·θ̇₂',     contributes: [] },
+      { id: 'op-m2-L2-quarter',    label: '+ m₂·L₂²/4',                    symbol: 'm₂L₂²/4',              contributes: ['D11','D12','D22'] },
+      { id: 'op-m1-quarter',       label: '+ m₁·L₁²/4 + I₁',               symbol: 'm₁L₁²/4 + I₁',         contributes: ['D11'] },
+      { id: 'op-m2-half-coupling', label: '+ (m₂·L₁·L₂/2)·cos(θ₂)',        symbol: '½m₂L₁L₂cosθ₂',         contributes: ['D12'] },
+      { id: 'op-i2',               label: '+ I₂',                          symbol: 'I₂',                   contributes: ['D11','D12','D22'] },
+      { id: 'op-gravity-trap',     label: '+ ½m₂·g·L₂·cos(θ₁+θ₂)',        symbol: '½m₂gL₂cos(θ₁+θ₂)',     contributes: [] },
+      { id: 'op-m2-L1-squared',    label: '+ m₂·L₁²',                      symbol: 'm₂L₁²',                contributes: ['D11'] },
+      { id: 'op-m2-coupling',      label: '+ m₂·L₁·L₂·cos(θ₂)',            symbol: 'm₂L₁L₂cosθ₂',          contributes: ['D11'] },
+    ];
+
+    const REQUIRED = {
+      D11: new Set(['op-i2','op-m2-coupling','op-m1-quarter','op-m2-L1-squared','op-m2-L2-quarter']),
+      D12: new Set(['op-i2','op-m2-half-coupling','op-m2-L2-quarter']),
+      D22: new Set(['op-i2','op-m2-L2-quarter']),
+    };
+
+    const CELL_LABEL = { D11: 'D₁₁', D12: 'D₁₂', D21: 'D₂₁', D22: 'D₂₂' };
+    const opMap = Object.fromEntries(OPERATIONS.map(o => [o.id, o]));
+
+    function Widget() {
+      const [cells, setCells] = useState({ D11: [], D12: [], D22: [] });
+      const [selected, setSelected] = useState('D11');
+      const [history, setHistory] = useState([]);
+      const [hint, setHint] = useState(null);
+
+      const addTerm = (opId) => {
+        if (!selected) return;
+        if (cells[selected].includes(opId)) {
+          setHint({ kind: 'info', text: `That term is already in ${CELL_LABEL[selected]}.` });
+          return;
+        }
+        const op = opMap[opId];
+        setHistory(h => [...h, { cell: selected, op: opId }]);
+        setCells(c => ({ ...c, [selected]: [...c[selected], opId] }));
+        if (op.contributes.length === 0) {
+          setHint({ kind: 'bad', text: `${op.symbol} does not belong in D(q) at all — gravity lives in c(q), velocity-squared terms in h(q,q̇).` });
+        } else if (!op.contributes.includes(selected)) {
+          if (opId === 'op-m2-coupling' && selected === 'D12') {
+            setHint({ kind: 'bad', text: 'Half-magnitude vs full: D₁₁ carries the full L₁L₂·cosθ₂, but D₁₂ only carries half of it. Check the algebra.' });
+          } else if (opId === 'op-m2-half-coupling' && selected === 'D11') {
+            setHint({ kind: 'bad', text: 'D₁₁ takes the full L₁L₂·cosθ₂ coupling, not the half-magnitude one.' });
+          } else if (opId === 'op-m2-L1-squared' && (selected === 'D12' || selected === 'D22')) {
+            setHint({ kind: 'bad', text: 'm₂L₁² only appears in D₁₁ — it comes from link 1’s contribution to link 2’s translational KE.' });
+          } else {
+            setHint({ kind: 'bad', text: `${op.symbol} does not belong in ${CELL_LABEL[selected]}. It contributes to: ${op.contributes.map(c=>CELL_LABEL[c]).join(', ')}.` });
+          }
+        } else {
+          setHint({ kind: 'good', text: `Added ${op.symbol} to ${CELL_LABEL[selected]}.` });
+        }
+      };
+
+      const undo = () => {
+        if (history.length === 0) return;
+        const last = history[history.length - 1];
+        setHistory(h => h.slice(0, -1));
+        setCells(c => ({ ...c, [last.cell]: c[last.cell].filter(x => x !== last.op) }));
+        setHint(null);
+      };
+
+      const reset = () => {
+        setCells({ D11: [], D12: [], D22: [] });
+        setHistory([]);
+        setHint(null);
+        setSelected('D11');
+      };
+
+      const cellState = useMemo(() => {
+        const s = {};
+        for (const c of ['D11','D12','D22']) {
+          const req = REQUIRED[c];
+          const have = new Set(cells[c]);
+          const missing = [...req].filter(x => !have.has(x));
+          const extra  = [...have].filter(x => !req.has(x));
+          s[c] = { complete: missing.length === 0 && extra.length === 0, missing, extra,
+                   count: cells[c].length, required: req.size };
+        }
+        return s;
+      }, [cells]);
+
+      const allDone = cellState.D11.complete && cellState.D12.complete && cellState.D22.complete;
+
+      const handleCellClick = (cell) => {
+        if (cell === 'D21') { setSelected('D12'); setHint({ kind: 'info', text: 'D₂₁ mirrors D₁₂ by symmetry — editing D₁₂ instead.' }); return; }
+        setSelected(cell);
+      };
+
+      const renderCell = (cell) => {
+        const isMirror = cell === 'D21';
+        const src = isMirror ? 'D12' : cell;
+        const items = cells[src];
+        const st = cellState[src];
+        const isSelected = !isMirror && selected === cell;
+        let cls = 'imb-cell';
+        if (isMirror) cls += ' mirror';
+        if (isSelected) cls += ' selected';
+        if (st.complete && items.length > 0) cls += ' complete';
+        else if (st.extra.length > 0) cls += ' err';
+        return (
+          <div key={cell} className={cls} onClick={() => handleCellClick(cell)}>
+            <div className="imb-cell-tag">
+              <span>{CELL_LABEL[cell]}</span>
+              {isMirror && <span className="imb-mirror-note">= D₁₂</span>}
+              {st.complete && items.length > 0 && !isMirror && <span className="imb-ok">✓</span>}
+            </div>
+            <div className="imb-cell-body">
+              {items.length === 0 ? (
+                <div className="imb-empty">{isMirror ? '(mirrors D₁₂)' : 'click + then a term'}</div>
+              ) : (
+                items.map((opId, i) => {
+                  const op = opMap[opId];
+                  const wrong = !op.contributes.includes(src);
+                  return (
+                    <div key={opId} className={'imb-term' + (wrong ? ' wrong' : '')}>
+                      <span className="imb-plus">{i === 0 ? '' : '+'}</span>
+                      <span>{op.symbol}</span>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        );
+      };
+
+      return (
+        <div className="imb">
+          <div className="imb-head">
+            <div className="imb-title">Assemble the inertia matrix D(q)</div>
+            <div className="imb-sub">Click a cell, then click each term that belongs in it. D₂₁ mirrors D₁₂ automatically — that’s symmetry doing half the work.</div>
+          </div>
+
+          <div className="imb-body">
+            <div className="imb-matrix-wrap">
+              <div className="imb-matrix">
+                <div className="imb-bracket l" aria-hidden="true">[</div>
+                <div className="imb-grid">
+                  {renderCell('D11')}{renderCell('D12')}
+                  {renderCell('D21')}{renderCell('D22')}
+                </div>
+                <div className="imb-bracket r" aria-hidden="true">]</div>
+              </div>
+              <div className="imb-eq">D(q) =</div>
+            </div>
+
+            <div className="imb-palette">
+              <div className="imb-palette-head">
+                Adding to <strong>{CELL_LABEL[selected]}</strong> · {cellState[selected]?.count ?? 0}/{cellState[selected]?.required ?? 0} terms
+              </div>
+              <div className="imb-ops">
+                {OPERATIONS.map(op => {
+                  const used = cells[selected]?.includes(op.id);
+                  return (
+                    <button
+                      key={op.id}
+                      className={'imb-op' + (used ? ' used' : '')}
+                      onClick={() => addTerm(op.id)}
+                      disabled={used}
+                      aria-label={`Add ${op.label} to ${CELL_LABEL[selected]}`}
+                    >
+                      <span className="imb-op-label">{op.label}</span>
+                      {used && <span className="imb-op-used">in {CELL_LABEL[selected]}</span>}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          <div className="imb-status">
+            <div className="imb-checks">
+              <Check ok={true} pending={false} label="symmetry D₁₂ = D₂₁ (built in)" />
+              <Check ok={cellState.D11.complete} pending={cells.D11.length === 0} label={`D₁₁  ${cellState.D11.count} / ${cellState.D11.required}`} err={cellState.D11.extra.length > 0} />
+              <Check ok={cellState.D12.complete} pending={cells.D12.length === 0} label={`D₁₂  ${cellState.D12.count} / ${cellState.D12.required}`} err={cellState.D12.extra.length > 0} />
+              <Check ok={cellState.D22.complete} pending={cells.D22.length === 0} label={`D₂₂  ${cellState.D22.count} / ${cellState.D22.required}`} err={cellState.D22.extra.length > 0} />
+            </div>
+
+            {hint && <div className={'imb-hint ' + hint.kind}>{hint.text}</div>}
+
+            {allDone && (
+              <div className="imb-win">
+                <strong>✓ D(q) matches equations (3.39)–(3.41).</strong> Symmetry holds. Notice the two decoys you left untouched: ½m₂gL₂cos(θ₁+θ₂) belongs in <em>c(q)</em>, and −m₂L₁L₂sinθ₂·θ̇₂ belongs in <em>h(q,q̇)</em>. Each lecture term lives in exactly one of the three blocks.
+              </div>
+            )}
+
+            <div className="imb-controls">
+              <button className="imb-btn" onClick={undo} disabled={history.length === 0}>↶ Undo</button>
+              <button className="imb-btn" onClick={reset}>Reset</button>
+              <div className="imb-target">target: <span>D(q) for the 2-link planar arm</span></div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    function Check({ ok, pending, err, label }) {
+      let cls = 'imb-check';
+      let icon = '○';
+      if (err) { cls += ' err'; icon = '!'; }
+      else if (ok) { cls += ' ok'; icon = '✓'; }
+      else if (pending) { cls += ' pending'; }
+      else { cls += ' partial'; icon = '·'; }
+      return (
+        <div className={cls}>
+          <span className="imb-check-icon">{icon}</span>
+          <span className="imb-check-label">{label}</span>
+        </div>
+      );
+    }
+
+    const MOUNT_ID = 'inertia-matrix-builder';
+    const mount = document.getElementById(MOUNT_ID);
+    if (!mount) throw new Error('mount missing');
+
+    const style = document.createElement('style');
+    style.textContent = `
+      #${MOUNT_ID} .imb { font-family: var(--font-body); color: var(--ink); background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 18px; max-width: 100%; box-sizing: border-box; }
+      #${MOUNT_ID} .imb * { box-sizing: border-box; }
+      #${MOUNT_ID} .imb-head { margin-bottom: 14px; }
+      #${MOUNT_ID} .imb-title { font-family: var(--font-display); font-size: 1.18rem; font-weight: 600; color: var(--ink); letter-spacing: -0.01em; }
+      #${MOUNT_ID} .imb-sub { font-size: 0.86rem; color: var(--ink-soft); margin-top: 4px; line-height: 1.5; }
+      #${MOUNT_ID} .imb-body { display: grid; grid-template-columns: minmax(0,1.15fr) minmax(0,1fr); gap: 18px; align-items: start; }
+      @media (max-width: 760px) { #${MOUNT_ID} .imb-body { grid-template-columns: 1fr; } }
+      #${MOUNT_ID} .imb-matrix-wrap { display: flex; flex-direction: column; align-items: center; gap: 6px; background: var(--surface-alt); border-radius: 8px; padding: 16px 10px 10px; }
+      #${MOUNT_ID} .imb-matrix { display: flex; align-items: stretch; gap: 4px; width: 100%; }
+      #${MOUNT_ID} .imb-bracket { font-family: var(--font-display); font-size: 4.5rem; line-height: 0.9; color: var(--ink-soft); display: flex; align-items: center; font-weight: 300; }
+      #${MOUNT_ID} .imb-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; flex: 1; }
+      #${MOUNT_ID} .imb-eq { font-family: var(--font-mono); font-size: 0.78rem; color: var(--ink-faint); align-self: flex-end; margin-right: 8px; }
+      #${MOUNT_ID} .imb-cell { background: var(--surface); border: 1.5px solid var(--border); border-radius: 6px; padding: 9px 10px; min-height: 130px; cursor: pointer; transition: border-color .15s, box-shadow .15s, background .15s; display: flex; flex-direction: column; }
+      #${MOUNT_ID} .imb-cell:hover:not(.mirror) { border-color: var(--accent); }
+      #${MOUNT_ID} .imb-cell.selected { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(184,92,42,0.14); }
+      #${MOUNT_ID} .imb-cell.mirror { cursor: pointer; background: repeating-linear-gradient(135deg, var(--surface-alt) 0 6px, rgba(255,255,255,0.4) 6px 12px); border-style: dashed; }
+      #${MOUNT_ID} .imb-cell.complete { border-color: var(--good); background: rgba(46,125,79,0.05); }
+      #${MOUNT_ID} .imb-cell.err { border-color: var(--bad); }
+      #${MOUNT_ID} .imb-cell-tag { display: flex; align-items: baseline; justify-content: space-between; gap: 6px; font-family: var(--font-mono); font-size: 0.78rem; color: var(--ink-soft); margin-bottom: 6px; border-bottom: 1px dotted var(--border-soft); padding-bottom: 4px; }
+      #${MOUNT_ID} .imb-cell-tag > span:first-child { font-weight: 600; color: var(--ink); }
+      #${MOUNT_ID} .imb-mirror-note { font-size: 0.7rem; color: var(--ink-faint); font-style: italic; }
+      #${MOUNT_ID} .imb-ok { color: var(--good); font-weight: 700; }
+      #${MOUNT_ID} .imb-cell-body { display: flex; flex-direction: column; gap: 3px; flex: 1; min-height: 0; }
+      #${MOUNT_ID} .imb-empty { font-size: 0.74rem; color: var(--ink-faint); font-style: italic; align-self: center; margin: auto 0; }
+      #${MOUNT_ID} .imb-term { font-family: var(--font-mono); font-size: 0.78rem; color: var(--ink); padding: 1px 2px; border-radius: 2px; display: flex; gap: 4px; align-items: baseline; }
+      #${MOUNT_ID} .imb-plus { color: var(--ink-faint); min-width: 8px; }
+      #${MOUNT_ID} .imb-term.wrong { color: var(--bad); background: rgba(179,51,26,0.08); text-decoration: line-through; text-decoration-color: rgba(179,51,26,0.5); }
+      #${MOUNT_ID} .imb-palette { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+      #${MOUNT_ID} .imb-palette-head { font-size: 0.84rem; color: var(--ink-soft); padding: 8px 10px; background: var(--surface-alt); border-radius: 5px; }
+      #${MOUNT_ID} .imb-palette-head strong { color: var(--accent); font-family: var(--font-mono); font-weight: 600; }
+      #${MOUNT_ID} .imb-ops { display: flex; flex-direction: column; gap: 5px; }
+      #${MOUNT_ID} .imb-op { font-family: var(--font-mono); font-size: 0.79rem; text-align: left; padding: 8px 11px; background: var(--surface); border: 1px solid var(--border); color: var(--ink); border-radius: 5px; cursor: pointer; transition: background .12s, border-color .12s, transform .08s; display: flex; justify-content: space-between; align-items: center; gap: 6px; }
+      #${MOUNT_ID} .imb-op:hover:not(:disabled) { background: var(--surface-alt); border-color: var(--accent); transform: translateX(2px); }
+      #${MOUNT_ID} .imb-op:active:not(:disabled) { transform: translateX(0); }
+      #${MOUNT_ID} .imb-op:disabled { cursor: not-allowed; }
+      #${MOUNT_ID} .imb-op.used { background: rgba(46,125,79,0.06); border-color: var(--good); color: var(--ink-soft); border-style: dashed; }
+      #${MOUNT_ID} .imb-op-used { font-size: 0.7rem; color: var(--good); font-family: var(--font-body); font-style: italic; white-space: nowrap; }
+      #${MOUNT_ID} .imb-status { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border-soft); display: flex; flex-direction: column; gap: 10px; }
+      #${MOUNT_ID} .imb-checks { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 4px 12px; }
+      #${MOUNT_ID} .imb-check { display: flex; align-items: center; gap: 7px; font-size: 0.8rem; font-family: var(--font-mono); }
+      #${MOUNT_ID} .imb-check.ok { color: var(--good); }
+      #${MOUNT_ID} .imb-check.err { color: var(--bad); }
+      #${MOUNT_ID} .imb-check.pending { color: var(--ink-faint); }
+      #${MOUNT_ID} .imb-check.partial { color: var(--accent-2); }
+      #${MOUNT_ID} .imb-check-icon { display: inline-block; width: 14px; height: 14px; line-height: 14px; text-align: center; border-radius: 50%; background: currentColor; color: var(--surface) !important; font-size: 0.7rem; font-weight: 700; }
+      #${MOUNT_ID} .imb-check.pending .imb-check-icon { background: transparent; color: var(--ink-faint) !important; border: 1px solid currentColor; }
+      #${MOUNT_ID} .imb-check-label { color: var(--ink); }
+      #${MOUNT_ID} .imb-check.ok .imb-check-label { color: var(--good); }
+      #${MOUNT_ID} .imb-check.err .imb-check-label { color: var(--bad); }
+      #${MOUNT_ID} .imb-check.pending .imb-check-label { color: var(--ink-faint); }
+      #${MOUNT_ID} .imb-hint { padding: 8px 11px; border-radius: 4px; font-size: 0.82rem; line-height: 1.45; }
+      #${MOUNT_ID} .imb-hint.good { background: rgba(46,125,79,0.09); color: var(--good); border-left: 3px solid var(--good); }
+      #${MOUNT_ID} .imb-hint.bad { background: rgba(179,51,26,0.08); color: var(--bad); border-left: 3px solid var(--bad); }
+      #${MOUNT_ID} .imb-hint.info { background: var(--surface-alt); color: var(--ink-soft); border-left: 3px solid var(--border); }
+      #${MOUNT_ID} .imb-win { padding: 12px 14px; background: rgba(46,125,79,0.08); border: 1px solid var(--good); border-radius: 6px; color: var(--ink); font-size: 0.86rem; line-height: 1.55; }
+      #${MOUNT_ID} .imb-win strong { color: var(--good); display: block; margin-bottom: 4px; font-family: var(--font-display); font-size: 0.95rem; }
+      #${MOUNT_ID} .imb-win em { color: var(--accent); font-style: normal; font-family: var(--font-mono); }
+      #${MOUNT_ID} .imb-controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+      #${MOUNT_ID} .imb-btn { font-family: var(--font-body); font-size: 0.82rem; padding: 6px 14px; background: var(--surface); border: 1px solid var(--border); color: var(--ink); border-radius: 4px; cursor: pointer; transition: background .12s, border-color .12s, color .12s; }
+      #${MOUNT_ID} .imb-btn:hover:not(:disabled) { background: var(--surface-alt); border-color: var(--accent); color: var(--accent); }
+      #${MOUNT_ID} .imb-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+      #${MOUNT_ID} .imb-target { margin-left: auto; font-size: 0.76rem; color: var(--ink-faint); font-family: var(--font-mono); }
+      #${MOUNT_ID} .imb-target span { color: var(--ink-soft); }
+      #${MOUNT_ID} .widget-fail { padding: 14px; color: var(--bad); font-family: var(--font-mono); }
+    `;
+    mount.appendChild(style);
+    ReactDOM.createRoot(mount).render(<Widget />);
+  } catch (e) {
+    const mount = document.getElementById('inertia-matrix-builder');
+    if (mount) mount.innerHTML = '<div class="widget-fail">Widget failed to load</div>';
+    console.error(e);
+  }
+})();
+</script>
+<!-- widget: christoffel-derive (derive) -->
+<script>
+/* v0.3 widget-fail placeholder — original widget output was rejected by verifyWidget. */
+(function(){ try {
+  var m = document.getElementById("christoffel-derive");
+  if (!m) return;
+  m.innerHTML =
+    '<div role="status" aria-live="polite" style="font-family:system-ui,sans-serif;background:#fff5f5;border:1px solid #fca5a5;color:#7f1d1d;border-radius:6px;padding:14px 16px;margin:12px 0;">' +
+    '<div style="font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#b91c1c;margin-bottom:4px;">widget failed to render</div>' +
+    '<div style="font-weight:600;margin-bottom:4px;color:#7f1d1d;">christoffel-derive</div>' +
+    '<div style="font-size:13px;color:#7f1d1d;line-height:1.5;">claude call failed: claude exited 1 (dump: C:\Users\eamer\AppData\Roaming\wizard-curator-v2\debug\fail-widget_christoffel-derive-1779613205879.log)<br><span style="opacity:0.75">Regenerate this widget from the wizard to replace the placeholder.</span></div>' +
+    '</div>';
+} catch (e) { console.error(e); } })();
+</script>
+<!-- widget: complete-equation-roles-mcq (mcq) -->
+<script>
+/* v0.3 widget-fail placeholder — original widget output was rejected by verifyWidget. */
+(function(){ try {
+  var m = document.getElementById("complete-equation-roles-mcq");
+  if (!m) return;
+  m.innerHTML =
+    '<div role="status" aria-live="polite" style="font-family:system-ui,sans-serif;background:#fff5f5;border:1px solid #fca5a5;color:#7f1d1d;border-radius:6px;padding:14px 16px;margin:12px 0;">' +
+    '<div style="font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#b91c1c;margin-bottom:4px;">widget failed to render</div>' +
+    '<div style="font-weight:600;margin-bottom:4px;color:#7f1d1d;">complete-equation-roles-mcq</div>' +
+    '<div style="font-size:13px;color:#7f1d1d;line-height:1.5;">claude call failed: claude exited 1 (dump: C:\Users\eamer\AppData\Roaming\wizard-curator-v2\debug\fail-widget_complete-equation-roles-mcq-1779613214208.log)<br><span style="opacity:0.75">Regenerate this widget from the wizard to replace the placeholder.</span></div>' +
+    '</div>';
+} catch (e) { console.error(e); } })();
+</script>
+<!-- widget: two-dof-playground (playground) -->
+<script>
+/* v0.3 widget-fail placeholder — original widget output was rejected by verifyWidget. */
+(function(){ try {
+  var m = document.getElementById("two-dof-playground");
+  if (!m) return;
+  m.innerHTML =
+    '<div role="status" aria-live="polite" style="font-family:system-ui,sans-serif;background:#fff5f5;border:1px solid #fca5a5;color:#7f1d1d;border-radius:6px;padding:14px 16px;margin:12px 0;">' +
+    '<div style="font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#b91c1c;margin-bottom:4px;">widget failed to render</div>' +
+    '<div style="font-weight:600;margin-bottom:4px;color:#7f1d1d;">two-dof-playground</div>' +
+    '<div style="font-size:13px;color:#7f1d1d;line-height:1.5;">claude call failed: claude exited 1 (dump: C:\Users\eamer\AppData\Roaming\wizard-curator-v2\debug\fail-widget_two-dof-playground-1779613222440.log)<br><span style="opacity:0.75">Regenerate this widget from the wizard to replace the placeholder.</span></div>' +
+    '</div>';
+} catch (e) { console.error(e); } })();
+</script>
+</body>
+</html>
