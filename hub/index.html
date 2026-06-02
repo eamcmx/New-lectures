@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>eamcmx · Published Pages — one place for everything</title>
+<style>
+  :root{
+    --bg:#0f1216; --panel:#171b21; --panel2:#1d2229; --ink:#e9edf2; --muted:#9aa6b2;
+    --line:#2a313a; --accent:#5aa9ff; --accent2:#7ee787; --warn:#ffb454;
+    --radius:14px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+       font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  a{color:var(--accent);text-decoration:none}
+  a:hover{text-decoration:underline}
+  header{max-width:1080px;margin:0 auto;padding:56px 22px 12px}
+  h1{font-size:30px;margin:0 0 6px;letter-spacing:-.01em}
+  .lede{color:var(--muted);font-size:17px;margin:0 0 14px;max-width:70ch}
+  .meta{color:var(--muted);font-size:13px}
+  main{max-width:1080px;margin:0 auto;padding:8px 22px 70px}
+  section{margin-top:34px}
+  h2{font-size:14px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);
+     border-bottom:1px solid var(--line);padding-bottom:8px;margin:0 0 16px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:14px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+        padding:16px 16px 14px;display:flex;flex-direction:column;gap:6px}
+  .card h3{margin:0;font-size:16px}
+  .card h3 a{color:var(--ink)}
+  .card p{margin:0;color:var(--muted);font-size:13.5px;flex:1}
+  .links{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+  .pill{font-size:12px;border:1px solid var(--line);border-radius:999px;padding:3px 10px;
+        background:var(--panel2);color:var(--accent)}
+  .pill.idx{color:var(--muted)}
+  .pill.warn{color:var(--warn);border-color:#4a3a23}
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+  .chip{font-size:12px;border:1px solid var(--line);border-radius:8px;padding:4px 9px;
+        background:var(--panel2)}
+  footer{max-width:1080px;margin:0 auto;padding:0 22px 60px;color:var(--muted);font-size:13px}
+  .note{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--warn);
+        border-radius:10px;padding:12px 14px;margin-top:18px}
+  code{background:#0b0e12;border:1px solid var(--line);border-radius:6px;padding:1px 6px;font-size:12.5px}
+</style>
+</head>
+<body>
+<header>
+  <h1>Published Pages</h1>
+  <p class="lede">One place for every interactive page, demo, and lecture site published across my GitHub.
+     No more hunting through repos — every link below opens the live page.</p>
+  <p class="meta">23 sites · GitHub Pages · maintained by <a href="https://github.com/eamcmx">@eamcmx</a></p>
+</header>
+<main>
+
+  <section>
+    <h2>Robotics — kinematics &amp; dynamics</h2>
+    <div class="grid">
+      <div class="card">
+        <h3><a href="https://eamcmx.github.io/New-lectures/lectures/01/">New-lectures</a></h3>
+        <p>Kinematics &amp; Dynamics of Robot Manipulators — 17 interactive lectures (reference frames &amp; rotations through the full Lagrangian dynamic model).</p>
+        <div class="links">
+          <a class="pill" href="https://eamcmx.github.io/New-lectures/lectures/01/">Open</a>
+          <a class="pill idx" href="https://github.com/eamcmx/New-lectures#readme">all 17 lectures →</a>
+        </div>
+      </div>
+      <div class="card">
+        <h3><a href="https://eamcmx.github.io/RoboticsCourse/">RoboticsCourse</a></h3>
+        <p>A 21-lecture interactive course: frames, forward &amp; inverse kinematics, the Jacobian, trajectories, and dynamics — with live 3D and a browser MATLAB sandbox.</p>
+        <div class="links">
+          <a class="pill" href="https://eamcmx.github.io/RoboticsCourse/">Open site</a>
+          <a class="pill idx" href="https://github.com/eamcmx/RoboticsCourse#readme">all lectures →</a>
+        </div>
+      </div>
+      <div class="card">
+        <h3><a href="https://eamcmx.github.io/Dynamics2026/lectures/01-dynamics/">Dynamics2026</a></h3>
+        <p>Robot Dynamics lecture series plus linear-algebra &amp; vector foundations — 25 published pages.</p>
+        <div class="links">
+          <a class="pill" href="https://eamcmx.github.io/Dynamics2026/lectures/01-dynamics/">Open</a>
+          <a class="pill idx" href="https://github.com/eamcmx/Dynamics2026#readme">all 25 pages →</a>
+        </div>
+      </div>
+      <div class="card">
+        <h3><a href="https://eamcmx.github.io/Dynamics/">Dynamics by Design</a></h3>
+        <p>A 12-week robot-dynamics course built around predict → check → reconcile, with in-browser hooks for every week and a full coursebook.</p>
+        <div class="links">
+          <a class="pill" href="https://eamcmx.github.io/Dynamics/">Open site</a>
+          <a class="pill idx" href="https://eamcmx.github.io/Dynamics/coursebook/">Coursebook</a>
+        </div>
+      </div>
+      <div class="card">
+        <h3><a href="https://eamcmx.github.io/Lectures/lectures/tsi-student-guide/">Lectures (collection)</a></h3>
+        <p>A mixed bag of 21 interactive lectures: computer systems, discrete maths, simulation modelling, automatic control, engineering design, and more.</p>
+        <div class="links">
+          <a class="pill" href="https://eamcmx.github.io/Lectures/lectures/tsi-student-guide/">Open</a>
+          <a class="pill idx" href="https://github.com/eamcmx/Lectures#readme">all 21 lectures →</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Interactive demos — rotations &amp; transforms</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>Coordinate-frame rotations</h3>
+        <p>Single-axis rotation of a mobile frame, one demo per axis.</p>
+        <div class="chips">
+          <a class="chip" href="https://eamcmx.github.io/RotaX/">RotaX</a>
+          <a class="chip" href="https://eamcmx.github.io/RotaY/">RotaY</a>
+          <a class="chip" href="https://eamcmx.github.io/RotaZ/">RotaZ</a>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Coordinate-frame translations</h3>
+        <p>Single-axis translation of a mobile frame, one demo per axis.</p>
+        <div class="chips">
+          <a class="chip" href="https://eamcmx.github.io/TrasX/Index.html">TrasX</a>
+          <a class="chip" href="https://eamcmx.github.io/TrasY/Index.html">TrasY</a>
+          <a class="chip" href="https://eamcmx.github.io/TrasZ/Index.html">TrasZ</a>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Composite rotations</h3>
+        <p>Chaining several rotations on coordinate frames.</p>
+        <div class="chips">
+          <a class="chip" href="https://eamcmx.github.io/RotaComp01/Index.html">RotaComp01</a>
+          <a class="chip" href="https://eamcmx.github.io/RotaComp03/Index.html">RotaComp03</a>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Homogeneous transforms</h3>
+        <p>Building and composing 4×4 transformation matrices.</p>
+        <div class="chips">
+          <a class="chip" href="https://eamcmx.github.io/CompositeHTs/Index.html">CompositeHTs</a>
+          <a class="chip" href="https://eamcmx.github.io/ExplainerMTH/Index.html">ExplainerMTH</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Course &amp; teaching sites</h2>
+    <div class="grid">
+      <div class="card">
+        <h3><a href="https://eamcmx.github.io/Design/">Robot Mechanism Design</a></h3>
+        <p>B-406-03 course site — design methodologies, the semester project brief, and interactive lecture notes.</p>
+        <div class="links"><a class="pill" href="https://eamcmx.github.io/Design/">Open site</a></div>
+      </div>
+      <div class="card">
+        <h3><a href="https://eamcmx.github.io/KarinaK/">Programming Languages Concepts</a></h3>
+        <p>Interactive lectures on programming paradigms — hook → predict → check → reconcile.</p>
+        <div class="links"><a class="pill" href="https://eamcmx.github.io/KarinaK/">Open site</a></div>
+      </div>
+      <div class="card">
+        <h3><a href="https://eamcmx.github.io/Digital-academy/lectures/courses-static2/">TSI Digital Academy</a></h3>
+        <p>Coursebook for the TSI Digital Academy — vendor tracks, learning points, and cybersecurity paths.</p>
+        <div class="links">
+          <a class="pill" href="https://eamcmx.github.io/Digital-academy/lectures/courses-static2/">Coursebook</a>
+          <a class="pill" href="https://eamcmx.github.io/Digital-academy/lectures/cybersecurity-learning-paths/">Cyber paths</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>AI in education</h2>
+    <div class="grid">
+      <div class="card">
+        <h3><a href="https://eamcmx.github.io/AIF_TSI/">AI Competence Framework</a></h3>
+        <p>TSI AI Competence Integration Framework — teacher consultation tool, dashboard, and programme diagrams.</p>
+        <div class="links">
+          <a class="pill" href="https://eamcmx.github.io/AIF_TSI/">Open</a>
+          <a class="pill" href="https://eamcmx.github.io/AIF_TSI/TSI_AICF_Dashboard.html">Dashboard</a>
+          <a class="pill" href="https://eamcmx.github.io/AIF_TSI/AICF_Diagrams/AICF_Diagrams.html">Diagrams</a>
+        </div>
+      </div>
+      <div class="card">
+        <h3><a href="https://eamcmx.github.io/ProgressiveAI/">Progressive AI-Augmented Learning</a></h3>
+        <p>PAAL teacher-consultation tool, plus the "Bringing AI into your Classroom" workshop decks and the Beyond Vibe Coding talk.</p>
+        <div class="links">
+          <a class="pill" href="https://eamcmx.github.io/ProgressiveAI/">Tool</a>
+          <a class="pill" href="https://eamcmx.github.io/ProgressiveAI/Bringing_AI_Workshop_v6.html">Workshop</a>
+          <a class="pill" href="https://eamcmx.github.io/ProgressiveAI/Beyond_Vibe_Coding_v2.html">Talk</a>
+          <a class="pill idx" href="https://github.com/eamcmx/ProgressiveAI#readme">all pages →</a>
+        </div>
+      </div>
+      <div class="card">
+        <h3><a href="https://eamcmx.github.io/VibeTSI/">VibeTSI</a></h3>
+        <p>B-003-06 Programming course-redesign proposal: synthetic-cohort simulation, AI-TA review, and an instructor dashboard.</p>
+        <div class="links"><a class="pill" href="https://eamcmx.github.io/VibeTSI/">Open site</a></div>
+      </div>
+      <div class="card">
+        <h3>ProgressiveAI-BYOK</h3>
+        <p>Bring-your-own-key variant of the PAAL tool. GitHub Pages isn't enabled yet, so this opens via a preview proxy.</p>
+        <div class="links">
+          <a class="pill warn" href="https://htmlpreview.github.io/?https://github.com/eamcmx/ProgressiveAI-BYOK/blob/main/index.html">Preview</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Tools</h2>
+    <div class="grid">
+      <div class="card">
+        <h3><a href="https://eamcmx.github.io/RDF/">Reference Data Fetcher</a></h3>
+        <p>Paste DOIs / citations / BibTeX → get a Scopus-format CSV with abstracts, affiliations, and citation counts. No install.</p>
+        <div class="links"><a class="pill" href="https://eamcmx.github.io/RDF/">Open tool</a></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Logic gates</h2>
+    <div class="grid">
+      <div class="card">
+        <h3><a href="https://eamcmx.github.io/React2/Index.html">Logic Gate Challenge</a></h3>
+        <p>Interactive logic-gate challenge (React2).</p>
+        <div class="links"><a class="pill" href="https://eamcmx.github.io/React2/Index.html">Open</a></div>
+      </div>
+      <div class="card">
+        <h3>Logic Gate Teacher</h3>
+        <p>Teaching app (React). GitHub Pages isn't enabled yet, so this opens via a preview proxy.</p>
+        <div class="links">
+          <a class="pill warn" href="https://htmlpreview.github.io/?https://github.com/eamcmx/React/blob/main/index.html">Preview</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="note">
+    <strong>Two pages aren't on GitHub Pages yet</strong> — <code>React</code> and <code>ProgressiveAI-BYOK</code> open via a preview proxy.
+    To make them load fast and live, enable <em>Settings → Pages → Source: main / root</em> in each repo.
+  </div>
+
+</main>
+<footer>
+  Generated from a sweep of all eamcmx repositories · single static page, no tracking ·
+  <a href="https://github.com/eamcmx">github.com/eamcmx</a>
+</footer>
+</body>
+</html>
