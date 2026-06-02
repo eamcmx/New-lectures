@@ -4,6 +4,8 @@ Interactive, single-page HTML lectures, published with GitHub Pages.
 
 **Live site base:** https://eamcmx.github.io/New-lectures/
 
+**One place for every page I've published (across all my repos):** https://eamcmx.github.io/New-lectures/hub/
+
 Every lecture below links straight to its published page — click and go, no more digging through folders. Each lecture lives in its own folder under `lectures/` as an `index.html`.
 
 ## Robot Dynamics
