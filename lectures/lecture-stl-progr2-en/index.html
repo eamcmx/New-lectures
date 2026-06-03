@@ -1,0 +1,2612 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- wizard-curator runtime (injected) -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+<script src="https://cdn.jsdelivr.net/npm/mathjs@12/lib/browser/math.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" onload="try{window.renderMathInElement&&renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false},{left:'\[',right:'\]',display:true},{left:'\(',right:'\)',display:false}],throwOnError:false});}catch(e){}"></script>
+<script>try{[800,2200].forEach(function(t){setTimeout(function(){window.renderMathInElement&&renderMathInElement(document.body,{delimiters:[{left:"$$",right:"$$",display:true},{left:"$",right:"$",display:false},{left:"\[",right:"\]",display:true},{left:"\(",right:"\)",display:false}],throwOnError:false});},t);});}catch(e){};</script>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lecture 06 — The C++ Standard Template Library</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@300;400;500;600;700&family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --page-bg:      #eaf1fa;
+    --surface:      #ffffff;
+    --ink:          #122339;
+    --ink-soft:     #4d5f7a;
+    --border:       #aec4de;
+    --accent:       #1c5fa8;
+    --accent-2:     #0c3a6b;
+    --good:         #1f7a4d;
+    --bad:          #b3261e;
+    --font-display: 'Oswald', sans-serif;
+    --font-body:    'IBM Plex Mono', monospace;
+    --font-mono:    'IBM Plex Mono', monospace;
+  }
+
+  * { box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    margin: 0;
+    background-color: var(--page-bg);
+    background-image:
+      linear-gradient(var(--border) 1px, transparent 1px),
+      linear-gradient(90deg, var(--border) 1px, transparent 1px);
+    background-size: 28px 28px;
+    background-position: -1px -1px;
+    color: var(--ink);
+    font-family: var(--font-body);
+    font-size: 16px;
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* faint overlay so the grid stays subtle */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background: var(--page-bg);
+    opacity: 0.55;
+    pointer-events: none;
+    z-index: -1;
+  }
+
+  .wrap {
+    max-width: 920px;
+    margin: 0 auto;
+    padding: 0 24px 120px;
+  }
+
+  a { color: var(--accent); }
+
+  code, kbd {
+    font-family: var(--font-mono);
+    background: rgba(28,95,168,0.09);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 0.05em 0.35em;
+    font-size: 0.92em;
+    color: var(--accent-2);
+  }
+
+  /* ---------- DRAWING FRAME / HEADER ---------- */
+  header.sheet {
+    position: relative;
+    margin-top: 40px;
+    background: var(--surface);
+    border: 2px solid var(--accent-2);
+    box-shadow: 6px 6px 0 rgba(12,58,107,0.10);
+  }
+
+  .sheet-inner {
+    border: 1px solid var(--border);
+    margin: 8px;
+    padding: 38px 34px 26px;
+  }
+
+  .eyebrow {
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    letter-spacing: 0.28em;
+    font-size: 0.7rem;
+    color: var(--accent);
+    margin: 0 0 14px;
+  }
+
+  h1.title {
+    font-family: var(--font-display);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    font-size: clamp(2.1rem, 5.5vw, 3.4rem);
+    line-height: 1.02;
+    margin: 0 0 12px;
+    color: var(--accent-2);
+  }
+
+  p.subtitle {
+    font-family: var(--font-body);
+    font-size: 1.02rem;
+    color: var(--ink-soft);
+    max-width: 60ch;
+    margin: 0 0 8px;
+  }
+
+  /* corner title block */
+  .title-block {
+    margin-top: 28px;
+    border: 1px solid var(--accent-2);
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+  }
+  .title-block .cell {
+    border-right: 1px solid var(--border);
+    padding: 8px 10px;
+  }
+  .title-block .cell:last-child { border-right: none; }
+  .title-block .lbl {
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    color: var(--accent);
+    font-size: 0.6rem;
+    display: block;
+    margin-bottom: 3px;
+  }
+  .title-block .val {
+    color: var(--ink);
+    font-weight: 500;
+  }
+
+  /* ---------- OPENING VOICE ---------- */
+  .opening {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--accent);
+    padding: 22px 26px;
+    margin: 34px 0;
+    font-size: 1.0rem;
+    color: var(--ink);
+  }
+  .opening .voice-tag {
+    font-family: var(--font-display);
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    font-size: 0.72rem;
+    color: var(--accent);
+    display: block;
+    margin-bottom: 10px;
+  }
+
+  /* ---------- TOC / NAV RAIL ---------- */
+  nav.toc {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 18px 22px;
+    margin: 34px 0;
+  }
+  nav.toc h2 {
+    font-family: var(--font-display);
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    font-size: 0.8rem;
+    color: var(--accent-2);
+    margin: 0 0 12px;
+  }
+  nav.toc ol {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    columns: 2;
+    column-gap: 30px;
+  }
+  nav.toc li {
+    margin-bottom: 6px;
+    break-inside: avoid;
+    font-size: 0.86rem;
+  }
+  nav.toc a {
+    text-decoration: none;
+    color: var(--ink-soft);
+  }
+  nav.toc a:hover { color: var(--accent); }
+  nav.toc .num {
+    font-family: var(--font-mono);
+    color: var(--accent);
+    font-weight: 600;
+    margin-right: 8px;
+  }
+
+  /* ---------- SECTIONS ---------- */
+  section.lec {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    margin: 26px 0;
+    padding: 30px 32px;
+    position: relative;
+  }
+
+  .sec-head {
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 12px;
+    margin-bottom: 20px;
+  }
+  .sec-num {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 2.4rem;
+    line-height: 1;
+    color: var(--accent);
+    letter-spacing: 0.02em;
+  }
+  .sec-num::before {
+    content: "§";
+    font-size: 1.1rem;
+    color: var(--ink-soft);
+    margin-right: 4px;
+    vertical-align: super;
+  }
+  h2.sec-title {
+    font-family: var(--font-display);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-size: 1.5rem;
+    color: var(--accent-2);
+    margin: 0;
+  }
+
+  section.lec p { margin: 0 0 1em; }
+  section.lec ul {
+    margin: 0 0 1em;
+    padding-left: 1.3em;
+  }
+  section.lec li { margin-bottom: 0.4em; }
+  strong { color: var(--accent-2); font-weight: 600; }
+
+  /* margin voice notes */
+  .voice {
+    border-left: 3px solid var(--accent);
+    padding: 4px 0 4px 16px;
+    margin: 18px 0;
+    color: var(--ink-soft);
+    font-style: italic;
+    font-size: 0.95rem;
+  }
+  .voice::before {
+    content: "↳ lecturer's note";
+    display: block;
+    font-style: normal;
+    font-family: var(--font-display);
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    font-size: 0.62rem;
+    color: var(--accent);
+    margin-bottom: 5px;
+  }
+
+  /* ---------- CALLOUTS ---------- */
+  .callout {
+    border: 1px solid var(--border);
+    border-left-width: 5px;
+    padding: 14px 18px;
+    margin: 18px 0;
+    background: rgba(28,95,168,0.04);
+  }
+  .callout .co-title {
+    font-family: var(--font-display);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-weight: 600;
+    font-size: 0.85rem;
+    margin-bottom: 6px;
+    display: block;
+  }
+  .callout p { margin: 0; font-size: 0.94rem; }
+  .co-blue   { border-left-color: var(--accent);  }
+  .co-blue   .co-title { color: var(--accent); }
+  .co-green  { border-left-color: var(--good);    background: rgba(31,122,77,0.05);}
+  .co-green  .co-title { color: var(--good); }
+  .co-teal   { border-left-color: #0d8a8a; background: rgba(13,138,138,0.05);}
+  .co-teal   .co-title { color: #0a6e6e; }
+  .co-amber  { border-left-color: #b07d00; background: rgba(176,125,0,0.06);}
+  .co-amber  .co-title { color: #8a6200; }
+  .co-purple { border-left-color: #6b3fa0; background: rgba(107,63,160,0.05);}
+  .co-purple .co-title { color: #553285; }
+  .co-red    { border-left-color: var(--bad); background: rgba(179,38,30,0.05);}
+  .co-red    .co-title { color: var(--bad); }
+
+  /* ---------- CODE BLOCKS ---------- */
+  .code-block {
+    margin: 18px 0;
+    border: 1px solid var(--accent-2);
+    background: #f6f9fd;
+  }
+  .code-label {
+    font-family: var(--font-display);
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    font-size: 0.66rem;
+    color: var(--accent);
+    background: rgba(28,95,168,0.08);
+    border-bottom: 1px solid var(--border);
+    padding: 6px 14px;
+  }
+  pre {
+    margin: 0;
+    padding: 16px 18px;
+    overflow-x: auto;
+    font-family: var(--font-mono);
+    font-size: 0.86rem;
+    line-height: 1.55;
+    color: var(--ink);
+  }
+  pre code {
+    background: none;
+    border: none;
+    padding: 0;
+    color: inherit;
+    font-size: inherit;
+  }
+
+  /* ---------- WIDGET MOUNT ---------- */
+  .widget-lead {
+    margin-top: 22px;
+    font-size: 0.95rem;
+    color: var(--ink-soft);
+  }
+  .widget-lead .wtag {
+    font-family: var(--font-display);
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    font-size: 0.62rem;
+    color: var(--accent);
+    display: block;
+    margin-bottom: 4px;
+  }
+  .widget-mount {
+    margin: 12px 0 6px;
+    min-height: 40px;
+  }
+
+  /* ---------- HOMEWORK ---------- */
+  section.homework {
+    background: var(--surface);
+    border: 2px solid var(--accent-2);
+    margin: 40px 0;
+    padding: 30px 32px;
+  }
+  section.homework > h2 {
+    font-family: var(--font-display);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-size: 1.6rem;
+    color: var(--accent-2);
+    margin: 0 0 6px;
+  }
+  .hw-sub { color: var(--ink-soft); font-size: 0.95rem; margin: 0 0 22px; }
+
+  .hw-item {
+    border: 1px solid var(--border);
+    border-top: 3px solid var(--accent);
+    padding: 20px 22px;
+    margin-bottom: 20px;
+    background: rgba(28,95,168,0.02);
+  }
+  .hw-item h3 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-size: 1.15rem;
+    color: var(--accent-2);
+    margin: 0 0 12px;
+  }
+  .hw-body { margin-bottom: 14px; }
+  .hw-body p { margin: 0 0 0.7em; }
+
+  .hw-selfcheck {
+    background: rgba(31,122,77,0.06);
+    border: 1px solid rgba(31,122,77,0.3);
+    border-radius: 4px;
+    padding: 12px 16px;
+    margin: 14px 0;
+  }
+  .hw-selfcheck-label {
+    font-family: var(--font-display);
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    font-size: 0.68rem;
+    color: var(--good);
+    display: block;
+    margin-bottom: 6px;
+  }
+  .hw-selfcheck ul { margin: 0; padding-left: 1.2em; font-size: 0.9rem; }
+
+  details.hw-solution {
+    border: 1px dashed var(--accent);
+    border-radius: 4px;
+    margin-top: 12px;
+    background: var(--surface);
+  }
+  details.hw-solution summary {
+    cursor: pointer;
+    font-family: var(--font-display);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-size: 0.78rem;
+    color: var(--accent);
+    padding: 12px 16px;
+    list-style: none;
+    user-select: none;
+  }
+  details.hw-solution summary::-webkit-details-marker { display: none; }
+  details.hw-solution summary::before { content: "▸ "; }
+  details.hw-solution[open] summary::before { content: "▾ "; }
+  .hw-solution-body {
+    border-top: 1px solid var(--border);
+    padding: 16px 18px;
+    font-size: 0.92rem;
+  }
+  .hw-solution-body ul { padding-left: 1.3em; }
+  .hw-solution-body pre {
+    border: 1px solid var(--border);
+    background: #f6f9fd;
+    font-size: 0.82rem;
+  }
+
+  /* ---------- CONCEPTS / FOOTER ---------- */
+  .concepts {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 22px 26px;
+    margin: 30px 0;
+  }
+  .concepts h2 {
+    font-family: var(--font-display);
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    font-size: 0.85rem;
+    color: var(--accent-2);
+    margin: 0 0 14px;
+  }
+  .concept-tags { display: flex; flex-wrap: wrap; gap: 8px; }
+  .concept-tags span {
+    font-family: var(--font-mono);
+    font-size: 0.74rem;
+    border: 1px solid var(--border);
+    background: rgba(28,95,168,0.05);
+    color: var(--accent-2);
+    padding: 4px 10px;
+    border-radius: 2px;
+  }
+
+  footer.sheet-foot {
+    margin-top: 50px;
+    border-top: 2px solid var(--accent-2);
+    padding-top: 16px;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    color: var(--ink-soft);
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  /* dimension-line flourish */
+  .dim-rule {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 30px 0;
+    color: var(--accent);
+    font-family: var(--font-mono);
+    font-size: 0.66rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+  }
+  .dim-rule::before, .dim-rule::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--accent);
+    position: relative;
+  }
+  .dim-rule::before { box-shadow: 0 -3px 0 -2px var(--accent), 0 3px 0 -2px var(--accent); }
+  .dim-rule::after  { box-shadow: 0 -3px 0 -2px var(--accent), 0 3px 0 -2px var(--accent); }
+
+  @media (max-width: 640px) {
+    .title-block { grid-template-columns: repeat(2, 1fr); }
+    nav.toc ol { columns: 1; }
+    .sec-num { font-size: 1.8rem; }
+  }
+</style>
+</head>
+<body>
+<script>(function(){
+  function go(){ if(window.TSIBuddy){ TSIBuddy.mount({"systemPrompt":"You are TSI Buddy, a friendly tutor on the lecture page \"The C++ Standard Template Library\". (STL library · Programming 2 · TSI)\n\nYour knowledge is ONLY the LECTURE NOTES and PAGE TEXT printed below.\n\nRules:\n1. Answer from that material. Read it for meaning — explaining,\n   rephrasing, working its examples and connecting its points is\n   your job. Synthesising an answer from what the material says is\n   not \"inventing\".\n2. If the material does not cover something, say so in one sentence\n   and stop. Never invent facts, names, emails, links, places,\n   rooms, dates, or anything not in the material — a plain \"that is\n   not in the lecture material\" is the correct answer to a gap.\n3. Keep replies short — 2–4 sentences — unless the student asks for\n   more depth or worked steps. Mirror the student's language.\n4. Don't hand over self-check / quiz answers; point to the section\n   that explains them instead.\n5. Write maths with $...$ (inline) and $$...$$ (display).\n\n── LECTURE NOTES ──\nSCOPE\nThis lecture introduces the C++ Standard Template Library (STL) through its three basic components — containers, iterators, and algorithms — and concentrates most of its attention on the vector container. It covers what STL is and why to use it, the two container families (sequence and associative), vector construction, adding/removing/accessing elements, iterators and iterator arithmetic, insert/erase with the iterator-invalidation rule, and the `<algorithm>` header with predicates and the erase–remove idiom. It deliberately does not go deep into the associative containers (map, set, etc. are only named), does not cover writing your own data structures by hand (the point is to lean on STL instead), and does not treat templates, allocators, complexity guarantees, or move semantics in detail.\n\nKEY DEFINITIONS\nSTL (Standard Template Library) — a powerful set of C++ template classes providing general-purpose classes and functions that implement many popular and commonly used algorithms and data structures. Stated advantages: ready implementation, efficient code, a unified interface, well documented.\n\nContainer — an object that stores a collection of objects of a specific type. A container is itself a template class, so you parameterise it with the element type.\n\nSequence container — a container that keeps elements in linear order: `list`, `vector`, `deque`.\n\nAssociative container — a container that organises elements by key: `map`, `multimap`, `set`, `multiset`.\n\nVector — a dynamic-array implementation: its size can change at runtime, and its elements are stored sequentially in memory (so indexed access is fast).\n\nIterator — STL's generalised pointer; it lets an algorithm walk across a container without knowing the container's concrete type. Declared, e.g., `vector<int>::iterator iter;`.\n\nbegin() — a container method returning an iterator to the first element.\n\nend() — a container method returning an iterator to one-past-the-last element (never to a real element).\n\nPredicate — a `bool`-returning function you hand to an algorithm so it can make a yes/no decision about each element. Used by `count_if`, `remove_if`, `sort`, etc.\n\nIterator invalidation — the property that after an operation that may relocate or reorder a vector's storage (notably `insert` and `erase`), iterators referring to the affected positions are no longer valid; you must use the iterator the operation returns.\n\nErase–remove idiom — the pattern `v.erase(remove_if(v.begin(), v.end(), pred), v.end());`, used to actually shrink a container, because `remove_if` alone cannot change the container's size.\n\nKEY EQUATIONS & RESULTS\nThere is no physics in this lecture; the \"results\" are formulas and rules.\n\nRandom integer in a closed range $[-15, 15]$:\n$$\\texttt{rand()} \\,\\%\\, 31 - 15$$\n- `rand()` returns a non-negative integer.\n- `rand() % 31` maps it to $\\{0,1,\\dots,30\\}$ — exactly 31 distinct values.\n- subtracting 15 shifts the window so $0 \\to -15$ and $30 \\to +15$.\nHolds because the inclusive range $[-15,15]$ contains $15-(-15)+1 = 31$ integers. Note: the modulo idiom carries a mild low-value bias (acceptable for teaching, not for rigorous uniform sampling).\n\nGeneral random integer in $[lo, hi]$:\n$$\\texttt{rand()} \\,\\%\\, (hi - lo + 1) \\,+\\, lo$$\n- $hi - lo + 1$ is the count of distinct values in the inclusive range.\n- adding $lo$ slides the window to start at the lower bound.\n\nHalf-open range convention: STL ranges are $[\\text{first}, \\text{last})$ — `first` included, `last` excluded. `end()` is the past-the-end position; this is why `it != v.end()` is the clean loop condition and why `[first, last)` covers `last - first` elements.\n\nMiddle-of-vector iterator (random-access arithmetic):\n$$\\texttt{vec.begin()} + \\texttt{vec.size()}/2$$\nvalid only for random-access iterators (which vector provides). `iter += 2` steps forward by two.\n\n`insert` return value: the iterator to the newly inserted element (the first of them, for the multi-element forms); the passed-in iterator is invalidated.\n\n`erase` return value: the iterator to the element following the one(s) removed; the passed-in iterator is invalidated.\n\n`remove_if` return value: an iterator to the new logical end — one past the last surviving (kept) element. It does NOT change `size()`.\n\nNOTATION & CONVENTIONS\n- Lecturer: O. Dribeneca, TSI. Course: Programming 2. All code assumes `using namespace std;`.\n- Iterator type spelled out fully: `vector<int>::iterator`.\n- Loop idiom: `for (it = v.begin(); it != v.end(); it++) ... *it ...`. The post-increment `it++` is used in the slides; dereference with `*it`.\n- Ranges are half-open: `[first, last)`, written in code as `(v.begin(), v.end())` or `(f, l)`.\n- The example uses the sentinel value `-55` as an inserted marker that must be preserved while other negatives are removed.\n- Output formatting uses `setw(4)` from `<iomanip>` to align integers in columns.\n- Each container has its own header: `<list>`, `<vector>`, `<deque>`; algorithms live in `<algorithm>`.\n- \"Negative value\" in the example means strictly less than 0 (`*it < 0`); `-55` is itself negative, so the erase test is the compound `*it < 0 && *it != -55`.\n\nWORKED EXAMPLES\nExample 1 (the central example): build a vector of n random integers in $[-15,15]$, print it, insert `-55` after every negative value, then erase every negative value except the `-55` markers.\nKey code:\n- generate: `for (int i=0; i<n; i++) v.push_back(rand()%31 - 15);`\n- insert loop: `for (it=v.begin(); it!=v.end(); it++) if (*it<0) it = v.insert(it+1, -55);` — the reassignment `it = v.insert(...)` is essential because `insert` invalidates `it`.\n- erase loop: `for (it=v.begin(); it!=v.end(); it++) if (*it<0 && *it!=-55) it = v.erase(it);` — again `it = v.erase(it)` reassigns to the valid returned iterator.\nThe commented-out alternative does the same deletion with the erase–remove idiom using predicate `check`.\n\nHand-trace (homework 3, fully worked here so the buddy can reason about it): start `{3, -4, 7, -2, 5}`.\n- After inserting `-55` after each negative: `{3, -4, -55, 7, -2, -55, 5}` (5 → 7 elements).\n- After erasing negatives that are not `-55`: `{3, -55, 7, -55, 5}`.\n\nFive-constructor reading (homework 1):\n- `vector<int> a;` → empty, size 0.\n- `vector<int> b(10);` → 10 elements, each value-initialised to 0: `{0,...,0}`.\n- `vector<int> c(10,20);` → 10 elements all 20.\n- `vector<int> d(c);` → copy of c: 10 elements all 20.\n- `vector<int> e(d.begin(), d.end());` → range copy of d: 10 elements all 20.\nSo c, d, e are identical; b is ten zeros; a is empty.\n\nremove_if illustration (homework 4): `v = {3,-4,7,-2,5}`, predicate flags negatives. After `remove_if` survivors `3,7,5` are compacted to the front, `new_end` points past the `5`, size is still 5 with junk in the last two slots. After `v.erase(new_end, v.end())` → `{3,7,5}`, size 3.\n\nMETHOD / PROCEDURE\nIterating a vector:\n1. Declare `vector<T>::iterator it;`.\n2. Initialise `it = v.begin();`.\n3. Loop while `it != v.end();`.\n4. Use `*it` to read/write the current element.\n5. Advance with `it++` (or `++it`).\n\ninsert-then-erase with safe iterators (Example 1 procedure):\n1. To insert after a matching element: `it = v.insert(it+1, value);` — always assign the result back to `it`.\n2. Continue the for-loop; the next `it++` operates on the valid returned iterator.\n3. To erase a matching element: `it = v.erase(it);` — assign the result back; do not `it++` on the dead iterator. (In Example 1 the loop's `it++` runs after the reassignment; this matches the lecturer's code.)\n\nErase–remove idiom (real deletion via algorithm):\n1. Write a predicate `bool check(int val)` returning true for elements to drop.\n2. `#include <algorithm>`.\n3. `auto new_end = remove_if(v.begin(), v.end(), check);` — survivors compacted, `new_end` = new logical end.\n4. `v.erase(new_end, v.end());` — trims the stale tail so `size()` actually shrinks.\n\nINTUITION\n- `end()` points past the last element so that an empty range and a full range share one uniform stopping test (`it != end()`), and so that `last - first` equals the element count. There is never a \"valid element at end()\".\n- A vector stores elements contiguously; growing it may relocate the whole block to new memory, which is precisely why old iterators (which are essentially pointers into that block) go stale after `insert`. `erase` shifts later elements forward, so iterators at and after the erased point also go stale. The methods hand back a fresh, valid iterator so you can keep going.\n- `remove_if` is an algorithm: it only sees a pair of iterators, never the container object, so it has no power to call the container's resize machinery. The best it can do is overwrite the front of the range with the survivors and report where they end. The container's own `erase` is what actually frees the tail.\n- `rand()%31` works because 31 = count of values in the inclusive range; modulo always lands in `0..(N-1)`, and the `-15` re-centres that window onto the desired bounds.\n\nMISCONCEPTIONS & GOTCHAS\n- \"I can keep using `it` after `insert`/`erase`.\" Wrong move: ignoring the return value. Right move: `it = v.insert(...)` and `it = v.erase(...)`; the old iterator is invalid.\n- \"`remove_if` deletes elements.\" It does not change size; it compacts survivors and returns the new end. Right move: follow with `v.erase(new_end, v.end())`.\n- \"`[]` and `at()` are interchangeable.\" `vect[i]` does no bounds checking (a bad index is undefined behaviour); `vect.at(i)` checks and throws `out_of_range`. Use `at()` when the index might be wrong.\n- \"`b(10)` fills with garbage / with 10.\" No — `vector<int> b(10)` value-initialises to 0; the second argument in `c(10,20)` is the fill value, not a capacity.\n- \"Use modulus 30 for `[-15,15]`.\" That gives only 30 values and can never produce +15. The correct modulus is 31.\n- Iterator arithmetic like `begin()+n` is only valid for random-access iterators (vector/deque), not for `list` iterators — don't assume it works on every container.\n- Don't confuse `capacity()` with `size()`: capacity is allocated storage, size is the number of elements present.\n\nBOUNDARY & LIMIT CASES\n- Empty vector: `begin() == end()`, the loop body never runs; `pop_back()`/`front()`/`back()` on an empty vector is undefined behaviour.\n- `at(i)` with `i >= size()` throws `std::out_of_range`; `operator[]` with the same index is undefined behaviour (may appear to \"work\", may crash).\n- In Example 1's insert loop, inserting at `it+1` when `it` is the last element inserts at `end()`, which is the valid append position; the returned iterator then points at the new last element.\n- A vector of all non-negative numbers: insert loop does nothing, erase loop does nothing — output equals input.\n- A vector of all negatives: every element gets a `-55` after it, then every original negative is erased, leaving only `-55`s.\n- `remove_if` on a range with nothing to remove returns `v.end()`, and the following `erase(v.end(), v.end())` is a harmless no-op.\n- `reserve(n)` changes capacity but not size; `resize(n)` changes size (filling with 0 or a given value, or truncating).\n\nCONNECTIONS\nBuilds on: earlier Programming 2 work writing data structures by hand (the lecture explicitly contrasts \"rolling your own\" with using STL), basic C++ classes and the idea of templates as type parameters, pointers (since iterators generalise pointers), and standard I/O (`<iostream>`, `<iomanip>` with `setw`). Leads toward: the associative containers (map/set), the wider `<algorithm>` catalogue beyond the few shown, function objects/lambdas as predicates, and complexity/performance reasoning about container choice. The lecture only names map/set/deque — treat them as \"to be explored later,\" not as already-taught material.\n\nLIKELY QUESTIONS\nQ: What are the three components of STL? | A: Containers (store data), iterators (walk across it), and algorithms (operate through iterators without knowing the container type). Almost every STL example combines all three.\nQ: Why does `end()` point past the last element instead of at it? | A: So the half-open range `[begin, end)` has length equal to the element count and so `it != end()` is a clean, uniform loop stop. There is no real element at `end()`.\nQ: What's the difference between `vect[i]` and `vect.at(i)`? | A: `[]` is fast but unchecked — a bad index is undefined behaviour. `at()` is bounds-checked and throws `std::out_of_range` on a bad index. Use `at()` when the index might be invalid.\nQ: How do I make a vector of 10 elements all equal to 20? | A: `vector<int> c(10, 20);`. The first argument is the count, the second is the fill value.\nQ: Why must I write `it = v.insert(it+1, -55)` instead of just `v.insert(it+1, -55)`? | A: `insert` may relocate the vector and invalidates the iterator you pass. It returns a valid iterator to the inserted element; assigning it back keeps the loop correct.\nQ: Why didn't `remove_if` change my vector's size? | A: Algorithms only see iterators, not the container, so they can't re\n\n── PAGE TEXT (what the student is reading) ──\nLecture 06 — The C++ Standard Template Library STL library · Programming 2 · TSI The C++ Standard Template Library Containers, iterators and algorithms — the three pillars of generic C++. Drawing No. LEC-06 / STL Course Programming 2 Drafted by O. Dribeneca, TSI Scale · Rev. 1:1 · A Opening Today we step away from writing our own data structures by hand and lean on the work of decades: the Standard Template Library. Think of STL as three pieces that snap together — containers that hold your data, iterators that walk across it, and algorithms that operate through those iterators without ever knowing which container they came from. We will spend most of our time with vectors, because once you understand how a vector grows, how its iterators behave, and how insert and erase quietly invalidate them, the rest of STL falls into place. Sheet index 0 What this lecture covers 1 What is STL? 2 Containers 3 Vectors — a dynamic array 4 Adding, removing, accessing 5 Iterators 6 insert / erase & invalidation 7 Worked example 8 Algorithms 9 Predicates & remove_if ★ Practice 0 What this lecture covers This lecture introduces the Standard Template Library (STL) — a set of C++ template classes providing general-purpose, reusable data structures and algorithms. We organise the material around STL's three basic components: containers , iterators and algorithms . The bulk of our attention goes to the vector container: how to create one, add and remove elements, access elements safely, and walk across it with iterators. We finish with the <algorithm> header — sort , find , count_if , remove and friends — and the predicate functions that let those algorithms make decisions. Three components Container, iterator, algorithm. Almost every STL example you write combines all three. Everything in STL connects through iterators — keep that in mind and the library stops feeling like a pile of unrelated classes. 1 What is STL? STL — the Standard Template Library — is a powerful set of C++ template classes that provide general-purpose classes and functions, implementing many popular and commonly used algorithms and data structures. Because the components are templates, the same vector or sort works for int , double , your own classes, and more — the type is a parameter you supply. Why use STL? Ready implementation · efficient code · a unified interface across containers · well documented. You write less, and what you write is battle-tested. 2 Containers A container is an object that stores a collection of objects of a specific type. Each container is itself a template class , so you parameterise it with the element type. Containers come in two broad families: Sequence containers — list , vector , deque — keep elements in a linear order. Associative containers — map , multimap , set , multiset — organise elements by key. Because STL aims for a unified interface, the different containers share a common set of methods: size() , empty() , max_size() , and the iterator accessors begin() , end() , rbegin() , rend() . Include what you use Each container lives in its own header: #include <list> , #include <vector> , #include <deque> . And remember using namespace std; . headers and namespace using namespace std; #include <list> // list #include <vector> // vector #include <deque> // double-ended queue 3 Vectors — a dynamic array A vector is a dynamic-array implementation: its size can change at runtime, and its elements are stored sequentially in memory (so index access is fast). There are several ways to construct one — empty, sized, sized-and-filled, copied from another vector, or built from a range of iterators. five ways to create a vector vector<int> a; // empty vector<int> b(10); // 10 elements vector<int> c(10, 20); // 10 elements, each = 20 vector<int> d(c); // copy of c vector<int> e(d.begin(), d.end()); // from a range If you only ever learn one STL container well, make it the vector — it covers the vast majority of everyday needs. 4 Adding, removing and accessing elements To grow or shrink a vector at its end, use push_back(value) to append and pop_back() to drop the last element. To read or write an element you have two choices: the index operator vect[i] (fast, unchecked) or the at(i) method (bounds-checked, throws on an invalid index). Other useful size/capacity methods: size() , capacity() , reserve() , resize(n) , resize(n, value) , empty() , clear() , and swap(vector& v) . push_back example vector<int> vect; vect.push_back(10); // vect now holds {10} vect.pop_back(); // back to empty two ways to access vect[i]; // by index — unchecked vect.at(i); // by method — bounds-checked [] vs at() vect[i] does no bounds checking — a bad index is undefined behaviour. vect.at(i) checks and throws out_of_range . Reach for at() when the index might be wrong. Interactive · pick the accessor You're reading element $i$ but $i$ could be past the end. Choose how to reach it and watch what happens at the boundary — one path silently wanders into undefined behaviour, the other stops you with a thrown exception. 5 Iterators An iterator is STL's generalised pointer — it lets algorithms walk across a container without knowing the container's type. Declare one as vector<int>::iterator iter; . The container methods begin() and end() return iterators to the first element and to one past the last element. The standard loop tests it != vec.end() and dereferences with *it . Iterators support a rich set of operations: = , == , != , < , > , <= , >= , adding or subtracting an integer (or another iterator), and the ++ / -- step operators. iterating through a vector vector<int> vec; // ... vector<int>::iterator it; for (it = vec.begin(); it != vec.end(); it++) cout << *it << '\\n'; iterator arithmetic vector<int>::iterator iter = vec.begin() + vec.size()/2; iter += 2; Random-access arithmetic Because vector iterators are random-access, you can jump: vec.begin() + vec.size()/2 lands you in the middle, and iter += 2 steps forward by two. end() points past the last element, never at it — that off-by-one convention is exactly what makes it != end() the clean loop condition. Interactive · animated iterator Now you step the loop yourself: the cursor sits on begin() , you fire ++ to advance, and at each stop we test it != end() and dereference with *it . Watch the cursor land one slot past the last element and the loop stop cleanly. 6 insert and erase — and iterator invalidation Beyond the ends, vectors let you modify the middle with iterator-based methods. insert comes in three forms — insert one value, insert $n$ copies of a value, or insert a range $[f, l)$ — all at a position given by an iterator. erase removes a single element at an iterator, or a whole range $[f, l)$. The crucial subtlety: both insert and erase invalidate the iterator you passed in . After the call you must use the iterator they return , which points to a valid position in the (possibly relocated) vector. Forgetting this is one of the most common STL bugs. The invalidation trap it = v.insert(it+1, -55); and it = v.erase(it); — note the reassignment. The old it is dead after the call; reuse it without reassigning and you have undefined behaviour, especially inside a loop. the full method list assign(iterator f, iterator l) assign(n, value) back(), front(), begin(), end(), rbegin(), rend() erase(iterator it) erase(iterator f, iterator l) insert(iterator it, value) insert(iterator it, n, value) insert(iterator it, iterator f, iterator l) 7 Worked example — insert after, then erase This is the central example of the lecture. Build a vector of $n$ random integers in the range $[-15, 15]$, print it, then insert -55 after every negative value , and finally erase all negative values except the -55 s we just inserted. Notice how the insert loop reassigns it to the iterator returned by insert , then relies on that fresh value in the for statement. The same discipline applies in the erase loop. This is the invalidation rule from the previous section, applied for real. Random range trick rand() % 31 - 15 yields a value in $[-15, 15]$: rand()%31 gives 0..30 , then subtracting 15 shifts it down. Example 1 — generate, insert, erase #include <iostream> #include <iomanip> #include <vector> using namespace std; int main() { vector<int> v; int n; cout << \"Enter elements count: \"; cin >> n; for (int i = 0; i < n; i++) v.push_back(rand()%31 - 15); // random in [-15,15] vector<int>::iterator it; cout << endl << \"Generated vector: \" << endl; for (it = v.begin(); it != v.end(); it++) cout << setw(4) << *it; // insert -55 after each negative value for (it = v.begin(); it != v.end(); it++) if (*it < 0) it = v.insert(it+1, -55); // it invalidated -> reassign cout << endl << \"---After insert---\" << endl; for (it = v.begin(); it != v.end(); it++) cout << setw(4) << *it; // erase all negatives except -55 for (it = v.begin(); it != v.end(); it++) if (*it < 0 && *it != -55) it = v.erase(it); // it invalidated -> reassign cout << endl << \"---After erase---","contextLabel":"The C++ Standard Template Library","openingLine":"I'm reading The C++ Standard Template Library. Can you walk me through…","temperature":0.5,"model":"mistral-small-latest"}); } else { setTimeout(go, 60); } }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", go); else go();
+})();</script>
+
+<div class="wrap">
+
+  <header class="sheet">
+    <div class="sheet-inner">
+      <p class="eyebrow">STL library · Programming 2 · TSI</p>
+      <h1 class="title">The C++ Standard Template Library</h1>
+      <p class="subtitle">Containers, iterators and algorithms — the three pillars of generic C++.</p>
+      <div class="title-block">
+        <div class="cell"><span class="lbl">Drawing No.</span><span class="val">LEC-06 / STL</span></div>
+        <div class="cell"><span class="lbl">Course</span><span class="val">Programming 2</span></div>
+        <div class="cell"><span class="lbl">Drafted by</span><span class="val">O. Dribeneca, TSI</span></div>
+        <div class="cell"><span class="lbl">Scale · Rev.</span><span class="val">1:1 · A</span></div>
+      </div>
+    </div>
+  </header>
+
+  <script>/* TSI Buddy — vanilla-JS chat widget for the TSI Dynamics course.
+ *
+ * Mount once per page:
+ *
+ *   TSIBuddy.mount({
+ *     systemPrompt: "You are TSI Buddy ...",   // required, the AUDITOR prompt
+ *     contextLabel: "docs/01_F_equals_ma.md",  // shown in the modal subtitle
+ *     openingLine:  "I'm reading the F=ma chapter ..."   // optional pre-fill
+ *   });
+ *
+ * The widget mounts a floating button (top-right of the viewport), a settings
+ * modal where the student pastes their Mistral API key, and a chat panel that
+ * streams responses progressively. API key persists in localStorage.
+ *
+ * Streams via Mistral's SSE endpoint (stream: true). Falls back to a single
+ * non-streaming response if the runtime doesn't expose ReadableStream.
+ *
+ * Designed to coexist with the React+htm widget already inside each hook
+ * page. They use the same localStorage keys so a student who pastes their
+ * key once gets it everywhere.
+ */
+(function () {
+  try {
+    'use strict';
+
+  if (window.TSIBuddy && window.TSIBuddy.__loaded) return;
+
+  var KEY_LS    = 'tsi_mistral_key';
+  var MODEL_LS  = 'tsi_mistral_model';
+  var ENABLE_LS = 'tsi_buddy_enabled';
+
+  function lsGet(k, fb) { try { var v = localStorage.getItem(k); return v == null ? fb : v; } catch (e) { return fb; } }
+  function lsSet(k, v)  { try { localStorage.setItem(k, v); } catch (e) {} }
+
+  /* ---------- Styles (injected once) ---------- */
+  var STYLE = `
+.tsi-buddy-btn {
+  position: fixed; top: 14px; right: 14px; z-index: 9000;
+  background: rgba(255,255,255,0.95); color: #1a3a5c;
+  border: 1px solid #cbd5e1; border-radius: 999px;
+  padding: 8px 14px; font: 600 13px/1 'Inter', system-ui, sans-serif;
+  box-shadow: 0 2px 6px rgba(15,23,42,0.12);
+  cursor: pointer; display: flex; align-items: center; gap: 8px;
+  transition: transform 0.12s, box-shadow 0.12s;
+}
+.tsi-buddy-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 10px rgba(15,23,42,0.18); }
+.tsi-buddy-btn .tsi-buddy-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: #94a3b8;
+}
+.tsi-buddy-btn.tsi-on .tsi-buddy-dot { background: #16a34a; box-shadow: 0 0 0 2px rgba(34,197,94,0.25); }
+.tsi-buddy-btn.tsi-on { border-color: #16a34a; color: #166534; }
+
+.tsi-buddy-overlay {
+  position: fixed; inset: 0; background: rgba(15,23,42,0.55); z-index: 9100;
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+}
+.tsi-buddy-overlay[hidden] { display: none; }
+
+.tsi-buddy-modal {
+  background: white; border-radius: 12px;
+  max-width: 480px; width: 100%;
+  padding: 24px 26px;
+  box-shadow: 0 20px 60px rgba(15,23,42,0.35);
+  font: 400 14px/1.55 'Inter', system-ui, sans-serif;
+  color: #1e293b;
+}
+.tsi-buddy-modal h3 { margin: 0 0 8px; font-size: 1.2rem; color: #0f172a; }
+.tsi-buddy-modal .tsi-buddy-sub { color: #64748b; font-size: 0.92em; margin: 0 0 16px; }
+.tsi-buddy-modal label { display: block; margin-top: 14px; font-weight: 600; color: #334155; font-size: 0.9em; }
+.tsi-buddy-modal input[type="password"],
+.tsi-buddy-modal select,
+.tsi-buddy-modal textarea {
+  margin-top: 6px; width: 100%; box-sizing: border-box;
+  padding: 9px 12px; border: 1px solid #cbd5e1; border-radius: 6px;
+  font: inherit; color: #1e293b; background: #f8fafc;
+}
+.tsi-buddy-modal input[type="password"] { font-family: ui-monospace, Menlo, monospace; font-size: 0.92em; }
+.tsi-buddy-modal .tsi-buddy-toggle { display: flex; align-items: center; gap: 8px; margin-top: 14px; cursor: pointer; }
+.tsi-buddy-modal .tsi-buddy-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 22px; }
+.tsi-buddy-modal button {
+  font: 600 13px/1 'Inter', system-ui, sans-serif;
+  padding: 9px 16px; border-radius: 6px; border: none; cursor: pointer;
+}
+.tsi-buddy-modal .tsi-buddy-secondary { background: white; color: #475569; border: 1px solid #cbd5e1; }
+.tsi-buddy-modal .tsi-buddy-primary   { background: #1565c0; color: white; }
+.tsi-buddy-modal .tsi-buddy-primary:hover { background: #0d47a1; }
+.tsi-buddy-modal .tsi-buddy-secondary:hover { background: #f1f5f9; }
+.tsi-buddy-modal small { color: #64748b; }
+
+.tsi-buddy-chat {
+  position: fixed; right: 14px; bottom: 14px; z-index: 9000;
+  width: 380px; max-width: calc(100vw - 28px);
+  height: 540px; max-height: calc(100vh - 80px);
+  background: white; border: 1px solid #cbd5e1; border-radius: 12px;
+  box-shadow: 0 12px 40px rgba(15,23,42,0.25);
+  display: flex; flex-direction: column;
+  overflow: hidden;
+  font: 400 14px/1.55 'Inter', system-ui, sans-serif; color: #1e293b;
+}
+.tsi-buddy-chat[hidden] { display: none; }
+.tsi-buddy-chat-head {
+  background: linear-gradient(135deg, #1a3a5c 0%, #1e4d8c 100%);
+  color: white; padding: 12px 14px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.tsi-buddy-chat-head strong { font-size: 0.95em; }
+.tsi-buddy-chat-head small  { color: rgba(255,255,255,0.78); font-size: 0.78em; display: block; margin-top: 2px; }
+.tsi-buddy-chat-head button { background: transparent; border: none; color: white; cursor: pointer; font-size: 1.1em; line-height: 1; padding: 4px 8px; border-radius: 4px; }
+.tsi-buddy-chat-head button:hover { background: rgba(255,255,255,0.16); }
+.tsi-buddy-chat-body {
+  flex: 1 1 auto; overflow-y: auto; padding: 14px 14px 6px;
+  background: #f8fafc;
+}
+.tsi-buddy-bubble {
+  margin: 8px 0; padding: 10px 13px; border-radius: 10px;
+  word-wrap: break-word; overflow-wrap: anywhere; font-size: 0.93em;
+}
+.tsi-buddy-bubble.tsi-user      { background: #e3f2fd; color: #1a3a5c; border-bottom-right-radius: 2px; margin-left: 32px; }
+.tsi-buddy-bubble.tsi-assistant { background: white; border: 1px solid #e2e8f0; margin-right: 32px; }
+.tsi-buddy-bubble .tsi-buddy-role { font-size: 0.72em; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 4px; }
+.tsi-buddy-bubble.tsi-thinking { color: #94a3b8; font-style: italic; }
+/* Markdown typography inside bubbles (rendered for assistant replies). */
+.tsi-buddy-bubble .tsi-buddy-text > * { margin: 0; }
+.tsi-buddy-bubble .tsi-buddy-text > * + * { margin-top: 6px; }
+.tsi-buddy-bubble .tsi-buddy-text p { line-height: 1.55; }
+.tsi-buddy-bubble .tsi-buddy-text strong { font-weight: 700; color: #0f172a; }
+.tsi-buddy-bubble .tsi-buddy-text em { font-style: italic; }
+.tsi-buddy-bubble .tsi-buddy-text ul,
+.tsi-buddy-bubble .tsi-buddy-text ol { padding-left: 22px; }
+.tsi-buddy-bubble .tsi-buddy-text li { margin: 2px 0; }
+.tsi-buddy-bubble .tsi-buddy-text code {
+  background: rgba(15,23,42,0.06); padding: 0 4px; border-radius: 3px;
+  font-family: ui-monospace, Menlo, monospace; font-size: 0.92em;
+}
+.tsi-buddy-bubble .tsi-buddy-text pre {
+  background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px;
+  padding: 8px 10px; overflow-x: auto;
+}
+.tsi-buddy-bubble .tsi-buddy-text pre code { background: transparent; padding: 0; }
+.tsi-buddy-bubble .tsi-buddy-text blockquote {
+  border-left: 3px solid #cbd5e1; padding: 2px 10px; color: #475569;
+  background: #f8fafc; border-radius: 4px;
+}
+.tsi-buddy-bubble .tsi-buddy-text h1,
+.tsi-buddy-bubble .tsi-buddy-text h2,
+.tsi-buddy-bubble .tsi-buddy-text h3,
+.tsi-buddy-bubble .tsi-buddy-text h4 { font-weight: 700; color: #0f172a; }
+.tsi-buddy-bubble .tsi-buddy-text h1 { font-size: 1.05em; }
+.tsi-buddy-bubble .tsi-buddy-text h2 { font-size: 1.0em; }
+.tsi-buddy-bubble .tsi-buddy-text h3,
+.tsi-buddy-bubble .tsi-buddy-text h4 { font-size: 0.95em; }
+.tsi-buddy-bubble .tsi-buddy-text hr { border: none; border-top: 1px solid #e2e8f0; }
+.tsi-buddy-bubble .tsi-buddy-text a { color: #1565c0; text-decoration: underline; }
+.tsi-buddy-error {
+  background: #fee2e2; color: #7f1d1d; border: 1px solid #fecaca;
+  padding: 8px 10px; border-radius: 6px; margin: 8px 14px; font-size: 0.85em;
+}
+.tsi-buddy-chat-foot {
+  border-top: 1px solid #e2e8f0; padding: 10px 12px;
+  display: flex; gap: 8px; align-items: flex-end;
+  background: white;
+}
+.tsi-buddy-chat-foot textarea {
+  flex: 1 1 auto; resize: none; min-height: 36px; max-height: 140px;
+  padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px;
+  font: inherit; color: #1e293b;
+}
+.tsi-buddy-chat-foot button {
+  font: 600 13px/1 'Inter', system-ui, sans-serif;
+  padding: 9px 14px; border-radius: 6px; border: none; cursor: pointer;
+  background: #1565c0; color: white;
+}
+.tsi-buddy-chat-foot button:disabled { background: #94a3b8; cursor: default; }
+.tsi-buddy-chat-foot button:hover:not(:disabled) { background: #0d47a1; }
+.tsi-buddy-startbar {
+  display: flex; gap: 8px; padding: 12px 14px;
+  border-bottom: 1px solid #e2e8f0; background: #fafbfc;
+}
+.tsi-buddy-startbar button {
+  flex: 1 1 auto; font: 600 13px/1 'Inter', system-ui, sans-serif;
+  padding: 9px 12px; border-radius: 6px; border: 1px solid #1565c0;
+  background: white; color: #1565c0; cursor: pointer;
+}
+.tsi-buddy-startbar button:hover { background: #e3f2fd; }
+@media (max-width: 480px) {
+  .tsi-buddy-chat { width: calc(100vw - 16px); right: 8px; bottom: 8px; height: calc(100vh - 90px); }
+}
+`;
+
+  function injectStyles() {
+    if (document.getElementById('tsi-buddy-styles')) return;
+    var s = document.createElement('style');
+    s.id = 'tsi-buddy-styles';
+    s.textContent = STYLE;
+    document.head.appendChild(s);
+  }
+
+  /* ---------- Markdown rendering ---------- */
+  // The buddy returns markdown (bold, italic, lists, code, headers).
+  // We lazily load `marked` from CDN and render assistant replies through it.
+  // Until marked is loaded (or if it fails to load), we fall back to plain
+  // text with newlines preserved as <br>.
+  function loadMarked() {
+    if (window.marked) return Promise.resolve(window.marked);
+    if (window.__tsiMarkedLoading) return window.__tsiMarkedLoading;
+    window.__tsiMarkedLoading = new Promise(function (resolve) {
+      var s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js';
+      s.async = true;
+      s.onload  = function () { resolve(window.marked || null); };
+      s.onerror = function () { resolve(null); };
+      document.head.appendChild(s);
+    });
+    return window.__tsiMarkedLoading;
+  }
+
+  /* ---------- KaTeX (for math in replies) ----------
+     Lazy-load KaTeX + CSS when the host page doesn't already have it, so
+     $...$ / $$...$$ in replies typeset instead of showing raw. */
+  var KATEX_OPTS = {
+    delimiters: [
+      { left: '$$',  right: '$$',  display: true  },
+      { left: '\\[', right: '\\]', display: true  },
+      { left: '\\(', right: '\\)', display: false },
+      { left: '$',   right: '$',   display: false }
+    ],
+    throwOnError: false
+  };
+  function loadKatex() {
+    if (window.katex && window.katex.renderToString) return Promise.resolve(window.katex);
+    if (window.__tsiKatexLoading) return window.__tsiKatexLoading;
+    window.__tsiKatexLoading = new Promise(function (resolve) {
+      if (!document.querySelector('link[data-tsi-katex]')) {
+        var link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = 'https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css';
+        link.setAttribute('data-tsi-katex', '1');
+        document.head.appendChild(link);
+      }
+      var s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js';
+      s.onload  = function () { resolve(window.katex || null); };
+      s.onerror = function () { resolve(null); };
+      document.head.appendChild(s);
+    });
+    return window.__tsiKatexLoading;
+  }
+
+  // Light DOM sanitiser: walks the parsed tree and removes any tags / attrs
+  // that could execute code if the model went rogue. Allow-listing all
+  // safe markdown tags; strip everything else's dangerous attributes.
+  function sanitizeHTML(html) {
+    var div = document.createElement('div');
+    div.innerHTML = html;
+    var deny = ['script', 'style', 'iframe', 'object', 'embed', 'form',
+                'input', 'button', 'textarea', 'select', 'meta', 'link', 'base'];
+    deny.forEach(function (tag) {
+      Array.from(div.getElementsByTagName(tag)).forEach(function (n) { n.remove(); });
+    });
+    Array.from(div.querySelectorAll('*')).forEach(function (n) {
+      Array.from(n.attributes).forEach(function (a) {
+        var name = a.name.toLowerCase();
+        if (name.indexOf('on') === 0) { n.removeAttribute(a.name); return; }
+        if (name === 'href' || name === 'src' || name === 'srcset') {
+          var v = (a.value || '').replace(/\s/g, '');
+          if (/^javascript:/i.test(v) || /^data:text\/html/i.test(v)) {
+            n.removeAttribute(a.name);
+          }
+        }
+      });
+      // External links: open in new tab safely
+      if (n.tagName === 'A' && n.getAttribute('href')) {
+        n.setAttribute('target', '_blank');
+        n.setAttribute('rel', 'noopener noreferrer');
+      }
+    });
+    return div.innerHTML;
+  }
+
+  function escapeHTML(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  function renderContent(text, isAssistant) {
+    var div = document.createElement('div');
+    div.className = 'tsi-buddy-text';
+    var raw = text == null ? '' : String(text);
+    if (isAssistant && window.marked && window.marked.parse) {
+      try {
+        /* Protect math from markdown (it mangles _ * \ inside $…$), then
+           restore + typeset with KaTeX. */
+        var math = [];
+        var protectedSrc = raw
+          .replace(/\$\$([\s\S]+?)\$\$/g, function (_m, body) {
+            math.push({ display: true, tex: body }); return ' @@TSIMATH' + (math.length - 1) + '@@ ';
+          })
+          .replace(/\$([^\$\n]+?)\$/g, function (_m, body) {
+            math.push({ display: false, tex: body }); return '@@TSIMATH' + (math.length - 1) + '@@';
+          });
+        var html = sanitizeHTML(window.marked.parse(protectedSrc, { breaks: true, gfm: true, mangle: false, headerIds: false }));
+        var katexReady = window.katex && window.katex.renderToString;
+        html = html.replace(/@@TSIMATH(\d+)@@/g, function (_m, i) {
+          var item = math[Number(i)];
+          if (!item) return '';
+          if (katexReady) {
+            try { return window.katex.renderToString(item.tex, { displayMode: item.display, throwOnError: false }); }
+            catch (e) {}
+          }
+          var d = item.display ? '$$' : '$';
+          return d + escapeHTML(item.tex) + d;
+        });
+        div.innerHTML = html;
+        if (math.length && !katexReady) {
+          loadKatex().then(function (k) {
+            if (k && window.renderMathInElement) { try { window.renderMathInElement(div, KATEX_OPTS); } catch (e) {} }
+          });
+        }
+        return div;
+      } catch (e) { /* fall through to plain text */ }
+    }
+    // Plain-text fallback (user messages, or assistant before marked loads)
+    div.innerHTML = escapeHTML(raw).replace(/\n/g, '<br>');
+    return div;
+  }
+
+  /* ---------- Streaming Mistral call ---------- */
+  function callMistralChat(apiKey, model, systemPrompt, messages, onDelta) {
+    return fetch('https://api.mistral.ai/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + apiKey, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: model || 'mistral-small-latest',
+        temperature: 0.4,
+        max_tokens: 1500,
+        stream: true,
+        messages: [{ role: 'system', content: systemPrompt }].concat(messages)
+      })
+    }).then(function (r) {
+      if (!r.ok) {
+        return r.text().then(function (t) {
+          throw new Error('Mistral ' + r.status + ': ' + (t || 'request failed'));
+        });
+      }
+      if (!r.body || !r.body.getReader) {
+        return r.json().then(function (data) {
+          if (!data.choices || !data.choices[0]) throw new Error('Mistral returned no choices.');
+          var full = (data.choices[0].message.content || '').trim();
+          if (onDelta) onDelta(full);
+          return full;
+        });
+      }
+      var reader = r.body.getReader();
+      var decoder = new TextDecoder();
+      var buf = '';
+      var full = '';
+      function pump() {
+        return reader.read().then(function (res) {
+          if (res.done) return full.trim();
+          buf += decoder.decode(res.value, { stream: true });
+          var lines = buf.split('\n');
+          buf = lines.pop();
+          for (var i = 0; i < lines.length; i++) {
+            var ln = lines[i];
+            if (ln.indexOf('data: ') !== 0) continue;
+            var s = ln.substring(6).trim();
+            if (s === '[DONE]') return full.trim();
+            try {
+              var d = JSON.parse(s);
+              if (d.choices && d.choices[0] && d.choices[0].delta && d.choices[0].delta.content) {
+                full += d.choices[0].delta.content;
+                if (onDelta) onDelta(full);
+              }
+            } catch (e) {}
+          }
+          return pump();
+        });
+      }
+      return pump();
+    });
+  }
+
+  /* ---------- DOM helpers ---------- */
+  function el(tag, attrs, kids) {
+    var n = document.createElement(tag);
+    if (attrs) for (var k in attrs) {
+      if (k === 'class') n.className = attrs[k];
+      else if (k === 'html') n.innerHTML = attrs[k];
+      else if (k === 'text') n.textContent = attrs[k];
+      else if (k.indexOf('on') === 0 && typeof attrs[k] === 'function') n.addEventListener(k.substring(2), attrs[k]);
+      else if (attrs[k] === true) n.setAttribute(k, '');
+      else if (attrs[k] != null && attrs[k] !== false) n.setAttribute(k, attrs[k]);
+    }
+    if (kids) (Array.isArray(kids) ? kids : [kids]).forEach(function (c) {
+      if (c == null) return;
+      n.appendChild(typeof c === 'string' ? document.createTextNode(c) : c);
+    });
+    return n;
+  }
+
+  /* ---------- Mount ---------- */
+  function mount(opts) {
+    if (!opts || !opts.systemPrompt) {
+      console.warn('TSIBuddy.mount: systemPrompt required');
+      return null;
+    }
+    injectStyles();
+
+    // ---- State (closure-scoped) ----
+    var state = {
+      apiKey:  lsGet(KEY_LS, ''),
+      model:   lsGet(MODEL_LS, 'mistral-small-latest'),
+      enabled: lsGet(ENABLE_LS, '') === '1',
+      messages: [],     // {role, content}
+      pending: '',
+      status:  'idle',  // idle | loading | error
+      error:   '',
+      open:    false    // chat panel visible
+    };
+    if (state.apiKey) state.enabled = true; // having a key implies enabled
+
+    // ---- Floating button ----
+    var btnDot   = el('span', { class: 'tsi-buddy-dot' });
+    var btnLabel = el('span', null, '🤖 TSI Buddy');
+    var btnState = el('span', null, '');
+    var btn = el('button', {
+      class: 'tsi-buddy-btn',
+      title: 'TSI Buddy — your study companion',
+      onclick: function () {
+        if (state.apiKey) toggleChat();
+        else openSettings();
+      }
+    }, [btnDot, btnLabel, btnState]);
+    document.body.appendChild(btn);
+
+    // ---- Settings modal ----
+    var keyInput = el('input', {
+      type: 'password', autocomplete: 'off',
+      placeholder: 'paste your Mistral key (starts with "sk-…")',
+      value: state.apiKey,
+      oninput: function (e) { state.apiKey = e.target.value; }
+    });
+    var modelSelect = el('select', {
+      onchange: function (e) { state.model = e.target.value; }
+    }, ['mistral-small-latest', 'mistral-medium-latest', 'mistral-large-latest'].map(function (m) {
+      var o = el('option', { value: m }, m + (m === 'mistral-small-latest' ? ' (recommended)' : ''));
+      if (m === state.model) o.selected = true;
+      return o;
+    }));
+    var enableBox = el('input', {
+      type: 'checkbox',
+      onchange: function (e) { state.enabled = !!e.target.checked; }
+    });
+    enableBox.checked = state.enabled;
+    var modalCard = el('div', { class: 'tsi-buddy-modal', onclick: function (e) { e.stopPropagation(); } }, [
+      el('h3', null, '🤖 TSI Buddy'),
+      el('p', { class: 'tsi-buddy-sub' }, opts.contextLabel
+        ? ('You are reading: ' + opts.contextLabel + '. The buddy reads the page context and helps you understand worked examples — it does not give you the answer to your homework.')
+        : 'A study companion. The buddy helps you understand the worked examples on this page.'),
+      el('label', { class: 'tsi-buddy-toggle' }, [enableBox, el('span', null, 'Enable TSI Buddy on this page')]),
+      el('label', null, 'Mistral API key'),
+      keyInput,
+      el('label', null, 'Model'),
+      modelSelect,
+      el('p', null, [el('small', null, 'Get a free key at '), el('a', { href: 'https://console.mistral.ai/api-keys/', target: '_blank' }, 'console.mistral.ai'), el('small', null, '. The key stays in your browser only.')]),
+      el('div', { class: 'tsi-buddy-actions' }, [
+        el('button', { class: 'tsi-buddy-secondary', onclick: function () { state.apiKey = ''; keyInput.value = ''; } }, 'Clear key'),
+        el('button', { class: 'tsi-buddy-primary',   onclick: function () { saveSettings(); } }, 'Save')
+      ])
+    ]);
+    var modalOverlay = el('div', { class: 'tsi-buddy-overlay', hidden: true, onclick: function () { closeSettings(); } }, [modalCard]);
+    document.body.appendChild(modalOverlay);
+
+    // ---- Chat panel ----
+    var chatBody = el('div', { class: 'tsi-buddy-chat-body' });
+    var chatErr  = el('div', { class: 'tsi-buddy-error', hidden: true });
+    var inputBox = el('textarea', {
+      rows: 1, placeholder: 'Ask about this page…',
+      onkeydown: function (e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          sendUserMessage();
+        }
+      },
+      oninput: function (e) { state.pending = e.target.value; sendBtn.disabled = !canSend(); autosize(e.target); }
+    });
+    var sendBtn = el('button', {
+      onclick: function () { sendUserMessage(); }
+    }, 'Send');
+    sendBtn.disabled = true;
+
+    var startBar = el('div', { class: 'tsi-buddy-startbar' });
+
+    var chatFoot = el('div', { class: 'tsi-buddy-chat-foot' }, [inputBox, sendBtn]);
+
+    var chatHead = el('div', { class: 'tsi-buddy-chat-head' }, [
+      el('div', null, [
+        el('strong', null, '🤖 TSI Buddy'),
+        opts.contextLabel ? el('small', null, opts.contextLabel) : null
+      ]),
+      el('div', null, [
+        el('button', { title: 'Settings', onclick: function () { openSettings(); } }, '⚙'),
+        el('button', { title: 'Reset chat', onclick: function () { resetChat(); } }, '↺'),
+        el('button', { title: 'Close', onclick: function () { closeChat(); } }, '×')
+      ])
+    ]);
+
+    var chatPanel = el('div', { class: 'tsi-buddy-chat', hidden: true }, [
+      chatHead, startBar, chatErr, chatBody, chatFoot
+    ]);
+    document.body.appendChild(chatPanel);
+
+    // ---- Render ----
+    function refreshButton() {
+      if (state.apiKey && state.enabled) { btn.classList.add('tsi-on'); btnState.textContent = 'ON'; }
+      else                                { btn.classList.remove('tsi-on'); btnState.textContent = 'off'; }
+    }
+    function autosize(t) {
+      t.style.height = 'auto';
+      t.style.height = Math.min(140, Math.max(36, t.scrollHeight)) + 'px';
+    }
+    function canSend() {
+      return !!(state.apiKey && state.enabled && state.pending.trim() && state.status !== 'loading');
+    }
+    function refreshSendBtn() { sendBtn.disabled = !canSend(); }
+    function refreshStartBar() {
+      while (startBar.firstChild) startBar.removeChild(startBar.firstChild);
+      if (state.messages.length > 0) { startBar.style.display = 'none'; return; }
+      startBar.style.display = 'flex';
+      if (opts.openingLine) {
+        startBar.appendChild(el('button', {
+          onclick: function () { startWith(opts.openingLine); }
+        }, '🚀 Start with: "' + opts.openingLine.substring(0, 50) + (opts.openingLine.length > 50 ? '…' : '') + '"'));
+      }
+      startBar.appendChild(el('button', {
+        onclick: function () { startWith('Help me understand the worked example on this page.'); }
+      }, '💡 Generic walkthrough'));
+    }
+    function refreshChat() {
+      while (chatBody.firstChild) chatBody.removeChild(chatBody.firstChild);
+      state.messages.forEach(function (m, i) {
+        var thinking = (state.status === 'loading' && i === state.messages.length - 1 && m.role === 'assistant' && !m.content);
+        var displayText = m.content || (thinking ? '…' : '');
+        var contentDiv = thinking
+          ? (function () { var d = document.createElement('div'); d.className = 'tsi-buddy-text'; d.textContent = '…'; return d; })()
+          : renderContent(displayText, m.role === 'assistant');
+        var bubble = el('div', { class: 'tsi-buddy-bubble tsi-' + m.role }, [
+          el('div', { class: 'tsi-buddy-role' }, m.role === 'assistant' ? '🤖 TSI Buddy' : '🧑 You'),
+          contentDiv
+        ]);
+        if (thinking) bubble.classList.add('tsi-thinking');
+        chatBody.appendChild(bubble);
+      });
+      if (state.status === 'error' && state.error) {
+        chatErr.textContent = 'API error: ' + state.error;
+        chatErr.hidden = false;
+      } else {
+        chatErr.hidden = true;
+      }
+      // scroll to bottom
+      requestAnimationFrame(function () { chatBody.scrollTop = chatBody.scrollHeight; });
+      refreshStartBar();
+      refreshSendBtn();
+    }
+
+    // ---- Behaviour ----
+    function openSettings()  { modalOverlay.hidden = false; setTimeout(function () { keyInput.focus(); }, 50); }
+    function closeSettings() { modalOverlay.hidden = true; }
+    function saveSettings() {
+      lsSet(KEY_LS, state.apiKey || '');
+      lsSet(MODEL_LS, state.model || 'mistral-small-latest');
+      lsSet(ENABLE_LS, state.enabled ? '1' : '');
+      closeSettings();
+      refreshButton();
+      if (state.apiKey && state.enabled) openChat();
+    }
+    function openChat()  { state.open = true; chatPanel.hidden = false; refreshChat(); inputBox.focus(); }
+    function closeChat() { state.open = false; chatPanel.hidden = true; }
+    function toggleChat(){ state.open ? closeChat() : openChat(); }
+    function resetChat() { state.messages = []; state.pending = ''; state.status = 'idle'; state.error = ''; inputBox.value = ''; refreshChat(); }
+    function startWith(line) {
+      inputBox.value = line;
+      state.pending = line;
+      autosize(inputBox);
+      sendUserMessage();
+    }
+    function sendUserMessage() {
+      var draft = (state.pending || '').trim();
+      if (!draft || !state.apiKey || state.status === 'loading') return;
+      var userMsg = { role: 'user', content: draft };
+      state.messages.push(userMsg);
+      state.messages.push({ role: 'assistant', content: '' });
+      state.pending = ''; inputBox.value = ''; autosize(inputBox);
+      state.status = 'loading'; state.error = '';
+      refreshChat();
+      callMistralChat(state.apiKey, state.model, opts.systemPrompt, state.messages.slice(0, -1), function (full) {
+        var last = state.messages[state.messages.length - 1];
+        if (last && last.role === 'assistant') {
+          last.content = full;
+          refreshChat();
+        }
+      }).then(function () {
+        state.status = 'idle';
+        refreshChat();
+      }).catch(function (err) {
+        var last = state.messages[state.messages.length - 1];
+        if (last && last.role === 'assistant' && !last.content) state.messages.pop();
+        state.status = 'error';
+        state.error = (err && err.message) || String(err);
+        refreshChat();
+      });
+    }
+
+    refreshButton();
+    refreshChat();
+
+    // Lazily fetch marked so assistant replies render markdown. If it
+    // arrives mid-conversation, re-render so any plain-text bubbles get
+    // upgraded to formatted ones.
+    loadMarked().then(function (m) { if (m) refreshChat(); });
+
+    // First-time arrival: nudge the modal open if no key set
+    // (but not too aggressively — only on explicit click of the button).
+
+    return {
+      open: openChat, close: closeChat, toggle: toggleChat,
+      reset: resetChat,
+      destroy: function () {
+        try { document.body.removeChild(btn); } catch (e) {}
+        try { document.body.removeChild(modalOverlay); } catch (e) {}
+        try { document.body.removeChild(chatPanel); } catch (e) {}
+      }
+    };
+  }
+
+  window.TSIBuddy = { mount: mount, __loaded: true };
+  } catch (e) {
+    try { console.error('TSIBuddy bootstrap error', e); } catch (_) {}
+  }
+})();
+</script>
+
+  <div class="opening">
+    <span class="voice-tag">Opening</span>
+    Today we step away from writing our own data structures by hand and lean on the work of decades: the Standard Template Library. Think of STL as three pieces that snap together — containers that hold your data, iterators that walk across it, and algorithms that operate through those iterators without ever knowing which container they came from. We will spend most of our time with vectors, because once you understand how a vector grows, how its iterators behave, and how <code>insert</code> and <code>erase</code> quietly invalidate them, the rest of STL falls into place.
+  </div>
+
+  <nav class="toc">
+    <h2>Sheet index</h2>
+    <ol>
+      <li><a href="#overview"><span class="num">0</span>What this lecture covers</a></li>
+      <li><a href="#what-is-stl"><span class="num">1</span>What is STL?</a></li>
+      <li><a href="#containers"><span class="num">2</span>Containers</a></li>
+      <li><a href="#vectors"><span class="num">3</span>Vectors — a dynamic array</a></li>
+      <li><a href="#vector-elements"><span class="num">4</span>Adding, removing, accessing</a></li>
+      <li><a href="#iterators"><span class="num">5</span>Iterators</a></li>
+      <li><a href="#insert-erase"><span class="num">6</span>insert / erase &amp; invalidation</a></li>
+      <li><a href="#worked-insert-erase"><span class="num">7</span>Worked example</a></li>
+      <li><a href="#algorithms"><span class="num">8</span>Algorithms</a></li>
+      <li><a href="#predicates"><span class="num">9</span>Predicates &amp; remove_if</a></li>
+      <li><a href="#homework"><span class="num">★</span>Practice</a></li>
+    </ol>
+  </nav>
+
+  <!-- ===================== SECTION 0 ===================== -->
+  <section class="lec" id="overview">
+    <div class="sec-head">
+      <div class="sec-num">0</div>
+      <h2 class="sec-title">What this lecture covers</h2>
+    </div>
+    <p>This lecture introduces the <strong>Standard Template Library (STL)</strong> — a set of C++ template classes providing general-purpose, reusable data structures and algorithms. We organise the material around STL's three basic components: <strong>containers</strong>, <strong>iterators</strong> and <strong>algorithms</strong>.</p>
+    <p>The bulk of our attention goes to the <strong>vector</strong> container: how to create one, add and remove elements, access elements safely, and walk across it with iterators. We finish with the <code>&lt;algorithm&gt;</code> header — <code>sort</code>, <code>find</code>, <code>count_if</code>, <code>remove</code> and friends — and the <strong>predicate</strong> functions that let those algorithms make decisions.</p>
+
+    <div class="callout co-blue">
+      <span class="co-title">Three components</span>
+      <p>Container, iterator, algorithm. Almost every STL example you write combines all three.</p>
+    </div>
+
+    <div class="voice">Everything in STL connects through iterators — keep that in mind and the library stops feeling like a pile of unrelated classes.</div>
+  </section>
+
+  <!-- ===================== SECTION 1 ===================== -->
+  <section class="lec" id="what-is-stl">
+    <div class="sec-head">
+      <div class="sec-num">1</div>
+      <h2 class="sec-title">What is STL?</h2>
+    </div>
+    <p><strong>STL — the Standard Template Library</strong> — is a powerful set of C++ template classes that provide general-purpose classes and functions, implementing many popular and commonly used algorithms and data structures.</p>
+    <p>Because the components are templates, the same <code>vector</code> or <code>sort</code> works for <code>int</code>, <code>double</code>, your own classes, and more — the type is a parameter you supply.</p>
+
+    <div class="callout co-green">
+      <span class="co-title">Why use STL?</span>
+      <p>Ready implementation · efficient code · a unified interface across containers · well documented. You write less, and what you write is battle-tested.</p>
+    </div>
+  </section>
+
+  <!-- ===================== SECTION 2 ===================== -->
+  <section class="lec" id="containers">
+    <div class="sec-head">
+      <div class="sec-num">2</div>
+      <h2 class="sec-title">Containers</h2>
+    </div>
+    <p>A <strong>container</strong> is an object that stores a collection of objects of a specific type. Each container is itself a <strong>template class</strong>, so you parameterise it with the element type.</p>
+    <p>Containers come in two broad families:</p>
+    <ul>
+      <li><strong>Sequence containers</strong> — <code>list</code>, <code>vector</code>, <code>deque</code> — keep elements in a linear order.</li>
+      <li><strong>Associative containers</strong> — <code>map</code>, <code>multimap</code>, <code>set</code>, <code>multiset</code> — organise elements by key.</li>
+    </ul>
+    <p>Because STL aims for a unified interface, the different containers share a common set of methods: <code>size()</code>, <code>empty()</code>, <code>max_size()</code>, and the iterator accessors <code>begin()</code>, <code>end()</code>, <code>rbegin()</code>, <code>rend()</code>.</p>
+
+    <div class="callout co-teal">
+      <span class="co-title">Include what you use</span>
+      <p>Each container lives in its own header: <code>#include &lt;list&gt;</code>, <code>#include &lt;vector&gt;</code>, <code>#include &lt;deque&gt;</code>. And remember <code>using namespace std;</code>.</p>
+    </div>
+
+    <div class="code-block">
+      <div class="code-label">headers and namespace</div>
+      <pre><code>using namespace std;
+
+#include &lt;list&gt;    // list
+#include &lt;vector&gt;  // vector
+#include &lt;deque&gt;   // double-ended queue</code></pre>
+    </div>
+  </section>
+
+  <!-- ===================== SECTION 3 ===================== -->
+  <section class="lec" id="vectors">
+    <div class="sec-head">
+      <div class="sec-num">3</div>
+      <h2 class="sec-title">Vectors — a dynamic array</h2>
+    </div>
+    <p>A <strong>vector</strong> is a dynamic-array implementation: its size can change at runtime, and its elements are stored sequentially in memory (so index access is fast).</p>
+    <p>There are several ways to construct one — empty, sized, sized-and-filled, copied from another vector, or built from a range of iterators.</p>
+
+    <div class="code-block">
+      <div class="code-label">five ways to create a vector</div>
+      <pre><code>vector&lt;int&gt; a;                       // empty
+vector&lt;int&gt; b(10);                   // 10 elements
+vector&lt;int&gt; c(10, 20);               // 10 elements, each = 20
+vector&lt;int&gt; d(c);                    // copy of c
+vector&lt;int&gt; e(d.begin(), d.end());   // from a range</code></pre>
+    </div>
+
+    <div class="voice">If you only ever learn one STL container well, make it the vector — it covers the vast majority of everyday needs.</div>
+  </section>
+
+  <!-- ===================== SECTION 4 ===================== -->
+  <section class="lec" id="vector-elements">
+    <div class="sec-head">
+      <div class="sec-num">4</div>
+      <h2 class="sec-title">Adding, removing and accessing elements</h2>
+    </div>
+    <p>To grow or shrink a vector at its end, use <strong><code>push_back(value)</code></strong> to append and <strong><code>pop_back()</code></strong> to drop the last element.</p>
+    <p>To read or write an element you have two choices: the <strong>index operator</strong> <code>vect[i]</code> (fast, unchecked) or the <strong><code>at(i)</code></strong> method (bounds-checked, throws on an invalid index).</p>
+    <p>Other useful size/capacity methods: <code>size()</code>, <code>capacity()</code>, <code>reserve()</code>, <code>resize(n)</code>, <code>resize(n, value)</code>, <code>empty()</code>, <code>clear()</code>, and <code>swap(vector&amp; v)</code>.</p>
+
+    <div class="code-block">
+      <div class="code-label">push_back example</div>
+      <pre><code>vector&lt;int&gt; vect;
+vect.push_back(10);   // vect now holds {10}
+vect.pop_back();      // back to empty</code></pre>
+    </div>
+
+    <div class="code-block">
+      <div class="code-label">two ways to access</div>
+      <pre><code>vect[i];        // by index — unchecked
+vect.at(i);     // by method — bounds-checked</code></pre>
+    </div>
+
+    <div class="callout co-amber">
+      <span class="co-title"><code>[]</code> vs <code>at()</code></span>
+      <p><code>vect[i]</code> does no bounds checking — a bad index is undefined behaviour. <code>vect.at(i)</code> checks and throws <code>out_of_range</code>. Reach for <code>at()</code> when the index might be wrong.</p>
+    </div>
+
+    <p class="widget-lead">
+      <span class="wtag">Interactive · pick the accessor</span>
+      You're reading element $i$ but $i$ could be past the end. Choose how to reach it and watch what happens at the boundary — one path silently wanders into undefined behaviour, the other stops you with a thrown exception.
+    </p>
+    <div class="widget-mount"><div id="access-method-picker"></div></div>
+  </section>
+
+  <!-- ===================== SECTION 5 ===================== -->
+  <section class="lec" id="iterators">
+    <div class="sec-head">
+      <div class="sec-num">5</div>
+      <h2 class="sec-title">Iterators</h2>
+    </div>
+    <p>An <strong>iterator</strong> is STL's generalised pointer — it lets algorithms walk across a container without knowing the container's type. Declare one as <code>vector&lt;int&gt;::iterator iter;</code>.</p>
+    <p>The container methods <strong><code>begin()</code></strong> and <strong><code>end()</code></strong> return iterators to the first element and to <em>one past the last</em> element. The standard loop tests <code>it != vec.end()</code> and dereferences with <code>*it</code>.</p>
+    <p>Iterators support a rich set of operations: <code>=</code>, <code>==</code>, <code>!=</code>, <code>&lt;</code>, <code>&gt;</code>, <code>&lt;=</code>, <code>&gt;=</code>, adding or subtracting an integer (or another iterator), and the <code>++</code> / <code>--</code> step operators.</p>
+
+    <div class="code-block">
+      <div class="code-label">iterating through a vector</div>
+      <pre><code>vector&lt;int&gt; vec;
+// ...
+vector&lt;int&gt;::iterator it;
+for (it = vec.begin(); it != vec.end(); it++)
+    cout &lt;&lt; *it &lt;&lt; '\n';</code></pre>
+    </div>
+
+    <div class="code-block">
+      <div class="code-label">iterator arithmetic</div>
+      <pre><code>vector&lt;int&gt;::iterator iter = vec.begin() + vec.size()/2;
+iter += 2;</code></pre>
+    </div>
+
+    <div class="callout co-purple">
+      <span class="co-title">Random-access arithmetic</span>
+      <p>Because vector iterators are random-access, you can jump: <code>vec.begin() + vec.size()/2</code> lands you in the middle, and <code>iter += 2</code> steps forward by two.</p>
+    </div>
+
+    <div class="voice"><code>end()</code> points <em>past</em> the last element, never at it — that off-by-one convention is exactly what makes <code>it != end()</code> the clean loop condition.</div>
+
+    <p class="widget-lead">
+      <span class="wtag">Interactive · animated iterator</span>
+      Now you step the loop yourself: the cursor sits on <code>begin()</code>, you fire <code>++</code> to advance, and at each stop we test <code>it != end()</code> and dereference with <code>*it</code>. Watch the cursor land one slot past the last element and the loop stop cleanly.
+    </p>
+    <div class="widget-mount"><div id="iterator-walk-animator"></div></div>
+  </section>
+
+  <!-- ===================== SECTION 6 ===================== -->
+  <section class="lec" id="insert-erase">
+    <div class="sec-head">
+      <div class="sec-num">6</div>
+      <h2 class="sec-title">insert and erase — and iterator invalidation</h2>
+    </div>
+    <p>Beyond the ends, vectors let you modify the middle with iterator-based methods. <strong><code>insert</code></strong> comes in three forms — insert one value, insert $n$ copies of a value, or insert a range $[f, l)$ — all at a position given by an iterator. <strong><code>erase</code></strong> removes a single element at an iterator, or a whole range $[f, l)$.</p>
+    <p>The crucial subtlety: <strong>both <code>insert</code> and <code>erase</code> invalidate the iterator you passed in</strong>. After the call you must use the iterator they <em>return</em>, which points to a valid position in the (possibly relocated) vector. Forgetting this is one of the most common STL bugs.</p>
+
+    <div class="callout co-red">
+      <span class="co-title">The invalidation trap</span>
+      <p><code>it = v.insert(it+1, -55);</code> and <code>it = v.erase(it);</code> — note the reassignment. The old <code>it</code> is dead after the call; reuse it without reassigning and you have undefined behaviour, especially inside a loop.</p>
+    </div>
+
+    <div class="code-block">
+      <div class="code-label">the full method list</div>
+      <pre><code>assign(iterator f, iterator l)
+assign(n, value)
+back(), front(), begin(), end(), rbegin(), rend()
+erase(iterator it)
+erase(iterator f, iterator l)
+insert(iterator it, value)
+insert(iterator it, n, value)
+insert(iterator it, iterator f, iterator l)</code></pre>
+    </div>
+  </section>
+
+  <!-- ===================== SECTION 7 ===================== -->
+  <section class="lec" id="worked-insert-erase">
+    <div class="sec-head">
+      <div class="sec-num">7</div>
+      <h2 class="sec-title">Worked example — insert after, then erase</h2>
+    </div>
+    <p>This is the central example of the lecture. Build a vector of $n$ random integers in the range $[-15, 15]$, print it, then <strong>insert <code>-55</code> after every negative value</strong>, and finally <strong>erase all negative values except the <code>-55</code>s</strong> we just inserted.</p>
+    <p>Notice how the insert loop reassigns <code>it</code> to the iterator returned by <code>insert</code>, then relies on that fresh value in the <code>for</code> statement. The same discipline applies in the erase loop. This is the invalidation rule from the previous section, applied for real.</p>
+
+    <div class="callout co-blue">
+      <span class="co-title">Random range trick</span>
+      <p><code>rand() % 31 - 15</code> yields a value in $[-15, 15]$: <code>rand()%31</code> gives <code>0..30</code>, then subtracting 15 shifts it down.</p>
+    </div>
+
+    <div class="code-block">
+      <div class="code-label">Example 1 — generate, insert, erase</div>
+      <pre><code>#include &lt;iostream&gt;
+#include &lt;iomanip&gt;
+#include &lt;vector&gt;
+using namespace std;
+
+int main() {
+    vector&lt;int&gt; v;
+    int n;
+    cout &lt;&lt; "Enter elements count: ";
+    cin &gt;&gt; n;
+    for (int i = 0; i &lt; n; i++)
+        v.push_back(rand()%31 - 15);   // random in [-15,15]
+
+    vector&lt;int&gt;::iterator it;
+    cout &lt;&lt; endl &lt;&lt; "Generated vector: " &lt;&lt; endl;
+    for (it = v.begin(); it != v.end(); it++)
+        cout &lt;&lt; setw(4) &lt;&lt; *it;
+
+    // insert -55 after each negative value
+    for (it = v.begin(); it != v.end(); it++)
+        if (*it &lt; 0)
+            it = v.insert(it+1, -55);  // it invalidated -> reassign
+
+    cout &lt;&lt; endl &lt;&lt; "---After insert---" &lt;&lt; endl;
+    for (it = v.begin(); it != v.end(); it++)
+        cout &lt;&lt; setw(4) &lt;&lt; *it;
+
+    // erase all negatives except -55
+    for (it = v.begin(); it != v.end(); it++)
+        if (*it &lt; 0 &amp;&amp; *it != -55)
+            it = v.erase(it);          // it invalidated -> reassign
+
+    cout &lt;&lt; endl &lt;&lt; "---After erase---" &lt;&lt; endl;
+    for (it = v.begin(); it != v.end(); it++)
+        cout &lt;&lt; setw(4) &lt;&lt; *it;
+
+    cout &lt;&lt; endl &lt;&lt; endl;
+    return 0;
+}</code></pre>
+    </div>
+
+    <div class="voice">Read the reassignments carefully — <code>it = v.insert(...)</code> and <code>it = v.erase(...)</code> are the whole point of the example.</div>
+
+    <p class="widget-lead">
+      <span class="wtag">Interactive · the invalidation trap in motion</span>
+      Run the lecture's central example one pass at a time: first we drop a <code>-55</code> after every negative, then we erase the plain negatives. Each insert and erase flashes the old iterator dead and snaps it to the iterator the call returns — exactly the <code>it = v.insert(...)</code> reassignment from the code.
+    </p>
+    <div class="widget-mount"><div id="insert-erase-invalidation-animator"></div></div>
+  </section>
+
+  <!-- ===================== SECTION 8 ===================== -->
+  <section class="lec" id="algorithms">
+    <div class="sec-head">
+      <div class="sec-num">8</div>
+      <h2 class="sec-title">Algorithms</h2>
+    </div>
+    <p>The <code>&lt;algorithm&gt;</code> header supplies generic functions that operate on ranges defined by a pair of iterators. They are grouped by purpose:</p>
+    <ul>
+      <li><strong>non-modifying</strong> — search, count, etc.</li>
+      <li><strong>modifying</strong> — copy, swap, replace, fill, generation, shuffle, remove, etc.</li>
+      <li><strong>sorting</strong></li>
+      <li><strong>partitioning / merge</strong></li>
+      <li><strong>max / min operations</strong></li>
+    </ul>
+    <p>Because they work through iterators, the same algorithm runs on any compatible container.</p>
+
+    <div class="callout co-teal">
+      <span class="co-title">The iterator-pair pattern</span>
+      <p>Almost every algorithm takes <code>(first, last)</code> — a half-open range $[\text{first}, \text{last})$. Pass <code>v.begin(), v.end()</code> to cover the whole container.</p>
+    </div>
+
+    <div class="code-block">
+      <div class="code-label">common algorithm signatures</div>
+      <pre><code>sort    (iterator first, iterator last, predicate)
+find    (iterator first, iterator last, value)
+copy    (iterator first, iterator last, iterator res)
+unique  (iterator first, iterator last)
+count   (iterator first, iterator last, value)
+count_if(iterator first, iterator last, predicate)
+remove  (iterator first, iterator last, value)
+for_each(iterator first, iterator last, function)</code></pre>
+    </div>
+  </section>
+
+  <!-- ===================== SECTION 9 ===================== -->
+  <section class="lec" id="predicates">
+    <div class="sec-head">
+      <div class="sec-num">9</div>
+      <h2 class="sec-title">Predicates and remove_if</h2>
+    </div>
+    <p>A <strong>predicate</strong> is a <code>bool</code>-returning function you hand to an algorithm so it can make a yes/no decision about each element. <code>count_if</code>, <code>remove_if</code> and <code>sort</code> all take predicates.</p>
+    <p>A key gotcha lives in <code>remove_if</code>: <strong>it cannot change the container's size</strong>. It shuffles the kept elements to the front and returns an iterator to the new logical end — but the leftover elements still sit in the tail. To actually shrink the vector you must follow up with <code>erase(new_end, v.end())</code>. This is the famous <strong>erase–remove idiom</strong>.</p>
+
+    <div class="callout co-amber">
+      <span class="co-title">Erase–remove idiom</span>
+      <p><code>v.erase(remove_if(v.begin(), v.end(), pred), v.end());</code> — remove_if returns the new end, erase trims the stale tail. Use it whenever you want a real size change.</p>
+    </div>
+
+    <div class="code-block">
+      <div class="code-label">predicate shape</div>
+      <pre><code>bool check(int val) {
+    if (val &lt; 0 &amp;&amp; val != -55)
+        return true;
+    else
+        return false;
+}</code></pre>
+    </div>
+
+    <div class="code-block">
+      <div class="code-label">remove_if then erase</div>
+      <pre><code>#include &lt;algorithm&gt;
+// ...
+vector&lt;int&gt;::iterator new_end;
+new_end = remove_if(v.begin(), v.end(), check);
+// new_end -> one past the last surviving element
+v.erase(new_end, v.end());  // remove_if can't resize; erase does</code></pre>
+    </div>
+
+    <div class="voice"><code>remove_if</code> doesn't really remove — it just moves survivors forward and tells you where they stop. The <code>erase</code> afterwards is what makes the deletion real.</div>
+
+    <p class="widget-lead">
+      <span class="wtag">Interactive · self-check</span>
+      Four questions to test the traps that bite people in real STL code: where <code>end()</code> points, why <code>insert</code> forces a reassignment, what <code>remove_if</code> really does, and how <code>[]</code> differs from <code>at()</code>. Answer each, then read why.
+    </p>
+    <div class="widget-mount"><div id="stl-selfcheck-mcq"></div></div>
+  </section>
+
+  <div class="dim-rule">practice</div>
+
+  <!-- ===================== HOMEWORK ===================== -->
+  <section class="homework" id="homework">
+    <h2>Practice — try these on your own</h2>
+    <p class="hw-sub">Small activities to test your grip on today's ideas. Try each one first, then reveal the worked solution to compare.</p>
+
+    <!-- HW 1 -->
+    <div class="hw-item">
+      <h3>1 · Five vector constructors</h3>
+      <div class="hw-body">
+        <p>Without running a compiler, write down the contents (or describe the state) of each of these five vectors:</p>
+        <div class="code-block">
+          <div class="code-label">cpp</div>
+          <pre><code>vector&lt;int&gt; a;
+vector&lt;int&gt; b(10);
+vector&lt;int&gt; c(10, 20);
+vector&lt;int&gt; d(c);
+vector&lt;int&gt; e(d.begin(), d.end());</code></pre>
+        </div>
+        <p>For each one, state how many elements it holds and what their values are.</p>
+      </div>
+      <div class="hw-selfcheck">
+        <span class="hw-selfcheck-label">Self-check after you've tried</span>
+        <ul>
+          <li>You should have exactly five answers</li>
+          <li><code>a</code> is empty (size 0)</li>
+          <li><code>b</code> and <code>c</code> both have size 10</li>
+          <li><code>d</code> and <code>e</code> should match <code>c</code> element-for-element</li>
+        </ul>
+      </div>
+      <details class="hw-solution">
+        <summary>Show worked solution</summary>
+        <div class="hw-solution-body">
+          <ul>
+            <li><strong><code>a</code></strong> — default constructor: an <strong>empty</strong> vector, <code>size() == 0</code>.</li>
+            <li><strong><code>b(10)</code></strong> — sized constructor: <strong>10 elements</strong>, each value-initialised to <code>0</code> → <code>{0,0,0,0,0,0,0,0,0,0}</code>.</li>
+            <li><strong><code>c(10, 20)</code></strong> — sized-and-filled: <strong>10 elements, all <code>20</code></strong> → <code>{20,20,20,20,20,20,20,20,20,20}</code>.</li>
+            <li><strong><code>d(c)</code></strong> — copy constructor: an exact <strong>copy of <code>c</code></strong>, so 10 elements all <code>20</code>.</li>
+            <li><strong><code>e(d.begin(), d.end())</code></strong> — range constructor: copies the whole range of <code>d</code>, again <strong>10 elements all <code>20</code></strong>.</li>
+          </ul>
+          <p>So <code>c</code>, <code>d</code> and <code>e</code> are identical in contents; <code>b</code> is ten zeros; <code>a</code> is empty.</p>
+        </div>
+      </details>
+    </div>
+
+    <!-- HW 2 -->
+    <div class="hw-item">
+      <h3>2 · Random number in a range</h3>
+      <div class="hw-body">
+        <p>The example fills a vector with values in $[-15, 15]$ using <code>rand() % 31 - 15</code>. Derive that expression yourself: starting from <code>rand()</code> (which returns a non-negative integer), write the formula that produces a uniform integer in the <strong>inclusive</strong> range $[-15, 15]$, and explain each piece. Then generalise: give a formula for a value in $[lo, hi]$.</p>
+      </div>
+      <div class="hw-selfcheck">
+        <span class="hw-selfcheck-label">Self-check after you've tried</span>
+        <ul>
+          <li>Your range should contain exactly 31 distinct integers</li>
+          <li>the modulus should be 31, not 30</li>
+          <li>at the extreme <code>rand()%31 == 0</code> you must get $-15$, and at <code>30</code> you must get $+15$</li>
+        </ul>
+      </div>
+      <details class="hw-solution">
+        <summary>Show worked solution</summary>
+        <div class="hw-solution-body">
+          <p>The inclusive range $[-15, 15]$ contains $15 - (-15) + 1 = 31$ integers.</p>
+          <ol>
+            <li><code>rand() % 31</code> reduces any <code>rand()</code> value to the range $\{0, 1, \dots, 30\}$ — that's <strong>31</strong> possible values, matching the count above.</li>
+            <li>Subtracting 15 <strong>shifts</strong> that window down: $0 \to -15$ and $30 \to +15$.</li>
+          </ol>
+          <p>So $\texttt{rand()}\%31 - 15$ produces every integer in $[-15, 15]$.</p>
+          <p><strong>General form</strong> for $[lo, hi]$:</p>
+          $$\texttt{rand()} \;\%\; (hi - lo + 1) \;+\; lo$$
+          <p>The span $hi - lo + 1$ is the number of distinct values, and adding $lo$ slides the window to start at the lower bound. (Note this is the textbook idiom; it has a mild low-value bias, which is acceptable for a teaching exercise.)</p>
+        </div>
+      </details>
+    </div>
+
+    <!-- HW 3 -->
+    <div class="hw-item">
+      <h3>3 · Hand-trace insert and erase</h3>
+      <div class="hw-body">
+        <p>Take the vector <code>{3, -4, 7, -2, 5}</code>. By hand, apply the two transformations from Example 1 in order:</p>
+        <ol>
+          <li>Insert <code>-55</code> immediately <strong>after</strong> every negative value.</li>
+          <li>Erase every negative value <strong>except</strong> <code>-55</code>.</li>
+        </ol>
+        <p>Write out the vector after step 1 and after step 2.</p>
+      </div>
+      <div class="hw-selfcheck">
+        <span class="hw-selfcheck-label">Self-check after you've tried</span>
+        <ul>
+          <li>After step 1 the vector should be longer by exactly one entry per original negative (two negatives → +2 elements)</li>
+          <li>after step 2 no plain negative (<code>-4</code>, <code>-2</code>) should remain</li>
+          <li>every <code>-55</code> you inserted must survive</li>
+        </ul>
+      </div>
+      <details class="hw-solution">
+        <summary>Show worked solution</summary>
+        <div class="hw-solution-body">
+          <p><strong>Start:</strong> <code>{3, -4, 7, -2, 5}</code> — negatives are <code>-4</code> and <code>-2</code>.</p>
+          <p><strong>Step 1 — insert <code>-55</code> after each negative:</strong></p>
+          <ul>
+            <li><code>-4</code> is negative → insert <code>-55</code> right after it.</li>
+            <li><code>-2</code> is negative → insert <code>-55</code> right after it.</li>
+          </ul>
+          <p>Result: <code>{3, -4, -55, 7, -2, -55, 5}</code> (grew from 5 to 7 elements).</p>
+          <p><strong>Step 2 — erase negatives that are not <code>-55</code>:</strong></p>
+          <ul>
+            <li><code>-4</code> is negative and <code>!= -55</code> → <strong>erase</strong>.</li>
+            <li><code>-55</code> is negative but <strong><code>== -55</code></strong> → keep.</li>
+            <li><code>-2</code> is negative and <code>!= -55</code> → <strong>erase</strong>.</li>
+            <li>The other <code>-55</code> → keep.</li>
+          </ul>
+          <p>Result: <strong><code>{3, -55, 7, -55, 5}</code></strong>.</p>
+          <p>The two original negatives are gone; the two <code>-55</code> markers remain in their inserted positions.</p>
+        </div>
+      </details>
+    </div>
+
+    <!-- HW 4 -->
+    <div class="hw-item">
+      <h3>4 · Why remove_if needs erase</h3>
+      <div class="hw-body">
+        <p>A student writes <code>remove_if(v.begin(), v.end(), check);</code> to delete elements and is surprised that <code>v.size()</code> is unchanged. Explain in your own words <strong>why</strong> the size didn't change, what <code>remove_if</code> actually does to the vector, and how to make the deletion real. Use a concrete small vector to illustrate.</p>
+      </div>
+      <div class="hw-selfcheck">
+        <span class="hw-selfcheck-label">Self-check after you've tried</span>
+        <ul>
+          <li>Your explanation should mention that <code>remove_if</code> cannot resize the container</li>
+          <li>it returns an iterator to the new logical end</li>
+          <li>the real deletion needs a follow-up <code>erase(new_end, v.end())</code></li>
+        </ul>
+      </div>
+      <details class="hw-solution">
+        <summary>Show worked solution</summary>
+        <div class="hw-solution-body">
+          <p><code>remove_if</code> (like all STL algorithms) works purely through <strong>iterators</strong> — it has no handle on the container itself, so <strong>it cannot change the container's size</strong>. What it actually does is <em>compact</em>: it copies the elements that should be <strong>kept</strong> toward the front of the range, preserving their order, and returns an iterator (<code>new_end</code>) pointing <strong>one past the last kept element</strong>. Whatever was beyond that point is left in an unspecified state.</p>
+          <p><strong>Concrete example.</strong> Take <code>v = {3, -4, 7, -2, 5}</code> with a predicate that flags negatives. <code>remove_if</code> moves the survivors <code>3, 7, 5</code> to the front:</p>
+          <pre><code>before:  3  -4   7  -2   5      size 5
+after:   3   7   5   ?   ?      size still 5
+                     ^ new_end points here</code></pre>
+          <p>The last two slots still hold leftover junk, and <code>size()</code> is still 5.</p>
+          <p><strong>The fix — the erase–remove idiom:</strong> capture <code>new_end</code> and erase the stale tail:</p>
+          <pre><code>auto new_end = remove_if(v.begin(), v.end(), check);
+v.erase(new_end, v.end());   // now size really shrinks to 3</code></pre>
+          <p>Now <code>v == {3, 7, 5}</code> with <code>size() == 3</code>. The <code>erase</code> is the step that performs the <em>real</em> removal/resize that <code>remove_if</code> alone cannot.</p>
+        </div>
+      </details>
+    </div>
+  </section>
+
+  <!-- ===================== CONCEPTS ===================== -->
+  <div class="concepts">
+    <h2>Concept inventory</h2>
+    <div class="concept-tags">
+      <span>STL (Standard Template Library)</span>
+      <span>container</span>
+      <span>sequence vs associative containers</span>
+      <span>vector (dynamic array)</span>
+      <span>push_back / pop_back</span>
+      <span>operator[] vs at()</span>
+      <span>iterator</span>
+      <span>begin() / end()</span>
+      <span>iterator arithmetic</span>
+      <span>iterator invalidation</span>
+      <span>insert / erase</span>
+      <span>predicate</span>
+      <span>sort / find / count_if / remove</span>
+      <span>remove_if and the erase–remove idiom</span>
+    </div>
+  </div>
+
+  <footer class="sheet-foot">
+    <span>LEC-06 · The C++ Standard Template Library</span>
+    <span>Programming 2 · O. Dribeneca, TSI</span>
+    <span>Sheet 1 of 1 · Rev. A</span>
+  </footer>
+
+</div>
+<!-- widget: iterator-walk-animator (animator) -->
+<script type="text/babel">
+(function () {
+  try {
+    const { useState, useEffect, useRef, useMemo } = React;
+
+    const BOX_W = 58, GAP = 12, PAD = 22, BOX_H = 56, TOP = 78;
+
+    function parseVec(str) {
+      const inner = String(str).replace(/[{}]/g, '').trim();
+      if (inner === '') return [];
+      return inner.split(',')
+        .map(s => s.trim())
+        .filter(s => s.length > 0)
+        .map(s => parseInt(s, 10))
+        .filter(v => !Number.isNaN(v));
+    }
+
+    function buildSteps(arr) {
+      const steps = [];
+      const n = arr.length;
+      const out = [];
+      steps.push({ cursor: 0, phase: 'begin', out: out.slice(), line: 'init' });
+      for (let i = 0; i < n; i++) {
+        steps.push({ cursor: i, phase: 'compare', cmp: true, idx: i, out: out.slice(), line: 'cond' });
+        out.push(arr[i]);
+        steps.push({ cursor: i, phase: 'deref', idx: i, val: arr[i], out: out.slice(), line: 'body' });
+        steps.push({ cursor: i + 1, phase: 'increment', from: i, idx: i + 1, out: out.slice(), line: 'incr' });
+      }
+      steps.push({ cursor: n, phase: 'compare', cmp: false, idx: n, out: out.slice(), line: 'cond' });
+      steps.push({ cursor: n, phase: 'stop', idx: n, out: out.slice(), line: 'done' });
+      return steps;
+    }
+
+    const PRESETS = ['{3, -4, 7, -2, 5}', '{10, 20, 30}', '{}'];
+
+    function Widget() {
+      const mount = document.getElementById('iterator-walk-animator');
+      if (!mount) return null;
+
+      const [text, setText] = useState('{3, -4, 7, -2, 5}');
+      const [arr, setArr] = useState(() => parseVec('{3, -4, 7, -2, 5}'));
+      const [steps, setSteps] = useState(() => buildSteps(parseVec('{3, -4, 7, -2, 5}')));
+      const [si, setSi] = useState(0);
+      const [playing, setPlaying] = useState(false);
+      const [speed, setSpeed] = useState(900);
+      const timer = useRef(null);
+
+      const applyVec = (str) => {
+        const a = parseVec(str);
+        setArr(a);
+        setSteps(buildSteps(a));
+        setSi(0);
+        setPlaying(false);
+      };
+
+      useEffect(() => {
+        const el = mount.querySelector('.iwa-code');
+        if (el && window.renderMathInElement) {
+          try { window.renderMathInElement(el); } catch (e) {}
+        }
+      }, []);
+
+      useEffect(() => {
+        if (!playing) return;
+        timer.current = setInterval(() => {
+          setSi(prev => {
+            if (prev >= steps.length - 1) { setPlaying(false); return prev; }
+            return prev + 1;
+          });
+        }, speed);
+        return () => clearInterval(timer.current);
+      }, [playing, speed, steps]);
+
+      const step = steps[Math.min(si, steps.length - 1)];
+      const n = arr.length;
+      const endIdx = n;
+      const cursor = step.cursor;
+      const atEnd = cursor >= endIdx;
+      const svgW = PAD * 2 + (n + 1) * (BOX_W + GAP);
+      const svgH = 188;
+
+      const slotX = (i) => PAD + i * (BOX_W + GAP);
+
+      const phaseColor = {
+        begin: 'var(--ink-soft)', compare: 'var(--accent)',
+        deref: 'var(--good)', increment: 'var(--accent-2)', stop: 'var(--bad)'
+      }[step.phase];
+
+      let statusLabel = '', detail = '';
+      if (step.phase === 'begin') {
+        statusLabel = 'it = vec.begin()';
+        detail = n > 0 ? ('cursor points at index 0 → value ' + arr[0]) : 'empty vector: begin() == end()';
+      } else if (step.phase === 'compare') {
+        statusLabel = 'it != vec.end() ?';
+        detail = step.idx + ' != ' + endIdx + ' → ' + (step.cmp ? 'true · enter body' : 'false · stop loop');
+      } else if (step.phase === 'deref') {
+        statusLabel = '*it';
+        detail = 'dereference index ' + step.idx + ' → prints ' + step.val;
+      } else if (step.phase === 'increment') {
+        statusLabel = '++it';
+        detail = 'advance from index ' + step.from + ' to index ' + step.idx;
+      } else if (step.phase === 'stop') {
+        statusLabel = 'loop finished';
+        detail = 'cursor rests on the past-the-end slot — never dereferenced';
+      }
+
+      const codeLines = [
+        { key: 'init', txt: 'it = vec.begin();' },
+        { key: 'cond', txt: 'it != vec.end();' },
+        { key: 'body', txt: '    cout << *it;' },
+        { key: 'incr', txt: 'it++;' },
+      ];
+
+      const canStep = si < steps.length - 1;
+      const derefValue = (step.phase === 'deref') ? step.val : (atEnd ? '—' : (n > 0 ? arr[Math.min(cursor, n - 1)] : '—'));
+
+      return (
+        <div className="iwa-root">
+          <style>{`
+            .iwa-root{font-family:var(--font-body);color:var(--ink);background:var(--surface);
+              border:1px solid var(--border);border-radius:12px;padding:18px 18px 20px;max-height:760px;overflow:auto;}
+            .iwa-row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px;}
+            .iwa-root input[type=text]{font-family:var(--font-mono);font-size:14px;color:var(--ink);
+              background:var(--page-bg);border:1px solid var(--border);border-radius:8px;padding:8px 10px;min-width:210px;}
+            .iwa-btn{font-family:var(--font-display);letter-spacing:.04em;text-transform:uppercase;font-size:12px;
+              cursor:pointer;border:1px solid var(--accent);background:var(--accent);color:#fff;border-radius:8px;padding:8px 14px;transition:.15s;}
+            .iwa-btn:hover{background:var(--accent-2);border-color:var(--accent-2);}
+            .iwa-btn.ghost{background:transparent;color:var(--accent);}
+            .iwa-btn.ghost:hover{background:var(--page-bg);color:var(--accent-2);}
+            .iwa-btn:disabled{opacity:.4;cursor:not-allowed;}
+            .iwa-preset{font-family:var(--font-mono);font-size:12px;cursor:pointer;border:1px dashed var(--border);
+              background:var(--page-bg);color:var(--ink-soft);border-radius:7px;padding:6px 10px;transition:.15s;}
+            .iwa-preset:hover{border-color:var(--accent);color:var(--accent);}
+            .iwa-grid{display:grid;grid-template-columns:1fr;gap:16px;}
+            @media(min-width:720px){.iwa-grid{grid-template-columns:1.4fr 1fr;}}
+            .iwa-panel{background:var(--page-bg);border:1px solid var(--border);border-radius:10px;padding:14px;}
+            .iwa-svgwrap{overflow-x:auto;}
+            .iwa-status{font-family:var(--font-mono);font-size:13px;margin-top:6px;}
+            .iwa-statbig{font-family:var(--font-display);font-size:18px;letter-spacing:.02em;}
+            .iwa-code{font-family:var(--font-mono);font-size:13px;line-height:1.9;white-space:pre;}
+            .iwa-cl{display:block;padding:1px 8px;border-radius:5px;border-left:3px solid transparent;}
+            .iwa-cl.active{background:rgba(28,95,168,.12);border-left-color:var(--accent);color:var(--accent-2);font-weight:600;}
+            .iwa-out{font-family:var(--font-mono);font-size:14px;background:var(--ink);color:#dce8f5;
+              border-radius:8px;padding:10px 12px;min-height:38px;letter-spacing:.06em;}
+            .iwa-readline{display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:12px;
+              padding:5px 0;border-bottom:1px dotted var(--border);}
+            .iwa-readline span:last-child{font-weight:600;}
+            .iwa-lbl{font-family:var(--font-display);text-transform:uppercase;letter-spacing:.06em;font-size:11px;color:var(--ink-soft);margin:0 0 8px;}
+            .iwa-cursor{transition:transform .45s cubic-bezier(.4,0,.2,1);}
+            .iwa-slot{transition:fill .25s,stroke .25s;}
+            .widget-fail{font-family:var(--font-body);color:var(--bad);padding:20px;}
+          `}</style>
+
+          <div className="iwa-row">
+            <label className="iwa-lbl" style={{ margin: 0 }}>vector&lt;int&gt; vec =</label>
+            <input type="text" aria-label="vector literal" value={text}
+              onChange={e => setText(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') applyVec(text); }} />
+            <button className="iwa-btn ghost" onClick={() => applyVec(text)} aria-label="load vector">Load</button>
+            {PRESETS.map(p => (
+              <button key={p} className="iwa-preset" onClick={() => { setText(p); applyVec(p); }}>{p}</button>
+            ))}
+          </div>
+
+          <div className="iwa-row">
+            <button className="iwa-btn" onClick={() => { if (si >= steps.length - 1) setSi(0); setPlaying(true); }}
+              disabled={playing} aria-label="play">▶ Play</button>
+            <button className="iwa-btn" onClick={() => setPlaying(false)} disabled={!playing} aria-label="pause">⏸ Pause</button>
+            <button className="iwa-btn ghost" onClick={() => { setPlaying(false); setSi(p => Math.min(p + 1, steps.length - 1)); }}
+              disabled={!canStep} aria-label="step forward">Step ›</button>
+            <button className="iwa-btn ghost" onClick={() => { setPlaying(false); setSi(0); }} aria-label="reset">↺ Reset</button>
+            <label className="iwa-status" style={{ marginLeft: 'auto' }}>
+              speed&nbsp;
+              <input type="range" min="250" max="1600" step="50" value={1850 - speed}
+                onChange={e => setSpeed(1850 - parseInt(e.target.value, 10))}
+                aria-label="animation speed" />
+            </label>
+          </div>
+
+          <div className="iwa-svgwrap">
+            <svg width={svgW} height={svgH} viewBox={`0 0 ${svgW} ${svgH}`} role="img"
+              aria-label="iterator walking across a vector">
+              <defs>
+                <pattern id="iwa-hatch" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+                  <rect width="8" height="8" fill="var(--page-bg)" />
+                  <line x1="0" y1="0" x2="0" y2="8" stroke="var(--border)" strokeWidth="3" />
+                </pattern>
+                <marker id="iwa-arrow" markerWidth="9" markerHeight="9" refX="4.5" refY="8" orient="auto">
+                  <path d="M0,0 L9,0 L4.5,9 Z" fill={phaseColor} />
+                </marker>
+              </defs>
+
+              {/* index axis */}
+              {arr.map((v, i) => {
+                const x = slotX(i);
+                const active = (cursor === i && !atEnd);
+                const justRead = (step.phase === 'deref' && step.idx === i);
+                let fill = 'var(--surface)';
+                if (justRead) fill = 'rgba(31,122,77,.18)';
+                else if (active) fill = 'rgba(28,95,168,.12)';
+                return (
+                  <g key={i}>
+                    <rect className="iwa-slot" x={x} y={TOP} width={BOX_W} height={BOX_H} rx="7"
+                      fill={fill} stroke={active ? 'var(--accent)' : 'var(--border)'} strokeWidth={active ? 2.5 : 1.5} />
+                    <text x={x + BOX_W / 2} y={TOP + BOX_H / 2 + 6} textAnchor="middle"
+                      fontFamily="var(--font-mono)" fontSize="20" fontWeight="600"
+                      fill={v < 0 ? 'var(--bad)' : 'var(--ink)'}>{v}</text>
+                    <text x={x + BOX_W / 2} y={TOP + BOX_H + 18} textAnchor="middle"
+                      fontFamily="var(--font-mono)" fontSize="11" fill="var(--ink-soft)">[{i}]</text>
+                  </g>
+                );
+              })}
+
+              {/* past-the-end slot */}
+              <g>
+                <rect className="iwa-slot" x={slotX(endIdx)} y={TOP} width={BOX_W} height={BOX_H} rx="7"
+                  fill="url(#iwa-hatch)"
+                  stroke={atEnd ? 'var(--bad)' : 'var(--border)'} strokeWidth={atEnd ? 2.5 : 1.5}
+                  strokeDasharray="5 4" />
+                <text x={slotX(endIdx) + BOX_W / 2} y={TOP + BOX_H / 2 + 5} textAnchor="middle"
+                  fontFamily="var(--font-mono)" fontSize="13" fill="var(--ink-soft)">end()</text>
+                <text x={slotX(endIdx) + BOX_W / 2} y={TOP + BOX_H + 18} textAnchor="middle"
+                  fontFamily="var(--font-mono)" fontSize="11" fill="var(--ink-soft)">[{endIdx}]</text>
+              </g>
+
+              {/* cursor */}
+              <g className="iwa-cursor" style={{ transform: `translateX(${slotX(Math.min(cursor, endIdx)) + BOX_W / 2}px)` }}>
+                <rect x={-26} y={20} width={52} height={26} rx="13" fill={phaseColor} />
+                <text x={0} y={37} textAnchor="middle" fontFamily="var(--font-mono)" fontSize="14"
+                  fontWeight="700" fill="#fff">it</text>
+                <line x1={0} y1={46} x2={0} y2={TOP - 4} stroke={phaseColor} strokeWidth="2.5"
+                  markerEnd="url(#iwa-arrow)" />
+              </g>
+            </svg>
+          </div>
+
+          <div className="iwa-status" style={{ margin: '4px 2px 16px' }}>
+            <span className="iwa-statbig" style={{ color: phaseColor }}>{statusLabel}</span>
+            <span style={{ color: 'var(--ink-soft)', marginLeft: 10 }}>{detail}</span>
+          </div>
+
+          <div className="iwa-grid">
+            <div className="iwa-panel">
+              <p className="iwa-lbl">the loop · active line highlighted</p>
+              <div className="iwa-code">
+                <span className="iwa-cl">vector&lt;int&gt;::iterator it;</span>
+                <span style={{ display: 'block', padding: '1px 8px' }}>
+                  <span>for (</span>
+                  <span className={'iwa-cl' + (step.line === 'init' ? ' active' : '')} style={{ display: 'inline', borderLeft: 'none' }}>it = vec.begin();</span>
+                  <span> </span>
+                  <span className={'iwa-cl' + (step.line === 'cond' ? ' active' : '')} style={{ display: 'inline', borderLeft: 'none' }}>it != vec.end();</span>
+                  <span> </span>
+                  <span className={'iwa-cl' + (step.line === 'incr' ? ' active' : '')} style={{ display: 'inline', borderLeft: 'none' }}>it++</span>
+                  <span>)</span>
+                </span>
+                <span className={'iwa-cl' + (step.line === 'body' ? ' active' : '')}>    cout &lt;&lt; *it &lt;&lt; '\n';</span>
+              </div>
+              <p className="iwa-lbl" style={{ margin: '16px 0 6px' }}>cout output</p>
+              <div className="iwa-out">{step.out.length ? step.out.join('\n') : (step.phase === 'stop' && n === 0 ? '(body never ran — empty vector)' : '\u00a0')}</div>
+            </div>
+
+            <div className="iwa-panel">
+              <p className="iwa-lbl">live readout</p>
+              <div className="iwa-readline"><span>cursor index</span><span style={{ color: phaseColor }}>{Math.min(cursor, endIdx)}</span></div>
+              <div className="iwa-readline"><span>end() index</span><span>{endIdx}</span></div>
+              <div className="iwa-readline">
+                <span>it != end()</span>
+                <span style={{ color: atEnd ? 'var(--bad)' : 'var(--good)' }}>{atEnd ? 'false' : 'true'}</span>
+              </div>
+              <div className="iwa-readline">
+                <span>*it</span>
+                <span style={{ color: atEnd ? 'var(--bad)' : 'var(--good)' }}>{atEnd ? 'invalid ⚠' : derefValue}</span>
+              </div>
+              <div className="iwa-readline" style={{ borderBottom: 'none' }}>
+                <span>step</span><span>{si + 1} / {steps.length}</span>
+              </div>
+              {atEnd && (
+                <div className="iwa-status" style={{ marginTop: 10, color: 'var(--bad)' }}>
+                  it sits on the past-the-end slot. The condition it != end() is now false, so the loop stops — *it here is never evaluated.
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('iterator-walk-animator')).render(<Widget />);
+  } catch (e) {
+    const mount = document.getElementById('iterator-walk-animator');
+    if (mount) mount.innerHTML = '<div class="widget-fail">Widget failed to load</div>';
+    console.error(e);
+  }
+})();
+</script>
+<!-- widget: insert-erase-invalidation-animator (animator) -->
+<script type="text/babel">
+(function () {
+  try {
+    const { useState, useEffect, useMemo, useRef } = React;
+
+    function parseVec(str) {
+      return str.replace(/[{}]/g, ' ')
+        .split(/[,\s]+/).map(s => s.trim()).filter(Boolean)
+        .map(Number).filter(n => Number.isFinite(n)).map(n => Math.trunc(n));
+    }
+    function randVec(n) {
+      const out = [];
+      for (let i = 0; i < n; i++) out.push(Math.floor(Math.random() * 31) - 15);
+      return out;
+    }
+
+    function buildSteps(initial) {
+      const steps = [];
+      let v = initial.slice();
+      steps.push({ v: v.slice(), it: null, phase: 'generate',
+        msg: 'Generated vector of ints in [-15, 15]. Press Play to insert -55 after each negative.' });
+
+      // ---- insert pass ----
+      let it = 0;
+      steps.push({ v: v.slice(), it, phase: 'insert', msg: 'it = v.begin()' });
+      while (it < v.length) {
+        if (v[it] < 0) {
+          steps.push({ v: v.slice(), it, phase: 'insert', examining: true,
+            msg: `*it = ${v[it]}  <0  →  insert -55 after it` });
+          v.splice(it + 1, 0, -55);
+          const oldIt = it;
+          it = it + 1; // returned iterator points at inserted -55
+          steps.push({ v: v.slice(), it, phase: 'insert', invalid: oldIt, valid: it,
+            msg: 'it = v.insert(it+1, -55)  —  old it (red) is dead; keep the returned it (green)' });
+          it = it + 1;
+          steps.push({ v: v.slice(), it: Math.min(it, v.length), phase: 'insert',
+            atEnd: it >= v.length, msg: 'it++  (advances past the inserted -55)' });
+        } else {
+          steps.push({ v: v.slice(), it, phase: 'insert', examining: true,
+            msg: `*it = ${v[it]}  ≥0  →  no insert, skip` });
+          it = it + 1;
+          steps.push({ v: v.slice(), it: Math.min(it, v.length), phase: 'insert',
+            atEnd: it >= v.length, msg: 'it++' });
+        }
+      }
+      steps.push({ v: v.slice(), it: v.length, phase: 'insert', atEnd: true,
+        msg: 'it == v.end()  →  insert pass complete' });
+
+      // ---- erase pass ----
+      it = 0;
+      steps.push({ v: v.slice(), it, phase: 'erase',
+        msg: 'it = v.begin()  —  now erase negatives, keeping every -55' });
+      while (it < v.length) {
+        if (v[it] < 0 && v[it] !== -55) {
+          steps.push({ v: v.slice(), it, phase: 'erase', examining: true,
+            msg: `*it = ${v[it]}  <0 and ≠ -55  →  erase` });
+          const oldIt = it;
+          v.splice(it, 1); // erase returns iterator to following element (same index)
+          steps.push({ v: v.slice(), it, phase: 'erase', invalid: oldIt,
+            valid: it < v.length ? it : null,
+            msg: 'it = v.erase(it)  —  old it (red) is dead; the returned it (green) is the next element' });
+          it = it + 1;
+          steps.push({ v: v.slice(), it: Math.min(it, v.length), phase: 'erase',
+            atEnd: it >= v.length, msg: 'it++' });
+        } else {
+          const keep55 = v[it] === -55;
+          steps.push({ v: v.slice(), it, phase: 'erase', examining: true,
+            msg: `*it = ${v[it]}  ${keep55 ? '(== -55 → keep the marker)' : '≥0 → keep'}  →  skip` });
+          it = it + 1;
+          steps.push({ v: v.slice(), it: Math.min(it, v.length), phase: 'erase',
+            atEnd: it >= v.length, msg: 'it++' });
+        }
+      }
+      steps.push({ v: v.slice(), it: v.length, phase: 'final', done: true,
+        msg: 'Final vector — negatives gone, every inserted -55 survived. Invalidation handled.' });
+      return steps;
+    }
+
+    const PRESETS = [
+      { label: '{3, -4, 7, -2, 5}', v: [3, -4, 7, -2, 5] },
+      { label: '{-1, -2, -3}', v: [-1, -2, -3] },
+      { label: '{4, 8, 12}  (no negatives → no change)', v: [4, 8, 12] },
+    ];
+    const STAGES = [
+      { key: 'generate', label: '1 · vector' },
+      { key: 'insert', label: '2 · insert -55' },
+      { key: 'erase', label: '3 · erase negs' },
+      { key: 'final', label: '4 · final' },
+    ];
+    const CODE = {
+      insert: [
+        'for (it = v.begin(); it != v.end(); it++)',
+        '    if (*it < 0)',
+        '        it = v.insert(it+1, -55);',
+      ],
+      erase: [
+        'for (it = v.begin(); it != v.end(); it++)',
+        '    if (*it < 0 && *it != -55)',
+        '        it = v.erase(it);',
+      ],
+      generate: [
+        'for (int i = 0; i < n; i++)',
+        '    v.push_back(rand()%31 - 15);',
+      ],
+      final: [
+        '// done — both passes reassigned it',
+        '// after every insert / erase call',
+      ],
+    };
+
+    function Widget() {
+      const mount = document.getElementById('insert-erase-invalidation-animator');
+      if (!mount) return null;
+
+      const [src, setSrc] = useState([3, -4, 7, -2, 5]);
+      const [custom, setCustom] = useState('');
+      const [steps, setSteps] = useState(() => buildSteps([3, -4, 7, -2, 5]));
+      const [i, setI] = useState(0);
+      const [playing, setPlaying] = useState(false);
+      const [speed, setSpeed] = useState(900);
+
+      useEffect(() => {
+        const s = document.createElement('style');
+        s.textContent = `
+          #insert-erase-invalidation-animator .iea { max-height: 760px; overflow:auto;
+            font-family: var(--font-body); color: var(--ink); }
+          #insert-erase-invalidation-animator .iea-stages { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px; }
+          #insert-erase-invalidation-animator .iea-stage { flex:1 1 auto; text-align:center;
+            font-family: var(--font-display); letter-spacing:.04em; text-transform:uppercase;
+            font-size:12px; padding:7px 6px; border:1.5px solid var(--border); border-radius:8px;
+            background: var(--surface); color: var(--ink-soft); transition:.25s; }
+          #insert-erase-invalidation-animator .iea-stage.on { background: var(--accent);
+            color:#fff; border-color: var(--accent); box-shadow:0 2px 8px rgba(28,95,168,.25); }
+          #insert-erase-invalidation-animator .iea-svgwrap { background: var(--page-bg);
+            border:1.5px solid var(--border); border-radius:10px; padding:6px; overflow-x:auto; }
+          #insert-erase-invalidation-animator .iea-msg { margin:10px 0; padding:9px 12px;
+            border-left:4px solid var(--accent); background: rgba(28,95,168,.07);
+            border-radius:0 8px 8px 0; font-size:13.5px; min-height:20px; line-height:1.45; }
+          #insert-erase-invalidation-animator .iea-code { background: var(--ink); color:#dfe8f2;
+            border-radius:8px; padding:10px 12px; font-family:var(--font-mono); font-size:12.5px;
+            line-height:1.55; margin:10px 0; white-space:pre; overflow-x:auto; }
+          #insert-erase-invalidation-animator .iea-code .hot { background: rgba(255,210,80,.22);
+            color:#ffe39a; border-radius:3px; display:inline-block; width:100%; }
+          #insert-erase-invalidation-animator .iea-ctrls { display:flex; gap:8px; flex-wrap:wrap;
+            align-items:center; margin-top:8px; }
+          #insert-erase-invalidation-animator .iea-btn { font-family:var(--font-display);
+            letter-spacing:.04em; text-transform:uppercase; font-size:12.5px; cursor:pointer;
+            padding:8px 14px; border-radius:8px; border:1.5px solid var(--accent);
+            background: var(--surface); color: var(--accent); transition:.18s; }
+          #insert-erase-invalidation-animator .iea-btn:hover:not(:disabled){ background:var(--accent); color:#fff; }
+          #insert-erase-invalidation-animator .iea-btn.primary{ background:var(--accent); color:#fff; }
+          #insert-erase-invalidation-animator .iea-btn.primary:hover{ background:var(--accent-2); }
+          #insert-erase-invalidation-animator .iea-btn:disabled{ opacity:.4; cursor:not-allowed; }
+          #insert-erase-invalidation-animator .iea-row { display:flex; gap:8px; flex-wrap:wrap;
+            align-items:center; margin-top:12px; padding-top:12px; border-top:1px dashed var(--border); }
+          #insert-erase-invalidation-animator .iea-row label { font-size:12px; color:var(--ink-soft); }
+          #insert-erase-invalidation-animator select, 
+          #insert-erase-invalidation-animator input[type=text] {
+            font-family:var(--font-mono); font-size:13px; padding:7px 9px; border-radius:7px;
+            border:1.5px solid var(--border); background:var(--surface); color:var(--ink); }
+          #insert-erase-invalidation-animator input[type=range]{ accent-color:var(--accent); }
+          #insert-erase-invalidation-animator .widget-fail{ color:var(--bad); padding:12px; }
+        `;
+        mount.appendChild(s);
+        return () => { try { mount.removeChild(s); } catch (e) {} };
+      }, []);
+
+      // animation loop
+      useEffect(() => {
+        if (!playing) return;
+        if (i >= steps.length - 1) { setPlaying(false); return; }
+        const id = setTimeout(() => setI(x => Math.min(x + 1, steps.length - 1)), speed);
+        return () => clearTimeout(id);
+      }, [playing, i, steps, speed]);
+
+      const load = (vec) => {
+        setSrc(vec); setSteps(buildSteps(vec)); setI(0); setPlaying(false);
+      };
+
+      const maxLen = useMemo(() => Math.max(1, ...steps.map(s => s.v.length)), [steps]);
+      const s = steps[i];
+
+      const cellW = 50, startX = 26, boxY = 46, boxH = 48;
+      const svgW = startX * 2 + (maxLen + 1) * cellW;
+      const svgH = 158;
+      const cx = (idx) => startX + idx * cellW + cellW / 2;
+
+      function cellStyle(val) {
+        if (val === -55) return { fill: 'rgba(31,122,77,0.16)', stroke: 'var(--good)', text: 'var(--good)' };
+        if (val < 0) return { fill: 'rgba(179,38,30,0.13)', stroke: 'var(--bad)', text: 'var(--bad)' };
+        return { fill: 'var(--surface)', stroke: 'var(--accent)', text: 'var(--ink)' };
+      }
+
+      // pointers to draw
+      const pointers = [];
+      if (s.invalid != null || s.valid != null) {
+        const same = s.invalid === s.valid;
+        if (s.invalid != null)
+          pointers.push({ x: cx(s.invalid) + (same ? -10 : 0), color: 'var(--bad)', label: 'it ✗ dead' });
+        if (s.valid != null)
+          pointers.push({ x: cx(s.valid) + (same ? 10 : 0), color: 'var(--good)', label: 'returned it ✓' });
+      } else if (s.it != null) {
+        const atEnd = s.atEnd || s.it >= s.v.length;
+        pointers.push({ x: cx(Math.min(s.it, s.v.length)), color: 'var(--accent)', label: atEnd ? 'it == end()' : 'it' });
+      }
+
+      // code echo
+      const codeLines = CODE[s.phase] || CODE.final;
+      let activeLine = 0;
+      if (s.examining) activeLine = 1;
+      else if (s.invalid != null || s.valid != null) activeLine = 2;
+      else activeLine = 0;
+      if (s.phase === 'generate') activeLine = s.it == null ? -1 : 0;
+      if (s.phase === 'final') activeLine = -1;
+
+      const atStart = i === 0;
+      const atEndStep = i >= steps.length - 1;
+
+      return (
+        <div className="iea">
+          <div className="iea-stages">
+            {STAGES.map(st => (
+              <div key={st.key} className={'iea-stage' + (st.key === s.phase ? ' on' : '')}>{st.label}</div>
+            ))}
+          </div>
+
+          <div className="iea-svgwrap">
+            <svg viewBox={`0 0 ${svgW} ${svgH}`} width="100%" style={{ maxHeight: 200, display: 'block' }}
+                 role="img" aria-label="Vector with live iterator pointer">
+              {/* boxes */}
+              {s.v.map((val, idx) => {
+                const x = startX + idx * cellW;
+                const st = cellStyle(val);
+                const cur = idx === s.it && s.examining;
+                return (
+                  <g key={idx}>
+                    <text x={x + cellW / 2} y={32} textAnchor="middle" fontSize="11"
+                          fill="var(--ink-soft)" fontFamily="var(--font-mono)">{idx}</text>
+                    <rect x={x + 3} y={boxY} width={cellW - 6} height={boxH} rx="7"
+                          fill={st.fill} stroke={st.stroke} strokeWidth={cur ? 3 : 1.6}
+                          style={{ transition: 'all .3s ease' }} />
+                    <text x={x + cellW / 2} y={boxY + boxH / 2 + 5} textAnchor="middle"
+                          fontSize={val === -55 ? 14 : 16} fontWeight="bold" fill={st.text}
+                          fontFamily="var(--font-mono)">{val}</text>
+                  </g>
+                );
+              })}
+              {/* end marker bracket */}
+              <text x={startX + s.v.length * cellW + cellW / 2} y={boxY + boxH / 2 + 5}
+                    textAnchor="middle" fontSize="13" fill="var(--ink-soft)"
+                    fontFamily="var(--font-mono)">end</text>
+
+              {/* pointers */}
+              {pointers.map((p, k) => (
+                <g key={k} style={{ transition: 'all .3s ease' }}>
+                  <polygon points={`${p.x},${boxY + boxH + 4} ${p.x - 8},${boxY + boxH + 18} ${p.x + 8},${boxY + boxH + 18}`}
+                           fill={p.color} />
+                  <line x1={p.x} y1={boxY + boxH + 18} x2={p.x} y2={boxY + boxH + 30}
+                        stroke={p.color} strokeWidth="2.5" />
+                  <text x={p.x} y={boxY + boxH + 46} textAnchor="middle" fontSize="12"
+                        fontWeight="bold" fill={p.color} fontFamily="var(--font-mono)">{p.label}</text>
+                </g>
+              ))}
+            </svg>
+          </div>
+
+          <div className="iea-msg">{s.msg}</div>
+
+          <div className="iea-code">
+            {codeLines.map((ln, k) => (
+              <span key={k} className={k === activeLine ? 'hot' : ''}>{ln + '\n'}</span>
+            ))}
+          </div>
+
+          <div className="iea-ctrls">
+            <button className="iea-btn primary" onClick={() => {
+              if (atEndStep) { setI(0); setPlaying(true); }
+              else setPlaying(true);
+            }} disabled={playing} aria-label="Play">▶ Play</button>
+            <button className="iea-btn" onClick={() => setPlaying(false)} disabled={!playing} aria-label="Pause">⏸ Pause</button>
+            <button className="iea-btn" onClick={() => { setI(0); setPlaying(false); }} aria-label="Reset">↺ Reset</button>
+            <button className="iea-btn" onClick={() => { setPlaying(false); setI(x => Math.max(0, x - 1)); }}
+                    disabled={atStart} aria-label="Step back">◀ Step</button>
+            <button className="iea-btn" onClick={() => { setPlaying(false); setI(x => Math.min(steps.length - 1, x + 1)); }}
+                    disabled={atEndStep} aria-label="Step forward">Step ▶</button>
+            <span style={{ fontSize: 12, color: 'var(--ink-soft)', marginLeft: 'auto' }}>
+              step {i + 1} / {steps.length}
+            </span>
+          </div>
+
+          <div className="iea-ctrls" style={{ marginTop: 8 }}>
+            <label htmlFor="iea-speed">speed</label>
+            <input id="iea-speed" type="range" min="250" max="1600" step="50"
+                   value={1850 - speed} onChange={e => setSpeed(1850 - Number(e.target.value))}
+                   style={{ width: 140 }} aria-label="Animation speed" />
+          </div>
+
+          <div className="iea-row">
+            <label htmlFor="iea-preset">preset</label>
+            <select id="iea-preset" onChange={e => {
+              const p = PRESETS[Number(e.target.value)];
+              if (p) load(p.v);
+            }} defaultValue="">
+              <option value="" disabled>choose…</option>
+              {PRESETS.map((p, k) => <option key={k} value={k}>{p.label}</option>)}
+            </select>
+            <button className="iea-btn" onClick={() => load(randVec(6))}
+                    aria-label="Generate random vector">⚄ Random (rand()%31-15)</button>
+          </div>
+
+          <div className="iea-row" style={{ borderTop: 'none', paddingTop: 0 }}>
+            <label htmlFor="iea-custom">custom</label>
+            <input id="iea-custom" type="text" placeholder="{3, -4, 7, -2, 5}"
+                   value={custom} onChange={e => setCustom(e.target.value)}
+                   style={{ flex: '1 1 180px' }}
+                   onKeyDown={e => { if (e.key === 'Enter') { const v = parseVec(custom); if (v.length) load(v); } }} />
+            <button className="iea-btn" onClick={() => { const v = parseVec(custom); if (v.length) load(v); }}
+                    aria-label="Load custom vector">Load</button>
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('insert-erase-invalidation-animator')).render(<Widget />);
+  } catch (e) {
+    const mount = document.getElementById('insert-erase-invalidation-animator');
+    if (mount) mount.innerHTML = '<div class="widget-fail">Widget failed to load</div>';
+    console.error(e);
+  }
+})();
+</script>
+<!-- widget: access-method-picker (picker) -->
+<script type="text/babel">
+(function () {
+  try {
+    const { useState, useMemo } = React;
+
+    const DATA = [3, -4, 7, -2, 5];
+    const SIZE = DATA.length;            // 5 valid slots, indices 0..4
+    const JUNK = [40213, -7, 99581];     // "memory" just past the end
+    const TOTAL = SIZE + JUNK.length;    // 8 drawn cells
+
+    const valueAt = (i) => (i < SIZE ? DATA[i] : JUNK[i - SIZE]);
+
+    const METHODS = [
+      { id: 0, code: 'vect[i]',      tag: 'index operator',  blurb: 'unchecked — returns the slot directly' },
+      { id: 1, code: 'vect.at(i)',   tag: 'checked method',  blurb: 'validates i, throws std::out_of_range' },
+      { id: 2, code: 'vect.front()', tag: 'first element',   blurb: 'always the front, regardless of i' },
+    ];
+
+    // SVG geometry (viewBox units)
+    const cellW = 66, gap = 10, startX = 26, cellY = 66, cellH = 58;
+    const xOf = (i) => startX + i * (cellW + gap);
+    const VBW = startX * 2 + TOTAL * (cellW + gap) - gap; // ~ 660
+    const VBH = 210;
+    const boundaryX = xOf(SIZE) - gap / 2;
+
+    function Widget() {
+      const mount = document.getElementById('access-method-picker');
+      if (!mount) return null;
+
+      const [method, setMethod] = useState(1);
+      const [i, setI] = useState(6);
+
+      const oob = i >= SIZE;
+      const targetIdx = method === 2 ? 0 : i;
+
+      // outcome status: 'ok' | 'ub' | 'throw' | 'front'
+      const status = useMemo(() => {
+        if (method === 2) return 'front';
+        if (!oob) return 'ok';
+        return method === 0 ? 'ub' : 'throw';
+      }, [method, oob]);
+
+      const cellState = (idx) => {
+        let base = idx < SIZE ? 'normal' : 'oob';
+        if (method === 0 && idx === i) base = idx < SIZE ? 'hitGood' : 'hitBad';
+        else if (method === 1 && idx === i && idx < SIZE) base = 'hitGood';
+        else if (method === 2 && idx === 0) base = 'hitGood';
+        return base;
+      };
+
+      const cellFill = { normal: 'var(--surface)', oob: 'rgba(174,196,222,0.18)',
+        hitGood: 'rgba(31,122,77,0.16)', hitBad: 'rgba(179,38,30,0.16)' };
+      const cellStroke = { normal: 'var(--accent)', oob: 'var(--border)',
+        hitGood: 'var(--good)', hitBad: 'var(--bad)' };
+      const cellW2 = { normal: 1.4, oob: 1.4, hitGood: 3, hitBad: 3 };
+
+      const arrowColor = status === 'ok' || status === 'front' ? 'var(--good)'
+        : 'var(--bad)';
+      const showException = method === 1 && oob;
+
+      // readout text
+      const readout = (() => {
+        const v = valueAt(i);
+        if (method === 0) return oob
+          ? { cls: 'bad', head: '⚠ undefined behaviour',
+              body: `vect[${i}] reads memory past the end (slot shows ${v}). It may be garbage, may crash, may look fine today and break tomorrow. The compiler never checks.` }
+          : { cls: 'good', head: '✓ returns ' + v,
+              body: `vect[${i}] indexes straight into storage — fast, no check. Fine here because ${i} is in range.` };
+        if (method === 1) return oob
+          ? { cls: 'bad', head: '✗ throws std::out_of_range',
+              body: `vect.at(${i}) compares ${i} against size() = ${SIZE}, sees it is out of range, and throws. Execution stops at a defined point you can catch — no silent corruption.` }
+          : { cls: 'good', head: '✓ returns ' + v,
+              body: `vect.at(${i}) checks ${i} < ${SIZE} first, then returns the element. Same value as vect[${i}], with a guard rail.` };
+        return oob
+          ? { cls: 'warn', head: '↦ returns ' + DATA[0] + ' (the front)',
+              body: `vect.front() ignores i completely and hands back element 0. No error — but it is NOT the element at index ${i} you asked for. Wrong tool for "read element i".` }
+          : { cls: 'warn', head: '↦ returns ' + DATA[0] + ' (the front)',
+              body: `vect.front() always returns element 0, never element ${i}. It never errors, but it answers a different question.` };
+      })();
+
+      return (
+        <div className="amp-root">
+          <style>{`
+            #access-method-picker .amp-root{font-family:var(--font-body);color:var(--ink);max-width:760px;margin:0 auto;}
+            #access-method-picker .amp-svgwrap{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:6px 4px 2px;}
+            #access-method-picker svg{display:block;width:100%;height:auto;}
+            #access-method-picker .amp-cellval{font-family:var(--font-mono);font-weight:600;}
+            #access-method-picker .amp-junkval{font-family:var(--font-mono);font-style:italic;fill:var(--ink-soft);}
+            #access-method-picker .amp-idx{font-family:var(--font-mono);fill:var(--ink-soft);font-size:13px;}
+            #access-method-picker .amp-controls{margin:14px 0 4px;}
+            #access-method-picker .amp-sliderrow{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+            #access-method-picker .amp-sliderrow input[type=range]{flex:1;min-width:180px;accent-color:var(--accent);}
+            #access-method-picker .amp-ibadge{font-family:var(--font-mono);font-weight:700;padding:3px 10px;border-radius:6px;border:1px solid var(--border);}
+            #access-method-picker .amp-ibadge.in{color:var(--good);border-color:var(--good);background:rgba(31,122,77,0.08);}
+            #access-method-picker .amp-ibadge.out{color:var(--bad);border-color:var(--bad);background:rgba(179,38,30,0.08);}
+            #access-method-picker .amp-choices{display:grid;grid-template-columns:1fr;gap:10px;margin:14px 0;}
+            @media(min-width:620px){#access-method-picker .amp-choices{grid-template-columns:repeat(3,1fr);}}
+            #access-method-picker .amp-choice{text-align:left;cursor:pointer;background:var(--surface);border:1.6px solid var(--border);border-radius:10px;padding:12px 13px;transition:border-color .15s,box-shadow .15s,transform .08s;font-family:var(--font-body);}
+            #access-method-picker .amp-choice:hover{border-color:var(--accent);}
+            #access-method-picker .amp-choice:active{transform:translateY(1px);}
+            #access-method-picker .amp-choice.sel{border-color:var(--accent);box-shadow:0 0 0 3px rgba(28,95,168,0.15);}
+            #access-method-picker .amp-choice .code{font-family:var(--font-mono);font-weight:700;font-size:15px;color:var(--accent-2);}
+            #access-method-picker .amp-choice .tag{display:block;font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-soft);margin:4px 0 5px;}
+            #access-method-picker .amp-choice .blurb{font-size:12.5px;color:var(--ink-soft);line-height:1.35;}
+            #access-method-picker .amp-best{display:inline-block;margin-top:7px;font-size:11px;font-weight:700;color:var(--good);border:1px solid var(--good);border-radius:5px;padding:1px 7px;background:rgba(31,122,77,0.08);}
+            #access-method-picker .amp-readout{border-radius:10px;padding:13px 15px;border:1.6px solid var(--border);background:var(--surface);}
+            #access-method-picker .amp-readout.good{border-color:var(--good);background:rgba(31,122,77,0.06);}
+            #access-method-picker .amp-readout.bad{border-color:var(--bad);background:rgba(179,38,30,0.06);}
+            #access-method-picker .amp-readout.warn{border-color:var(--accent);background:rgba(28,95,168,0.06);}
+            #access-method-picker .amp-readout .rhead{font-family:var(--font-mono);font-weight:700;font-size:15px;margin-bottom:5px;}
+            #access-method-picker .amp-readout.good .rhead{color:var(--good);}
+            #access-method-picker .amp-readout.bad .rhead{color:var(--bad);}
+            #access-method-picker .amp-readout.warn .rhead{color:var(--accent-2);}
+            #access-method-picker .amp-readout .rbody{font-size:13px;line-height:1.5;color:var(--ink);}
+            #access-method-picker .amp-foot{margin-top:12px;font-size:12.5px;line-height:1.5;color:var(--ink-soft);border-top:1px dashed var(--border);padding-top:10px;}
+            #access-method-picker .widget-fail{padding:14px;color:var(--bad);font-family:var(--font-mono);}
+          `}</style>
+
+          <div className="amp-svgwrap">
+            <svg viewBox={`0 0 ${VBW} ${VBH}`} role="img"
+                 aria-label="A vector of five integers with three out-of-bounds memory slots, showing where the chosen accessor lands.">
+              <defs>
+                <marker id="amp-arrow" markerWidth="11" markerHeight="11" refX="5" refY="8" orient="auto">
+                  <path d="M1,1 L9,1 L5,9 Z" fill={arrowColor} />
+                </marker>
+              </defs>
+
+              {/* region labels */}
+              <text x={xOf(0)} y={22} className="amp-idx" style={{fontWeight:700, fill:'var(--accent-2)'}}>
+                valid indices 0–{SIZE - 1}
+              </text>
+              <text x={xOf(SIZE)} y={22} className="amp-idx" style={{fontWeight:700, fill:'var(--bad)'}}>
+                past the end — undefined memory
+              </text>
+
+              {/* end() boundary */}
+              <line x1={boundaryX} y1={30} x2={boundaryX} y2={cellY + cellH + 14}
+                    stroke="var(--bad)" strokeWidth="1.4" strokeDasharray="4 3" />
+              <text x={boundaryX + 4} y={cellY + cellH + 26} className="amp-idx" style={{fill:'var(--bad)'}}>
+                ← end()
+              </text>
+
+              {/* cells */}
+              {Array.from({ length: TOTAL }, (_, idx) => {
+                const st = cellState(idx);
+                const x = xOf(idx);
+                const cx = x + cellW / 2;
+                return (
+                  <g key={idx}>
+                    <text x={cx} y={cellY - 10} textAnchor="middle" className="amp-idx">{idx}</text>
+                    <rect x={x} y={cellY} width={cellW} height={cellH} rx={7}
+                          fill={cellFill[st]} stroke={cellStroke[st]}
+                          strokeWidth={cellW2[st]}
+                          strokeDasharray={idx >= SIZE ? '5 4' : '0'} />
+                    <text x={cx} y={cellY + cellH / 2 + 7} textAnchor="middle"
+                          className={idx < SIZE ? 'amp-cellval' : 'amp-junkval'}
+                          style={{
+                            fontSize: idx < SIZE ? 20 : 15,
+                            fill: st === 'hitGood' ? 'var(--good)'
+                                : st === 'hitBad' ? 'var(--bad)'
+                                : idx < SIZE ? 'var(--ink)' : 'var(--ink-soft)'
+                          }}>
+                      {valueAt(idx)}
+                    </text>
+                  </g>
+                );
+              })}
+
+              {/* pointer arrow to the accessed cell */}
+              {!showException && (
+                <g>
+                  <line x1={xOf(targetIdx) + cellW / 2} y1={cellY + cellH + 40}
+                        x2={xOf(targetIdx) + cellW / 2} y2={cellY + cellH + 16}
+                        stroke={arrowColor} strokeWidth="2.4" markerEnd="url(#amp-arrow)" />
+                  <text x={xOf(targetIdx) + cellW / 2} y={cellY + cellH + 56}
+                        textAnchor="middle" style={{fontFamily:'var(--font-mono)', fontSize:12, fontWeight:700, fill:arrowColor}}>
+                    {method === 2 ? 'front()' : `reads slot ${i}`}
+                  </text>
+                </g>
+              )}
+
+              {/* exception banner for at() out of range */}
+              {showException && (
+                <g>
+                  <line x1={xOf(i) + 12} y1={cellY + 12} x2={xOf(i) + cellW - 12} y2={cellY + cellH - 12}
+                        stroke="var(--bad)" strokeWidth="3" />
+                  <line x1={xOf(i) + cellW - 12} y1={cellY + 12} x2={xOf(i) + 12} y2={cellY + cellH - 12}
+                        stroke="var(--bad)" strokeWidth="3" />
+                  <rect x={Math.min(xOf(i) - 30, VBW - 230)} y={cellY + cellH + 18} width={222} height={26} rx={6}
+                        fill="rgba(179,38,30,0.12)" stroke="var(--bad)" strokeWidth="1.2" />
+                  <text x={Math.min(xOf(i) - 30, VBW - 230) + 111} y={cellY + cellH + 35}
+                        textAnchor="middle" style={{fontFamily:'var(--font-mono)', fontSize:12.5, fontWeight:700, fill:'var(--bad)'}}>
+                    throws std::out_of_range
+                  </text>
+                </g>
+              )}
+            </svg>
+          </div>
+
+          <div className="amp-controls">
+            <div className="amp-sliderrow">
+              <label htmlFor="amp-i" style={{fontWeight:600}}>index i =</label>
+              <span className="amp-ibadge" style={{fontWeight:700, borderColor:'var(--accent)', color:'var(--accent-2)'}}>{i}</span>
+              <input id="amp-i" type="range" min={0} max={TOTAL - 1} step={1}
+                     value={i} onChange={(e) => setI(+e.target.value)}
+                     aria-label="index to access" />
+              <span className={'amp-ibadge ' + (oob ? 'out' : 'in')}>
+                {oob ? `i ≥ size (${SIZE}) — out of range` : 'i in range'}
+              </span>
+            </div>
+          </div>
+
+          <div className="amp-choices" role="radiogroup" aria-label="how to access vect[i]">
+            {METHODS.map((m) => (
+              <button key={m.id} type="button" role="radio" aria-checked={method === m.id}
+                      className={'amp-choice' + (method === m.id ? ' sel' : '')}
+                      onClick={() => setMethod(m.id)}>
+                <span className="code">{m.code}</span>
+                <span className="tag">{m.tag}</span>
+                <span className="blurb">{m.blurb}</span>
+                {m.id === 1 && method === 1 && (
+                  <span className="amp-best">✓ trust this when i may be wrong</span>
+                )}
+              </button>
+            ))}
+          </div>
+
+          <div className={'amp-readout ' + readout.cls}>
+            <div className="rhead">{readout.head}</div>
+            <div className="rbody">{readout.body}</div>
+          </div>
+
+          <div className="amp-foot">
+            Slide i past the end, then switch accessors. With a valid index all three touch
+            memory the same way — the difference only shows at a bad i: <b>vect[i]</b> wanders
+            into undefined behaviour, <b>vect.at(i)</b> stops you with a thrown exception, and
+            <b> vect.front()</b> quietly ignores i. Reach for <b>at()</b> whenever the index
+            might be wrong.
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('access-method-picker')).render(<Widget />);
+  } catch (e) {
+    const mount = document.getElementById('access-method-picker');
+    if (mount) mount.innerHTML = '<div class="widget-fail">Widget failed to load</div>';
+    console.error(e);
+  }
+})();
+</script>
+<!-- widget: stl-selfcheck-mcq (mcq) -->
+<script>
+/* v0.3 widget-fail placeholder — original widget output was rejected by verifyWidget. */
+(function(){ try {
+  var m = document.getElementById("stl-selfcheck-mcq");
+  if (!m) return;
+  m.innerHTML =
+    '<div role="status" aria-live="polite" style="font-family:system-ui,sans-serif;background:#fff5f5;border:1px solid #fca5a5;color:#7f1d1d;border-radius:6px;padding:14px 16px;margin:12px 0;">' +
+    '<div style="font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#b91c1c;margin-bottom:4px;">widget failed to render</div>' +
+    '<div style="font-weight:600;margin-bottom:4px;color:#7f1d1d;">Self-check · iterators, invalidation and erase–remove</div>' +
+    '<div style="font-size:13px;color:#7f1d1d;line-height:1.5;">structural integrity failure: unterminated string literal (`)<br><span style="opacity:0.75">Regenerate this widget from the wizard to replace the placeholder.</span></div>' +
+    '</div>';
+} catch (e) { console.error(e); } })();
+</script>
+</body>
+</html>
