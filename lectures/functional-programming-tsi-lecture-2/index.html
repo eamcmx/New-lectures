@@ -1,0 +1,2926 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- wizard-curator runtime (injected) -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+<script src="https://cdn.jsdelivr.net/npm/mathjs@12/lib/browser/math.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" onload="try{window.renderMathInElement&&renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false},{left:'\[',right:'\]',display:true},{left:'\(',right:'\)',display:false}],throwOnError:false});}catch(e){}"></script>
+<script>try{[800,2200].forEach(function(t){setTimeout(function(){window.renderMathInElement&&renderMathInElement(document.body,{delimiters:[{left:"$$",right:"$$",display:true},{left:"$",right:"$",display:false},{left:"\[",right:"\]",display:true},{left:"\(",right:"\)",display:false}],throwOnError:false});},t);});}catch(e){};</script>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lecture 02 · Functional Programming Concepts</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@300;400;500;600;700&family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --page-bg:      #eaf1f7;
+    --surface:      #f7fbff;
+    --ink:          #16283a;
+    --ink-soft:     #4a657d;
+    --border:       #9fb9cf;
+    --accent:       #1f5d8c;
+    --accent-2:     #2f7fb0;
+    --good:         #1f7a4d;
+    --bad:          #b03636;
+    --font-display: 'Oswald', sans-serif;
+    --font-body:    'IBM Plex Mono', monospace;
+    --font-mono:    'IBM Plex Mono', monospace;
+  }
+
+  * { box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    margin: 0;
+    font-family: var(--font-body);
+    font-weight: 400;
+    color: var(--ink);
+    line-height: 1.65;
+    background-color: var(--page-bg);
+    background-image:
+      linear-gradient(rgba(31, 93, 140, 0.08) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(31, 93, 140, 0.08) 1px, transparent 1px),
+      linear-gradient(rgba(31, 93, 140, 0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(31, 93, 140, 0.04) 1px, transparent 1px);
+    background-size: 96px 96px, 96px 96px, 16px 16px, 16px 16px;
+    background-position: -1px -1px, -1px -1px, -1px -1px, -1px -1px;
+  }
+
+  ::selection { background: rgba(47, 127, 176, 0.28); }
+
+  .sheet {
+    max-width: 940px;
+    margin: 0 auto;
+    padding: 0 24px 96px;
+  }
+
+  /* ---- Drawing-sheet header / title block ---- */
+  header.titleblock {
+    margin: 32px 0 48px;
+    border: 2px solid var(--accent);
+    background: var(--surface);
+    position: relative;
+  }
+
+  .tb-eyebrow {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--accent);
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .tb-main {
+    padding: 28px 24px 24px;
+  }
+
+  h1 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: clamp(2.1rem, 6vw, 3.4rem);
+    line-height: 1.02;
+    text-transform: uppercase;
+    letter-spacing: 0.01em;
+    margin: 0 0 12px;
+    color: var(--ink);
+  }
+
+  .tb-sub {
+    font-size: 0.98rem;
+    color: var(--ink-soft);
+    max-width: 60ch;
+    margin: 0;
+  }
+
+  /* corner title-block grid */
+  .tb-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    border-top: 1px solid var(--border);
+    font-family: var(--font-mono);
+  }
+  .tb-cell {
+    padding: 10px 16px;
+    border-right: 1px solid var(--border);
+    font-size: 0.78rem;
+  }
+  .tb-cell:last-child { border-right: none; }
+  .tb-cell .k {
+    display: block;
+    font-size: 0.6rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 3px;
+  }
+  .tb-cell .v { color: var(--ink); font-weight: 500; }
+
+  /* ---- Opening voice ---- */
+  .opening {
+    border-left: 4px solid var(--accent-2);
+    background: var(--surface);
+    padding: 20px 24px;
+    margin: 0 0 48px;
+    font-size: 0.98rem;
+    color: var(--ink);
+  }
+  .opening .label {
+    display: block;
+    font-family: var(--font-display);
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    font-size: 0.72rem;
+    color: var(--accent);
+    margin-bottom: 8px;
+  }
+
+  /* ---- Contents / nav ---- */
+  nav.contents {
+    border: 1px solid var(--border);
+    background: var(--surface);
+    padding: 20px 24px;
+    margin: 0 0 56px;
+  }
+  nav.contents h2 {
+    font-family: var(--font-display);
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    font-size: 0.9rem;
+    margin: 0 0 14px;
+    color: var(--accent);
+    font-weight: 600;
+  }
+  nav.contents ol {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 6px 24px;
+  }
+  nav.contents li {
+    display: flex;
+    gap: 10px;
+    font-size: 0.86rem;
+    border-bottom: 1px dotted var(--border);
+    padding: 4px 0;
+  }
+  nav.contents .num {
+    font-family: var(--font-mono);
+    color: var(--accent-2);
+    font-weight: 600;
+    min-width: 1.6em;
+  }
+  nav.contents a {
+    color: var(--ink);
+    text-decoration: none;
+  }
+  nav.contents a:hover { color: var(--accent); }
+
+  /* ---- Sections ---- */
+  section.lecture {
+    margin: 0 0 64px;
+    scroll-margin-top: 24px;
+  }
+
+  .sec-head {
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    border-bottom: 2px solid var(--accent);
+    padding-bottom: 8px;
+    margin-bottom: 22px;
+  }
+  .sec-num {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 1.6rem;
+    color: var(--accent);
+    background: var(--surface);
+    border: 1.5px solid var(--accent);
+    padding: 2px 12px;
+    line-height: 1.3;
+  }
+  h2.sec-title {
+    font-family: var(--font-display);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    font-size: clamp(1.3rem, 3.4vw, 1.9rem);
+    margin: 0;
+    color: var(--ink);
+  }
+
+  section.lecture p { margin: 0 0 16px; }
+
+  section.lecture strong { color: var(--accent); font-weight: 600; }
+  section.lecture em { color: var(--ink-soft); font-style: italic; }
+
+  section.lecture ul {
+    margin: 0 0 16px;
+    padding-left: 0;
+    list-style: none;
+  }
+  section.lecture ul li {
+    position: relative;
+    padding-left: 26px;
+    margin-bottom: 8px;
+  }
+  section.lecture ul li::before {
+    content: "";
+    position: absolute;
+    left: 4px;
+    top: 0.72em;
+    width: 10px;
+    height: 1px;
+    background: var(--accent-2);
+  }
+  section.lecture ul li::after {
+    content: "";
+    position: absolute;
+    left: 14px;
+    top: calc(0.72em - 2.5px);
+    width: 5px;
+    height: 5px;
+    border: 1px solid var(--accent-2);
+    transform: rotate(45deg);
+  }
+
+  /* dimension-line section voice */
+  .voice {
+    font-style: italic;
+    color: var(--ink-soft);
+    padding: 8px 0 8px 0;
+    margin: 18px 0;
+    position: relative;
+    padding-left: 22px;
+  }
+  .voice::before {
+    content: "";
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 0;
+    border-left: 1px dashed var(--accent-2);
+  }
+  .voice::after {
+    content: "";
+    position: absolute;
+    left: -3px; top: 50%;
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--accent-2);
+    transform: translateY(-50%);
+  }
+
+  /* ---- Callouts ---- */
+  .callout {
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--accent);
+    background: var(--surface);
+    padding: 16px 20px;
+    margin: 20px 0;
+  }
+  .callout .co-title {
+    font-family: var(--font-display);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--accent);
+    margin-bottom: 6px;
+  }
+  .callout .co-body { margin: 0; font-size: 0.92rem; }
+  .callout.tone-green  { border-left-color: var(--good); }
+  .callout.tone-green  .co-title { color: var(--good); }
+  .callout.tone-red    { border-left-color: var(--bad); }
+  .callout.tone-red    .co-title { color: var(--bad); }
+  .callout.tone-amber  { border-left-color: #c08a1e; }
+  .callout.tone-amber  .co-title { color: #9a6c10; }
+  .callout.tone-purple { border-left-color: #6a4f9c; }
+  .callout.tone-purple .co-title { color: #57408a; }
+  .callout.tone-teal   { border-left-color: var(--accent-2); }
+  .callout.tone-teal   .co-title { color: var(--accent-2); }
+
+  /* ---- Code blocks ---- */
+  .codeblock {
+    margin: 20px 0;
+    border: 1px solid var(--border);
+    background: #0f2233;
+  }
+  .codeblock .cb-label {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #9ec7e6;
+    padding: 8px 16px;
+    border-bottom: 1px solid #244258;
+    background: #122b40;
+  }
+  .codeblock pre {
+    margin: 0;
+    padding: 16px;
+    overflow-x: auto;
+  }
+  .codeblock code {
+    font-family: var(--font-mono);
+    font-size: 0.84rem;
+    line-height: 1.6;
+    color: #d7e9f7;
+    white-space: pre;
+  }
+
+  /* inline code */
+  p code, li code, .hw-body code, .hw-solution-body code {
+    font-family: var(--font-mono);
+    font-size: 0.86em;
+    background: rgba(31, 93, 140, 0.1);
+    border: 1px solid var(--border);
+    padding: 1px 5px;
+    border-radius: 2px;
+    color: var(--accent);
+  }
+
+  /* ---- Widget mount frames ---- */
+  .widget-frame {
+    margin: 24px 0;
+    border: 1.5px dashed var(--accent-2);
+    background: var(--surface);
+    padding: 4px;
+  }
+  .widget-leadin {
+    font-size: 0.92rem;
+    color: var(--ink-soft);
+    margin: 22px 0 10px;
+    padding-left: 16px;
+    border-left: 3px solid var(--accent-2);
+  }
+  .widget-leadin .wl-tag {
+    display: inline-block;
+    font-family: var(--font-display);
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    font-size: 0.66rem;
+    color: var(--accent-2);
+    margin-right: 8px;
+  }
+
+  /* ---- Homework ---- */
+  section.homework {
+    margin: 72px 0 0;
+    border-top: 3px double var(--accent);
+    padding-top: 32px;
+  }
+  section.homework > h2 {
+    font-family: var(--font-display);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-size: clamp(1.4rem, 3.4vw, 2rem);
+    margin: 0 0 8px;
+    color: var(--ink);
+    font-weight: 600;
+  }
+  .hw-sub {
+    color: var(--ink-soft);
+    margin: 0 0 28px;
+    font-size: 0.94rem;
+  }
+  .hw-item {
+    border: 1px solid var(--border);
+    background: var(--surface);
+    padding: 22px 24px;
+    margin-bottom: 22px;
+  }
+  .hw-item h3 {
+    font-family: var(--font-display);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-size: 1.1rem;
+    margin: 0 0 12px;
+    color: var(--accent);
+  }
+  .hw-body { margin-bottom: 16px; }
+  .hw-body p { margin: 0 0 12px; }
+  .hw-selfcheck {
+    border-left: 3px solid var(--accent-2);
+    background: rgba(47, 127, 176, 0.06);
+    padding: 12px 16px;
+    margin: 12px 0;
+  }
+  .hw-selfcheck-label {
+    display: block;
+    font-family: var(--font-display);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-size: 0.72rem;
+    color: var(--accent-2);
+    margin-bottom: 6px;
+    font-weight: 600;
+  }
+  .hw-selfcheck ul { margin: 0; }
+  .hw-solution {
+    margin-top: 14px;
+    border: 1px solid var(--border);
+  }
+  .hw-solution summary {
+    cursor: pointer;
+    font-family: var(--font-display);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-size: 0.82rem;
+    font-weight: 500;
+    padding: 12px 16px;
+    color: var(--accent);
+    background: rgba(31, 93, 140, 0.06);
+    user-select: none;
+  }
+  .hw-solution summary:hover { background: rgba(31, 93, 140, 0.12); }
+  .hw-solution[open] summary { border-bottom: 1px solid var(--border); }
+  .hw-solution-body { padding: 16px 18px; }
+  .hw-solution-body p { margin: 0 0 12px; }
+  .hw-solution-body ul { margin: 0 0 12px; }
+
+  /* ---- Footer ---- */
+  footer.sheet-footer {
+    margin-top: 64px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    padding: 16px 20px;
+    font-family: var(--font-mono);
+    font-size: 0.74rem;
+    color: var(--ink-soft);
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  /* katex sizing */
+  .katex { font-size: 1.04em; }
+  .katex-display { margin: 18px 0; overflow-x: auto; overflow-y: hidden; }
+
+  @media (max-width: 640px) {
+    .tb-grid { grid-template-columns: repeat(2, 1fr); }
+    .tb-cell:nth-child(2) { border-right: none; }
+    nav.contents ol { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<script>(function(){
+  function go(){ if(window.TSIBuddy){ TSIBuddy.mount({"systemPrompt":"You are TSI Buddy, a friendly tutor on the lecture page \"Functional Programming Concepts\". (Lecture 02 · Functional Programming · TSI)\n\nYour knowledge is ONLY the LECTURE NOTES and PAGE TEXT printed below.\n\nRules:\n1. Answer from that material. Read it for meaning — explaining,\n   rephrasing, working its examples and connecting its points is\n   your job. Synthesising an answer from what the material says is\n   not \"inventing\".\n2. If the material does not cover something, say so in one sentence\n   and stop. Never invent facts, names, emails, links, places,\n   rooms, dates, or anything not in the material — a plain \"that is\n   not in the lecture material\" is the correct answer to a gap.\n3. Keep replies short — 2–4 sentences — unless the student asks for\n   more depth or worked steps. Mirror the student's language.\n4. Don't hand over self-check / quiz answers; point to the section\n   that explains them instead.\n5. Write maths with $...$ (inline) and $$...$$ (display).\n\n── LECTURE NOTES ──\nSCOPE\nThis lecture introduces the core concepts of functional programming (FP): building software out of functions applied to immutable values rather than statements that assign and mutate. It recaps the distinction between expressions and statements, traces FP back to Alonzo Church's lambda calculus, and develops the main pillars — pure functions, referential transparency, immutability, recursion, first-class and higher-order functions — along with the optimizations purity enables (parallelization, memoization, laziness). It closes with the advantages and disadvantages of the pure-functional style. It deliberately does NOT teach a specific functional language's full syntax, does NOT give a formal treatment of lambda calculus (no reduction rules, no Church encodings), does NOT cover monads or formal I/O handling, and does NOT settle the OOP-vs-FP debate — its stance is \"be a better programmer,\" using functions to best effect.\n\nKEY DEFINITIONS\nExpression — a combination of values and functions that the compiler combines and interprets to create a new value. Its purpose is to create a value (possibly with some side-effects).\n\nStatement — a standalone unit of execution that doesn't return anything. Its sole purpose is to have side-effects.\n\nFunctional programming — building functions for immutable variables; using functions to the best effect for creating clean and maintainable software.\n\nLambda calculus — a theoretical framework, developed by Alonzo Church, that describes functions and their evaluation. Instead of statements it makes use of expressions; it forms the basis of almost all functional programming languages in use, and anything computable is computable in it.\n\nPure function — a function where the return value is determined only by its input values, without observable side effects. (Lecturer's exact definition, slide 15.)\n\nThe two properties of pure functions (slide 13): (1) they always produce the same output with the same arguments regardless of other factors — a property the lecturer ties to immutability; (2) they are deterministic and have no side-effects (they do not modify arguments or global variables).\n\nSide effect — an observable change outside the function (modifying an argument, a global variable, or otherwise affecting external state).\n\nDeterminism — same arguments always yield the same output.\n\nParallelization — running computations concurrently; pure functions can always be parallelized.\n\nMemoization — caching and reusing the result of a computation. Safe only with pure functions, because they are referentially transparent and need to be computed only once for given inputs.\n\nLaziness / lazy evaluation — only values that are needed (to achieve side effects) are computed; the rest is ignored. Because a pure function causes no side effects, if its output is never used a smart system can optimize the call away.\n\nRecursion — iteration expressed by functions that repetitively call themselves until a base case is reached. FP languages have no for/while loops and rely on recursion for iteration.\n\nBase case — the stopping condition of a recursive function; when reached, recursion halts. Every recursive call should make progress toward it.\n\nReferential transparency — a variable, once defined, isn't allowed to change the value it holds throughout the program's execution. It assures that the same language expression always gives the same output, so any variable can be replaced with its actual value at any point in the program.\n\nImmutability — once a variable is initialized it cannot be modified; you can only create a new variable. This preserves the state throughout program execution and eliminates undesired effects.\n\nFirst-class function — a function treated as a value (a \"variable\"): it can be passed to other functions as a parameter, returned from functions, or stored in data structures.\n\nHigher-order function — a function that takes other functions as arguments and/or returns functions. First-class functions are what make higher-order functions possible.\n\nKEY EQUATIONS & RESULTS\nThis lecture is conceptual and contains no physical formulas or units. The quantitative results and notations are computational.\n\nLambda notation (from the lecture):\n$\\lambda x.\\, x$ — the identity function; given any input it returns that input unchanged.\n$(\\lambda x.\\, x + 1)\\, 5 = 6$ — applying the \"add one\" function to 5 evaluates to 6. Here $x$ is the bound variable (the parameter), the body after the dot is the function's result, and juxtaposition denotes application. Origin: Alonzo Church's lambda calculus.\n\nComputational-completeness result: anything that is computable is computable using lambda calculus. Condition: it is a model of computation equivalent in power to the Turing machine. This is a stated fact, not derived in the lecture.\n\nParallelization timing result (slides 17–18): a sequential map took ~10 seconds; the parallel version took ~2.5 seconds — roughly a 4× speedup in the slide's example. Condition / validity: the swap from `#map` to `#pmap` is only valid if the function called is pure. These are illustrative figures from the slide, not a general guarantee — actual speedups depend on the workload and number of cores.\n\nFactorial (recursive definition used in the slides):\n$n! = n \\times (n-1)!$ for $n > 0$, with base case $0! = 1$. Origin: the standard recursive definition; illustrates iteration-by-recursion.\n\nSum-by-recursion (homework 3):\n$\\text{sum}([\\,]) = 0$ (base case); $\\text{sum}(x : xs) = x + \\text{sum}(xs)$.\nWorked trace: $\\text{sum}([1,2,3]) = 1 + (2 + (3 + 0)) = 6$.\n\nNOTATION & CONVENTIONS\nLambda calculus is written with the Greek lambda: $\\lambda x.\\, \\text{body}$, where $x$ is the bound variable and the body follows the dot. Function application is written by juxtaposition, e.g. $(\\lambda x.\\, x+1)\\,5$.\n\nCode examples in the lecture are written in JavaScript (`const`/`let`, arrow functions, ternary `?:`, spread `...`) for the imperative-vs-functional contrasts, and in a pseudo/txt notation for the parallel-map example. The parallel-map slide uses the symbols `#map` (sequential) and `#pmap` (parallel) — note these are slide-specific shorthand, not standard JavaScript.\n\nConvention on variables: there are no assignment statements in functional programs. To \"store\" a new value you define a new variable (e.g. `const ys = [...xs, 4]`) rather than reassign an existing one. The state of a variable is constant at any moment in time. The buddy should answer in this same framing: prefer \"create a new value\" over \"change the value.\"\n\nThe lecture treats \"immutability\" and \"always-same-output-for-same-input\" as linked (slide 13 explicitly calls the same-output property \"immutability\"). Be aware this is the lecturer's framing — strictly, determinism and immutability are distinct ideas, but answer in the lecture's terms while noting the distinction if a student probes.\n\nWORKED EXAMPLES\n1. Identity and increment in lambda notation. $\\lambda x.\\, x$ is identity. $(\\lambda x.\\, x+1)\\,5$ applies \"add one\" to 5 and evaluates to 6.\n\n2. If/then/else, statement form (imperative): a `let result;` is declared, then an `if (x > 0) { result = \"positive\"; } else { result = \"non-positive\"; }` assigns it. The if-block itself returns nothing — it only produces the side effect of assigning `result`.\n\n3. If/then/else, expression form (functional): `const result = x > 0 ? \"positive\" : \"non-positive\";`. The whole ternary construct evaluates to a value, which is then bound.\n\n4. Pure vs. impure. Pure: `function add(a, b) { return a + b; }` — output depends only on inputs. Impure: a module-level `let total = 0;` and `function addToTotal(x) { total += x; return total; }` — it has a side effect (mutating `total`) and depends on hidden state, so the same input can give different outputs.\n\n5. Parallel map. `results = map pureFn collection` runs in ~10s sequentially; `results = pmap pureFn collection` runs in ~2.5s in parallel — safe only because `pureFn` is pure.\n\n6. Factorial by recursion. `function factorial(n) { if (n === 0) return 1; return n * factorial(n - 1); }`. Base case `n === 0` returns 1; recursive case multiplies `n` by `factorial(n-1)`.\n\n7. Immutable update. `const xs = [1, 2, 3]; const ys = [...xs, 4];` yields `xs === [1,2,3]` (untouched) and `ys === [1,2,3,4]` (a new array).\n\n8. Higher-order map. `const map = (fn, xs) => xs.map(fn); const double = x => x * 2; map(double, [1,2,3]);` returns `[2, 4, 6]`.\n\n(The four homework items also contain full worked solutions — see DO NOT SPOIL; do not volunteer those answers.)\n\nMETHOD / PROCEDURE\nHow to tell an expression from a statement:\n1. Ask: \"Does evaluating this produce a value I could assign to a variable?\"\n2. If yes → it is an expression (e.g. `3 + 4 * 2`, a ternary, a function call like `Math.max(a,b)`).\n3. If its only job is a side-effect (assignment, printing) and it returns nothing → it is a statement (e.g. `let y = 10;`, `console.log(\"hi\");`).\n\nHow to check whether a function is pure:\n1. Does the output depend only on the arguments? If it reads any external/global/hidden state, it is impure.\n2. Does it modify anything outside itself (globals, its arguments, I/O)? If so, it has a side effect and is impure.\n3. Does calling it twice with the same arguments always give the same result? If not, it is not deterministic and not pure.\n\nHow to make an impure function pure:\n1. Identify every side effect (external mutation) and every hidden-state dependency.\n2. Turn hidden inputs into explicit parameters.\n3. Return any \"new state\" as part of the return value instead of mutating outside variables; let the caller thread it forward.\n\nHow to convert a loop into recursion:\n1. Identify the base case (the smallest input, e.g. an empty list → 0, or `n === 0` → 1).\n2. Express the recursive case in terms of a smaller subproblem (e.g. head + sum(tail)).\n3. Ensure each call moves strictly toward the base case so it terminates.\n4. Avoid mutable accumulators — use the return value of the recursive call.\n\nNL: the optimizations a capable compiler can apply when code is in functional style: memoize results, parallelize instructions, and wait before evaluating results (laziness) — each enabled by purity.\n\nINTUITION\nWhy expressions suit FP: an expression evaluates to a value, so you can build programs by combining values rather than by assigning and mutating — which removes a whole class of bugs caused by changing state.\n\nWhy purity enables parallelization: pure functions never touch shared state, so two calls can't interfere; you can run them on different cores and get the same answer as running them in sequence.\n\nWhy purity enables memoization: if a function always returns the same output for the same input (referential transparency), the first computed result is permanently valid, so you can cache it and skip recomputation.\n\nWhy purity enables laziness: invoking a pure function only declares a dependency (this output needs these inputs). Since it can't cause side effects, if the output is never used, skipping the call changes nothing observable — so it can be deferred or omitted entirely.\n\nWhy referential transparency is powerful: if every expression always means the same value, you can substitute expressions for their values (and vice versa) and reason about your program with the confidence of algebra — this is the \"substitution model.\"\n\nWhy recursion replaces loops: loops need a mutable counter, which conflicts with immutability. A recursive function instead expresses \"solve a smaller version of the problem\" and bottoms out at the base case, needing no mutation.\n\nWhy first-class functions matter: once functions are just values, you can pass and return them, which lets you write reusable higher-order operations (map, filter, reduce) and build behavior by composition.\n\nMISCONCEPTIONS & GOTCHAS\nThinking a statement and an expression are interchangeable: a statement returns nothing and exists for side effects; an expression returns a value. The test is \"does it evaluate to a value?\" — if not, it cannot be assigned.\n\nCalling a function pure when it reads hidden state: a function like `addToTotal` that reads a module-level `total` is impure even if it \"looks\" like a calculator — same input gives different outputs. Make external inputs explicit parameters.\n\nAssuming you can always swap `map` for `pmap` (or add caching) for speed: these optimizations are only safe when the function is pure. Parallelizing or memoizing an impure function gives wrong, non-deterministic results.\n\nForgetting the base case in recursion: without a reachable base case the function never terminates (stack overflow). Every recursive call must move strictly toward the base case.\n\nTrying to \"mutate\" in FP: you cannot reassign an immutable variable. The right move is to create a new variable/value (e.g. spread into a new array) — the original stays untouched.\n\nConfusing immutability with determinism: the lecture links them, but they are distinct — immutability is \"yo\n\n── PAGE TEXT (what the student is reading) ──\nLecture 02 · Functional Programming Concepts Lecture 02 · Functional Programming · TSI Aleksey Vesyoliy Functional Programming Concepts Expressions over statements, pure functions, and the lambda-calculus roots of the functional style. Drawing No. FP-02 Revision B · 2022 Scale 1 : 1 — concepts Course Functional Programming Today's brief Today we step away from the imperative habits of assigning and mutating, and we ask a different question: what if a program were just functions applied to immutable values? We'll start by separating expressions from statements, trace the idea back to Alonzo Church's lambda calculus, and then build up the pillars of the functional style — pure functions, referential transparency, immutability, and recursion. Along the way you'll see why purity buys us parallelization, memoization, and laziness almost for free. Don't aim to be an FP zealot — aim to be a better programmer. On this sheet 0 What this lecture covers 1 Expressions vs. Statements 2 Lambda Calculus 3 Pure Functions 4 Parallelization, memoization, laziness 5 Recursion instead of loops 6 Referential transparency & immutability 7 First-class & higher-order functions 8 Advantages & disadvantages ★ Practice — try these 0 What this lecture covers This lecture introduces the core ideas of functional programming (FP) : building software out of functions over immutable variables. We move from a knowledge recap of expressions vs. statements into the theoretical foundation of lambda calculus , and then through the main FP concepts — pure functions, parallelization, memoization, laziness, recursion, referential transparency, immutability, and higher-order functions. We close with the practical trade-offs (advantages and disadvantages) of the pure-functional style and a short group activity to put the ideas into practice. The goal isn't to pick a tribe — OOP or FP — it's to use functions to the best effect for clean, maintainable software. One-line definition Functional programming is all about building functions for immutable variables, using functions to the best effect for creating clean and maintainable software. 1 Expressions vs. Statements An expression is a combination of values and functions that the compiler combines and interprets to produce a new value . A statement is a standalone unit of execution that doesn't return anything. The useful way to think about it: the purpose of an expression is to create a value (possibly with some side-effects), while the sole purpose of a statement is to have side-effects. Functional programming leans heavily on expressions, because an expression evaluates to a value rather than mutating state. If it produces a value, it's an expression. If its whole point is to do something on the side, it's a statement. Why it matters for FP FP prefers expressions because evaluating an expression yields a value without needing to assign and mutate variables. if/then/else as a statement (imperative) let result; if (x > 0) { result = \"positive\"; } else { result = \"non-positive\"; } // the if-block returns nothing; it only assigns `result` if/then/else as an expression (functional) const result = x > 0 ? \"positive\" : \"non-positive\"; // the whole construct evaluates to a value Interactive Now you choose how to write the same branching logic and watch what comes out the other end. One form evaluates to a value you can bind; the others run purely to assign or print. Decide which one fits the functional style and see why. 2 Lambda Calculus Lambda calculus is a theoretical framework that describes functions and their evaluation. Instead of statements, it makes use of expressions : unlike a statement, which is executed to assign variables, the evaluation of an expression produces a value. Developed by Alonzo Church , lambda calculus forms the basis of almost all functional programming languages in use today. It is similar in spirit to the Turing machine that laid the foundation for the imperative style — and remarkably, it can be seen as the most succinct programming language of them all: anything computable can be expressed in it. In the lecture's notation we write the identity function as $\\lambda x.\\, x$ — given any input it returns that input unchanged. Applying an \"add one\" function to 5, written $(\\lambda x.\\, x + 1)\\, 5$, evaluates to 6. Here $x$ is the bound variable, the body after the dot is the result, and juxtaposition denotes application: $$(\\lambda x.\\, x + 1)\\, 5 \\;=\\; 6.$$ Lambda calculus is to functional programming what the Turing machine is to imperative programming — the foundation underneath the whole style. Three things to remember It describes functions and their evaluation; it is computationally complete (anything computable is computable in it); and it underpins nearly every functional language. identity and a simple function in lambda notation λx. x -- the identity function (λx. x + 1) 5 -- apply 'add one' to 5, evaluates to 6 Interactive Now you feed in a lambda term and step through it: we find the redex, substitute the argument for the bound variable, and reduce until no more applications remain. You'll see for yourself that evaluating an expression produces a value — the whole point Church built the calculus around. 3 Pure Functions A pure function is a function whose return value is determined only by its input values, without observable side effects. Pure functions have two important properties: They always produce the same output for the same arguments , regardless of any other factors (this is tied to immutability). They are deterministic and have no side-effects — they don't modify their arguments or global variables. Because of this, programs built in the functional paradigm are easy to debug, and pure functions make writing concurrent applications easier. Same inputs, same output, no surprises — that's the whole promise of purity. Pays off in concurrency Because pure functions never touch shared state, they make concurrent applications easier to write and reason about. pure vs. impure // pure: output depends only on inputs, no side effects function add(a, b) { return a + b; } // impure: reads/writes external state let total = 0; function addToTotal(x) { total += x; // side effect return total; // depends on hidden state } 4 What purity buys: parallelization, memoization, laziness Purity isn't just tidiness — it unlocks concrete optimizations. Parallelization. Pure functions can always be parallelized. In the slide example, a sequential #map took 10 seconds while the parallel #pmap version took only 2.5 seconds — but we can only swap #map for #pmap if we know the function called is pure. Memoization. Because pure functions are referentially transparent, we only need to compute their output once for given inputs. Caching and reusing that result is called memoization , and it can only be done safely with pure functions. Laziness. Invoking a pure function specifies a dependency: this output depends on these inputs. But if you never use the output, and the function can't cause side effects, it doesn't matter whether it's called at all — so a smart system can be lazy and optimize the call away. With lazy evaluation , only the values actually needed are computed; the rest is ignored. When the code is written in a functional style, a capable compiler can memoize results, parallelize instructions, and wait before evaluating — all because it can trust your functions. The catch Every one of these optimizations depends on purity. Swap in parallel or cached evaluation for an impure function and you'll get wrong, non-deterministic results. parallel map only when the function is pure results = map pureFn collection -- ~10s, sequential results = pmap pureFn collection -- ~2.5s, parallel (safe: pureFn is pure) 5 Recursion instead of loops Functional programming languages have no for or while loops. Instead, they rely on recursion for iteration . Recursion is implemented using recursive functions, which repetitively call themselves until a base case is reached. The base case stops the recursion; every recursive call should make progress toward it. The standard recursive definition of factorial captures the shape exactly — $n! = n \\times (n-1)!$ for $n > 0$, with base case $0! = 1$. No loop counters to mutate — just a function that calls itself with a smaller problem until it bottoms out. Mind the base case Without a reachable base case, a recursive function never terminates. Each call must move closer to that stopping condition. factorial by recursion (no loops) function factorial(n) { if (n === 0) return 1; // base case return n * factorial(n - 1); // recursive case } Interactive Now you pick an n and watch factorial(n) recurse: each call pushes a frame that waits, the base case stops the descent, and the answers multiply back up as the stack unwinds. This is iteration without a single mutable loop counter. 6 Referential transparency & immutability Referential transparency means a variable, once defined, isn't ","contextLabel":"Functional Programming Concepts","openingLine":"I'm reading Functional Programming Concepts. Can you walk me through…","temperature":0.5,"model":"mistral-small-latest"}); } else { setTimeout(go, 60); } }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", go); else go();
+})();</script>
+
+
+<script>/* TSI Buddy — vanilla-JS chat widget for the TSI Dynamics course.
+ *
+ * Mount once per page:
+ *
+ *   TSIBuddy.mount({
+ *     systemPrompt: "You are TSI Buddy ...",   // required, the AUDITOR prompt
+ *     contextLabel: "docs/01_F_equals_ma.md",  // shown in the modal subtitle
+ *     openingLine:  "I'm reading the F=ma chapter ..."   // optional pre-fill
+ *   });
+ *
+ * The widget mounts a floating button (top-right of the viewport), a settings
+ * modal where the student pastes their Mistral API key, and a chat panel that
+ * streams responses progressively. API key persists in localStorage.
+ *
+ * Streams via Mistral's SSE endpoint (stream: true). Falls back to a single
+ * non-streaming response if the runtime doesn't expose ReadableStream.
+ *
+ * Designed to coexist with the React+htm widget already inside each hook
+ * page. They use the same localStorage keys so a student who pastes their
+ * key once gets it everywhere.
+ */
+(function () {
+  try {
+    'use strict';
+
+  if (window.TSIBuddy && window.TSIBuddy.__loaded) return;
+
+  var KEY_LS    = 'tsi_mistral_key';
+  var MODEL_LS  = 'tsi_mistral_model';
+  var ENABLE_LS = 'tsi_buddy_enabled';
+
+  function lsGet(k, fb) { try { var v = localStorage.getItem(k); return v == null ? fb : v; } catch (e) { return fb; } }
+  function lsSet(k, v)  { try { localStorage.setItem(k, v); } catch (e) {} }
+
+  /* ---------- Styles (injected once) ---------- */
+  var STYLE = `
+.tsi-buddy-btn {
+  position: fixed; top: 14px; right: 14px; z-index: 9000;
+  background: rgba(255,255,255,0.95); color: #1a3a5c;
+  border: 1px solid #cbd5e1; border-radius: 999px;
+  padding: 8px 14px; font: 600 13px/1 'Inter', system-ui, sans-serif;
+  box-shadow: 0 2px 6px rgba(15,23,42,0.12);
+  cursor: pointer; display: flex; align-items: center; gap: 8px;
+  transition: transform 0.12s, box-shadow 0.12s;
+}
+.tsi-buddy-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 10px rgba(15,23,42,0.18); }
+.tsi-buddy-btn .tsi-buddy-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: #94a3b8;
+}
+.tsi-buddy-btn.tsi-on .tsi-buddy-dot { background: #16a34a; box-shadow: 0 0 0 2px rgba(34,197,94,0.25); }
+.tsi-buddy-btn.tsi-on { border-color: #16a34a; color: #166534; }
+
+.tsi-buddy-overlay {
+  position: fixed; inset: 0; background: rgba(15,23,42,0.55); z-index: 9100;
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+}
+.tsi-buddy-overlay[hidden] { display: none; }
+
+.tsi-buddy-modal {
+  background: white; border-radius: 12px;
+  max-width: 480px; width: 100%;
+  padding: 24px 26px;
+  box-shadow: 0 20px 60px rgba(15,23,42,0.35);
+  font: 400 14px/1.55 'Inter', system-ui, sans-serif;
+  color: #1e293b;
+}
+.tsi-buddy-modal h3 { margin: 0 0 8px; font-size: 1.2rem; color: #0f172a; }
+.tsi-buddy-modal .tsi-buddy-sub { color: #64748b; font-size: 0.92em; margin: 0 0 16px; }
+.tsi-buddy-modal label { display: block; margin-top: 14px; font-weight: 600; color: #334155; font-size: 0.9em; }
+.tsi-buddy-modal input[type="password"],
+.tsi-buddy-modal select,
+.tsi-buddy-modal textarea {
+  margin-top: 6px; width: 100%; box-sizing: border-box;
+  padding: 9px 12px; border: 1px solid #cbd5e1; border-radius: 6px;
+  font: inherit; color: #1e293b; background: #f8fafc;
+}
+.tsi-buddy-modal input[type="password"] { font-family: ui-monospace, Menlo, monospace; font-size: 0.92em; }
+.tsi-buddy-modal .tsi-buddy-toggle { display: flex; align-items: center; gap: 8px; margin-top: 14px; cursor: pointer; }
+.tsi-buddy-modal .tsi-buddy-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 22px; }
+.tsi-buddy-modal button {
+  font: 600 13px/1 'Inter', system-ui, sans-serif;
+  padding: 9px 16px; border-radius: 6px; border: none; cursor: pointer;
+}
+.tsi-buddy-modal .tsi-buddy-secondary { background: white; color: #475569; border: 1px solid #cbd5e1; }
+.tsi-buddy-modal .tsi-buddy-primary   { background: #1565c0; color: white; }
+.tsi-buddy-modal .tsi-buddy-primary:hover { background: #0d47a1; }
+.tsi-buddy-modal .tsi-buddy-secondary:hover { background: #f1f5f9; }
+.tsi-buddy-modal small { color: #64748b; }
+
+.tsi-buddy-chat {
+  position: fixed; right: 14px; bottom: 14px; z-index: 9000;
+  width: 380px; max-width: calc(100vw - 28px);
+  height: 540px; max-height: calc(100vh - 80px);
+  background: white; border: 1px solid #cbd5e1; border-radius: 12px;
+  box-shadow: 0 12px 40px rgba(15,23,42,0.25);
+  display: flex; flex-direction: column;
+  overflow: hidden;
+  font: 400 14px/1.55 'Inter', system-ui, sans-serif; color: #1e293b;
+}
+.tsi-buddy-chat[hidden] { display: none; }
+.tsi-buddy-chat-head {
+  background: linear-gradient(135deg, #1a3a5c 0%, #1e4d8c 100%);
+  color: white; padding: 12px 14px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.tsi-buddy-chat-head strong { font-size: 0.95em; }
+.tsi-buddy-chat-head small  { color: rgba(255,255,255,0.78); font-size: 0.78em; display: block; margin-top: 2px; }
+.tsi-buddy-chat-head button { background: transparent; border: none; color: white; cursor: pointer; font-size: 1.1em; line-height: 1; padding: 4px 8px; border-radius: 4px; }
+.tsi-buddy-chat-head button:hover { background: rgba(255,255,255,0.16); }
+.tsi-buddy-chat-body {
+  flex: 1 1 auto; overflow-y: auto; padding: 14px 14px 6px;
+  background: #f8fafc;
+}
+.tsi-buddy-bubble {
+  margin: 8px 0; padding: 10px 13px; border-radius: 10px;
+  word-wrap: break-word; overflow-wrap: anywhere; font-size: 0.93em;
+}
+.tsi-buddy-bubble.tsi-user      { background: #e3f2fd; color: #1a3a5c; border-bottom-right-radius: 2px; margin-left: 32px; }
+.tsi-buddy-bubble.tsi-assistant { background: white; border: 1px solid #e2e8f0; margin-right: 32px; }
+.tsi-buddy-bubble .tsi-buddy-role { font-size: 0.72em; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 4px; }
+.tsi-buddy-bubble.tsi-thinking { color: #94a3b8; font-style: italic; }
+/* Markdown typography inside bubbles (rendered for assistant replies). */
+.tsi-buddy-bubble .tsi-buddy-text > * { margin: 0; }
+.tsi-buddy-bubble .tsi-buddy-text > * + * { margin-top: 6px; }
+.tsi-buddy-bubble .tsi-buddy-text p { line-height: 1.55; }
+.tsi-buddy-bubble .tsi-buddy-text strong { font-weight: 700; color: #0f172a; }
+.tsi-buddy-bubble .tsi-buddy-text em { font-style: italic; }
+.tsi-buddy-bubble .tsi-buddy-text ul,
+.tsi-buddy-bubble .tsi-buddy-text ol { padding-left: 22px; }
+.tsi-buddy-bubble .tsi-buddy-text li { margin: 2px 0; }
+.tsi-buddy-bubble .tsi-buddy-text code {
+  background: rgba(15,23,42,0.06); padding: 0 4px; border-radius: 3px;
+  font-family: ui-monospace, Menlo, monospace; font-size: 0.92em;
+}
+.tsi-buddy-bubble .tsi-buddy-text pre {
+  background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px;
+  padding: 8px 10px; overflow-x: auto;
+}
+.tsi-buddy-bubble .tsi-buddy-text pre code { background: transparent; padding: 0; }
+.tsi-buddy-bubble .tsi-buddy-text blockquote {
+  border-left: 3px solid #cbd5e1; padding: 2px 10px; color: #475569;
+  background: #f8fafc; border-radius: 4px;
+}
+.tsi-buddy-bubble .tsi-buddy-text h1,
+.tsi-buddy-bubble .tsi-buddy-text h2,
+.tsi-buddy-bubble .tsi-buddy-text h3,
+.tsi-buddy-bubble .tsi-buddy-text h4 { font-weight: 700; color: #0f172a; }
+.tsi-buddy-bubble .tsi-buddy-text h1 { font-size: 1.05em; }
+.tsi-buddy-bubble .tsi-buddy-text h2 { font-size: 1.0em; }
+.tsi-buddy-bubble .tsi-buddy-text h3,
+.tsi-buddy-bubble .tsi-buddy-text h4 { font-size: 0.95em; }
+.tsi-buddy-bubble .tsi-buddy-text hr { border: none; border-top: 1px solid #e2e8f0; }
+.tsi-buddy-bubble .tsi-buddy-text a { color: #1565c0; text-decoration: underline; }
+.tsi-buddy-error {
+  background: #fee2e2; color: #7f1d1d; border: 1px solid #fecaca;
+  padding: 8px 10px; border-radius: 6px; margin: 8px 14px; font-size: 0.85em;
+}
+.tsi-buddy-chat-foot {
+  border-top: 1px solid #e2e8f0; padding: 10px 12px;
+  display: flex; gap: 8px; align-items: flex-end;
+  background: white;
+}
+.tsi-buddy-chat-foot textarea {
+  flex: 1 1 auto; resize: none; min-height: 36px; max-height: 140px;
+  padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px;
+  font: inherit; color: #1e293b;
+}
+.tsi-buddy-chat-foot button {
+  font: 600 13px/1 'Inter', system-ui, sans-serif;
+  padding: 9px 14px; border-radius: 6px; border: none; cursor: pointer;
+  background: #1565c0; color: white;
+}
+.tsi-buddy-chat-foot button:disabled { background: #94a3b8; cursor: default; }
+.tsi-buddy-chat-foot button:hover:not(:disabled) { background: #0d47a1; }
+.tsi-buddy-startbar {
+  display: flex; gap: 8px; padding: 12px 14px;
+  border-bottom: 1px solid #e2e8f0; background: #fafbfc;
+}
+.tsi-buddy-startbar button {
+  flex: 1 1 auto; font: 600 13px/1 'Inter', system-ui, sans-serif;
+  padding: 9px 12px; border-radius: 6px; border: 1px solid #1565c0;
+  background: white; color: #1565c0; cursor: pointer;
+}
+.tsi-buddy-startbar button:hover { background: #e3f2fd; }
+@media (max-width: 480px) {
+  .tsi-buddy-chat { width: calc(100vw - 16px); right: 8px; bottom: 8px; height: calc(100vh - 90px); }
+}
+`;
+
+  function injectStyles() {
+    if (document.getElementById('tsi-buddy-styles')) return;
+    var s = document.createElement('style');
+    s.id = 'tsi-buddy-styles';
+    s.textContent = STYLE;
+    document.head.appendChild(s);
+  }
+
+  /* ---------- Markdown rendering ---------- */
+  // The buddy returns markdown (bold, italic, lists, code, headers).
+  // We lazily load `marked` from CDN and render assistant replies through it.
+  // Until marked is loaded (or if it fails to load), we fall back to plain
+  // text with newlines preserved as <br>.
+  function loadMarked() {
+    if (window.marked) return Promise.resolve(window.marked);
+    if (window.__tsiMarkedLoading) return window.__tsiMarkedLoading;
+    window.__tsiMarkedLoading = new Promise(function (resolve) {
+      var s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js';
+      s.async = true;
+      s.onload  = function () { resolve(window.marked || null); };
+      s.onerror = function () { resolve(null); };
+      document.head.appendChild(s);
+    });
+    return window.__tsiMarkedLoading;
+  }
+
+  /* ---------- KaTeX (for math in replies) ----------
+     Lazy-load KaTeX + CSS when the host page doesn't already have it, so
+     $...$ / $$...$$ in replies typeset instead of showing raw. */
+  var KATEX_OPTS = {
+    delimiters: [
+      { left: '$$',  right: '$$',  display: true  },
+      { left: '\\[', right: '\\]', display: true  },
+      { left: '\\(', right: '\\)', display: false },
+      { left: '$',   right: '$',   display: false }
+    ],
+    throwOnError: false
+  };
+  function loadKatex() {
+    if (window.katex && window.katex.renderToString) return Promise.resolve(window.katex);
+    if (window.__tsiKatexLoading) return window.__tsiKatexLoading;
+    window.__tsiKatexLoading = new Promise(function (resolve) {
+      if (!document.querySelector('link[data-tsi-katex]')) {
+        var link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = 'https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css';
+        link.setAttribute('data-tsi-katex', '1');
+        document.head.appendChild(link);
+      }
+      var s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js';
+      s.onload  = function () { resolve(window.katex || null); };
+      s.onerror = function () { resolve(null); };
+      document.head.appendChild(s);
+    });
+    return window.__tsiKatexLoading;
+  }
+
+  // Light DOM sanitiser: walks the parsed tree and removes any tags / attrs
+  // that could execute code if the model went rogue. Allow-listing all
+  // safe markdown tags; strip everything else's dangerous attributes.
+  function sanitizeHTML(html) {
+    var div = document.createElement('div');
+    div.innerHTML = html;
+    var deny = ['script', 'style', 'iframe', 'object', 'embed', 'form',
+                'input', 'button', 'textarea', 'select', 'meta', 'link', 'base'];
+    deny.forEach(function (tag) {
+      Array.from(div.getElementsByTagName(tag)).forEach(function (n) { n.remove(); });
+    });
+    Array.from(div.querySelectorAll('*')).forEach(function (n) {
+      Array.from(n.attributes).forEach(function (a) {
+        var name = a.name.toLowerCase();
+        if (name.indexOf('on') === 0) { n.removeAttribute(a.name); return; }
+        if (name === 'href' || name === 'src' || name === 'srcset') {
+          var v = (a.value || '').replace(/\s/g, '');
+          if (/^javascript:/i.test(v) || /^data:text\/html/i.test(v)) {
+            n.removeAttribute(a.name);
+          }
+        }
+      });
+      // External links: open in new tab safely
+      if (n.tagName === 'A' && n.getAttribute('href')) {
+        n.setAttribute('target', '_blank');
+        n.setAttribute('rel', 'noopener noreferrer');
+      }
+    });
+    return div.innerHTML;
+  }
+
+  function escapeHTML(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  function renderContent(text, isAssistant) {
+    var div = document.createElement('div');
+    div.className = 'tsi-buddy-text';
+    var raw = text == null ? '' : String(text);
+    if (isAssistant && window.marked && window.marked.parse) {
+      try {
+        /* Protect math from markdown (it mangles _ * \ inside $…$), then
+           restore + typeset with KaTeX. */
+        var math = [];
+        var protectedSrc = raw
+          .replace(/\$\$([\s\S]+?)\$\$/g, function (_m, body) {
+            math.push({ display: true, tex: body }); return ' @@TSIMATH' + (math.length - 1) + '@@ ';
+          })
+          .replace(/\$([^\$\n]+?)\$/g, function (_m, body) {
+            math.push({ display: false, tex: body }); return '@@TSIMATH' + (math.length - 1) + '@@';
+          });
+        var html = sanitizeHTML(window.marked.parse(protectedSrc, { breaks: true, gfm: true, mangle: false, headerIds: false }));
+        var katexReady = window.katex && window.katex.renderToString;
+        html = html.replace(/@@TSIMATH(\d+)@@/g, function (_m, i) {
+          var item = math[Number(i)];
+          if (!item) return '';
+          if (katexReady) {
+            try { return window.katex.renderToString(item.tex, { displayMode: item.display, throwOnError: false }); }
+            catch (e) {}
+          }
+          var d = item.display ? '$$' : '$';
+          return d + escapeHTML(item.tex) + d;
+        });
+        div.innerHTML = html;
+        if (math.length && !katexReady) {
+          loadKatex().then(function (k) {
+            if (k && window.renderMathInElement) { try { window.renderMathInElement(div, KATEX_OPTS); } catch (e) {} }
+          });
+        }
+        return div;
+      } catch (e) { /* fall through to plain text */ }
+    }
+    // Plain-text fallback (user messages, or assistant before marked loads)
+    div.innerHTML = escapeHTML(raw).replace(/\n/g, '<br>');
+    return div;
+  }
+
+  /* ---------- Streaming Mistral call ---------- */
+  function callMistralChat(apiKey, model, systemPrompt, messages, onDelta) {
+    return fetch('https://api.mistral.ai/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + apiKey, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: model || 'mistral-small-latest',
+        temperature: 0.4,
+        max_tokens: 1500,
+        stream: true,
+        messages: [{ role: 'system', content: systemPrompt }].concat(messages)
+      })
+    }).then(function (r) {
+      if (!r.ok) {
+        return r.text().then(function (t) {
+          throw new Error('Mistral ' + r.status + ': ' + (t || 'request failed'));
+        });
+      }
+      if (!r.body || !r.body.getReader) {
+        return r.json().then(function (data) {
+          if (!data.choices || !data.choices[0]) throw new Error('Mistral returned no choices.');
+          var full = (data.choices[0].message.content || '').trim();
+          if (onDelta) onDelta(full);
+          return full;
+        });
+      }
+      var reader = r.body.getReader();
+      var decoder = new TextDecoder();
+      var buf = '';
+      var full = '';
+      function pump() {
+        return reader.read().then(function (res) {
+          if (res.done) return full.trim();
+          buf += decoder.decode(res.value, { stream: true });
+          var lines = buf.split('\n');
+          buf = lines.pop();
+          for (var i = 0; i < lines.length; i++) {
+            var ln = lines[i];
+            if (ln.indexOf('data: ') !== 0) continue;
+            var s = ln.substring(6).trim();
+            if (s === '[DONE]') return full.trim();
+            try {
+              var d = JSON.parse(s);
+              if (d.choices && d.choices[0] && d.choices[0].delta && d.choices[0].delta.content) {
+                full += d.choices[0].delta.content;
+                if (onDelta) onDelta(full);
+              }
+            } catch (e) {}
+          }
+          return pump();
+        });
+      }
+      return pump();
+    });
+  }
+
+  /* ---------- DOM helpers ---------- */
+  function el(tag, attrs, kids) {
+    var n = document.createElement(tag);
+    if (attrs) for (var k in attrs) {
+      if (k === 'class') n.className = attrs[k];
+      else if (k === 'html') n.innerHTML = attrs[k];
+      else if (k === 'text') n.textContent = attrs[k];
+      else if (k.indexOf('on') === 0 && typeof attrs[k] === 'function') n.addEventListener(k.substring(2), attrs[k]);
+      else if (attrs[k] === true) n.setAttribute(k, '');
+      else if (attrs[k] != null && attrs[k] !== false) n.setAttribute(k, attrs[k]);
+    }
+    if (kids) (Array.isArray(kids) ? kids : [kids]).forEach(function (c) {
+      if (c == null) return;
+      n.appendChild(typeof c === 'string' ? document.createTextNode(c) : c);
+    });
+    return n;
+  }
+
+  /* ---------- Mount ---------- */
+  function mount(opts) {
+    if (!opts || !opts.systemPrompt) {
+      console.warn('TSIBuddy.mount: systemPrompt required');
+      return null;
+    }
+    injectStyles();
+
+    // ---- State (closure-scoped) ----
+    var state = {
+      apiKey:  lsGet(KEY_LS, ''),
+      model:   lsGet(MODEL_LS, 'mistral-small-latest'),
+      enabled: lsGet(ENABLE_LS, '') === '1',
+      messages: [],     // {role, content}
+      pending: '',
+      status:  'idle',  // idle | loading | error
+      error:   '',
+      open:    false    // chat panel visible
+    };
+    if (state.apiKey) state.enabled = true; // having a key implies enabled
+
+    // ---- Floating button ----
+    var btnDot   = el('span', { class: 'tsi-buddy-dot' });
+    var btnLabel = el('span', null, '🤖 TSI Buddy');
+    var btnState = el('span', null, '');
+    var btn = el('button', {
+      class: 'tsi-buddy-btn',
+      title: 'TSI Buddy — your study companion',
+      onclick: function () {
+        if (state.apiKey) toggleChat();
+        else openSettings();
+      }
+    }, [btnDot, btnLabel, btnState]);
+    document.body.appendChild(btn);
+
+    // ---- Settings modal ----
+    var keyInput = el('input', {
+      type: 'password', autocomplete: 'off',
+      placeholder: 'paste your Mistral key (starts with "sk-…")',
+      value: state.apiKey,
+      oninput: function (e) { state.apiKey = e.target.value; }
+    });
+    var modelSelect = el('select', {
+      onchange: function (e) { state.model = e.target.value; }
+    }, ['mistral-small-latest', 'mistral-medium-latest', 'mistral-large-latest'].map(function (m) {
+      var o = el('option', { value: m }, m + (m === 'mistral-small-latest' ? ' (recommended)' : ''));
+      if (m === state.model) o.selected = true;
+      return o;
+    }));
+    var enableBox = el('input', {
+      type: 'checkbox',
+      onchange: function (e) { state.enabled = !!e.target.checked; }
+    });
+    enableBox.checked = state.enabled;
+    var modalCard = el('div', { class: 'tsi-buddy-modal', onclick: function (e) { e.stopPropagation(); } }, [
+      el('h3', null, '🤖 TSI Buddy'),
+      el('p', { class: 'tsi-buddy-sub' }, opts.contextLabel
+        ? ('You are reading: ' + opts.contextLabel + '. The buddy reads the page context and helps you understand worked examples — it does not give you the answer to your homework.')
+        : 'A study companion. The buddy helps you understand the worked examples on this page.'),
+      el('label', { class: 'tsi-buddy-toggle' }, [enableBox, el('span', null, 'Enable TSI Buddy on this page')]),
+      el('label', null, 'Mistral API key'),
+      keyInput,
+      el('label', null, 'Model'),
+      modelSelect,
+      el('p', null, [el('small', null, 'Get a free key at '), el('a', { href: 'https://console.mistral.ai/api-keys/', target: '_blank' }, 'console.mistral.ai'), el('small', null, '. The key stays in your browser only.')]),
+      el('div', { class: 'tsi-buddy-actions' }, [
+        el('button', { class: 'tsi-buddy-secondary', onclick: function () { state.apiKey = ''; keyInput.value = ''; } }, 'Clear key'),
+        el('button', { class: 'tsi-buddy-primary',   onclick: function () { saveSettings(); } }, 'Save')
+      ])
+    ]);
+    var modalOverlay = el('div', { class: 'tsi-buddy-overlay', hidden: true, onclick: function () { closeSettings(); } }, [modalCard]);
+    document.body.appendChild(modalOverlay);
+
+    // ---- Chat panel ----
+    var chatBody = el('div', { class: 'tsi-buddy-chat-body' });
+    var chatErr  = el('div', { class: 'tsi-buddy-error', hidden: true });
+    var inputBox = el('textarea', {
+      rows: 1, placeholder: 'Ask about this page…',
+      onkeydown: function (e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          sendUserMessage();
+        }
+      },
+      oninput: function (e) { state.pending = e.target.value; sendBtn.disabled = !canSend(); autosize(e.target); }
+    });
+    var sendBtn = el('button', {
+      onclick: function () { sendUserMessage(); }
+    }, 'Send');
+    sendBtn.disabled = true;
+
+    var startBar = el('div', { class: 'tsi-buddy-startbar' });
+
+    var chatFoot = el('div', { class: 'tsi-buddy-chat-foot' }, [inputBox, sendBtn]);
+
+    var chatHead = el('div', { class: 'tsi-buddy-chat-head' }, [
+      el('div', null, [
+        el('strong', null, '🤖 TSI Buddy'),
+        opts.contextLabel ? el('small', null, opts.contextLabel) : null
+      ]),
+      el('div', null, [
+        el('button', { title: 'Settings', onclick: function () { openSettings(); } }, '⚙'),
+        el('button', { title: 'Reset chat', onclick: function () { resetChat(); } }, '↺'),
+        el('button', { title: 'Close', onclick: function () { closeChat(); } }, '×')
+      ])
+    ]);
+
+    var chatPanel = el('div', { class: 'tsi-buddy-chat', hidden: true }, [
+      chatHead, startBar, chatErr, chatBody, chatFoot
+    ]);
+    document.body.appendChild(chatPanel);
+
+    // ---- Render ----
+    function refreshButton() {
+      if (state.apiKey && state.enabled) { btn.classList.add('tsi-on'); btnState.textContent = 'ON'; }
+      else                                { btn.classList.remove('tsi-on'); btnState.textContent = 'off'; }
+    }
+    function autosize(t) {
+      t.style.height = 'auto';
+      t.style.height = Math.min(140, Math.max(36, t.scrollHeight)) + 'px';
+    }
+    function canSend() {
+      return !!(state.apiKey && state.enabled && state.pending.trim() && state.status !== 'loading');
+    }
+    function refreshSendBtn() { sendBtn.disabled = !canSend(); }
+    function refreshStartBar() {
+      while (startBar.firstChild) startBar.removeChild(startBar.firstChild);
+      if (state.messages.length > 0) { startBar.style.display = 'none'; return; }
+      startBar.style.display = 'flex';
+      if (opts.openingLine) {
+        startBar.appendChild(el('button', {
+          onclick: function () { startWith(opts.openingLine); }
+        }, '🚀 Start with: "' + opts.openingLine.substring(0, 50) + (opts.openingLine.length > 50 ? '…' : '') + '"'));
+      }
+      startBar.appendChild(el('button', {
+        onclick: function () { startWith('Help me understand the worked example on this page.'); }
+      }, '💡 Generic walkthrough'));
+    }
+    function refreshChat() {
+      while (chatBody.firstChild) chatBody.removeChild(chatBody.firstChild);
+      state.messages.forEach(function (m, i) {
+        var thinking = (state.status === 'loading' && i === state.messages.length - 1 && m.role === 'assistant' && !m.content);
+        var displayText = m.content || (thinking ? '…' : '');
+        var contentDiv = thinking
+          ? (function () { var d = document.createElement('div'); d.className = 'tsi-buddy-text'; d.textContent = '…'; return d; })()
+          : renderContent(displayText, m.role === 'assistant');
+        var bubble = el('div', { class: 'tsi-buddy-bubble tsi-' + m.role }, [
+          el('div', { class: 'tsi-buddy-role' }, m.role === 'assistant' ? '🤖 TSI Buddy' : '🧑 You'),
+          contentDiv
+        ]);
+        if (thinking) bubble.classList.add('tsi-thinking');
+        chatBody.appendChild(bubble);
+      });
+      if (state.status === 'error' && state.error) {
+        chatErr.textContent = 'API error: ' + state.error;
+        chatErr.hidden = false;
+      } else {
+        chatErr.hidden = true;
+      }
+      // scroll to bottom
+      requestAnimationFrame(function () { chatBody.scrollTop = chatBody.scrollHeight; });
+      refreshStartBar();
+      refreshSendBtn();
+    }
+
+    // ---- Behaviour ----
+    function openSettings()  { modalOverlay.hidden = false; setTimeout(function () { keyInput.focus(); }, 50); }
+    function closeSettings() { modalOverlay.hidden = true; }
+    function saveSettings() {
+      lsSet(KEY_LS, state.apiKey || '');
+      lsSet(MODEL_LS, state.model || 'mistral-small-latest');
+      lsSet(ENABLE_LS, state.enabled ? '1' : '');
+      closeSettings();
+      refreshButton();
+      if (state.apiKey && state.enabled) openChat();
+    }
+    function openChat()  { state.open = true; chatPanel.hidden = false; refreshChat(); inputBox.focus(); }
+    function closeChat() { state.open = false; chatPanel.hidden = true; }
+    function toggleChat(){ state.open ? closeChat() : openChat(); }
+    function resetChat() { state.messages = []; state.pending = ''; state.status = 'idle'; state.error = ''; inputBox.value = ''; refreshChat(); }
+    function startWith(line) {
+      inputBox.value = line;
+      state.pending = line;
+      autosize(inputBox);
+      sendUserMessage();
+    }
+    function sendUserMessage() {
+      var draft = (state.pending || '').trim();
+      if (!draft || !state.apiKey || state.status === 'loading') return;
+      var userMsg = { role: 'user', content: draft };
+      state.messages.push(userMsg);
+      state.messages.push({ role: 'assistant', content: '' });
+      state.pending = ''; inputBox.value = ''; autosize(inputBox);
+      state.status = 'loading'; state.error = '';
+      refreshChat();
+      callMistralChat(state.apiKey, state.model, opts.systemPrompt, state.messages.slice(0, -1), function (full) {
+        var last = state.messages[state.messages.length - 1];
+        if (last && last.role === 'assistant') {
+          last.content = full;
+          refreshChat();
+        }
+      }).then(function () {
+        state.status = 'idle';
+        refreshChat();
+      }).catch(function (err) {
+        var last = state.messages[state.messages.length - 1];
+        if (last && last.role === 'assistant' && !last.content) state.messages.pop();
+        state.status = 'error';
+        state.error = (err && err.message) || String(err);
+        refreshChat();
+      });
+    }
+
+    refreshButton();
+    refreshChat();
+
+    // Lazily fetch marked so assistant replies render markdown. If it
+    // arrives mid-conversation, re-render so any plain-text bubbles get
+    // upgraded to formatted ones.
+    loadMarked().then(function (m) { if (m) refreshChat(); });
+
+    // First-time arrival: nudge the modal open if no key set
+    // (but not too aggressively — only on explicit click of the button).
+
+    return {
+      open: openChat, close: closeChat, toggle: toggleChat,
+      reset: resetChat,
+      destroy: function () {
+        try { document.body.removeChild(btn); } catch (e) {}
+        try { document.body.removeChild(modalOverlay); } catch (e) {}
+        try { document.body.removeChild(chatPanel); } catch (e) {}
+      }
+    };
+  }
+
+  window.TSIBuddy = { mount: mount, __loaded: true };
+  } catch (e) {
+    try { console.error('TSIBuddy bootstrap error', e); } catch (_) {}
+  }
+})();
+</script>
+
+<div class="sheet">
+
+  <header class="titleblock">
+    <div class="tb-eyebrow">
+      <span>Lecture 02 · Functional Programming · TSI</span>
+      <span>Aleksey Vesyoliy</span>
+    </div>
+    <div class="tb-main">
+      <h1>Functional Programming Concepts</h1>
+      <p class="tb-sub">Expressions over statements, pure functions, and the lambda-calculus roots of the functional style.</p>
+    </div>
+    <div class="tb-grid">
+      <div class="tb-cell"><span class="k">Drawing No.</span><span class="v">FP-02</span></div>
+      <div class="tb-cell"><span class="k">Revision</span><span class="v">B · 2022</span></div>
+      <div class="tb-cell"><span class="k">Scale</span><span class="v">1 : 1 — concepts</span></div>
+      <div class="tb-cell"><span class="k">Course</span><span class="v">Functional Programming</span></div>
+    </div>
+  </header>
+
+  <div class="opening">
+    <span class="label">Today's brief</span>
+    Today we step away from the imperative habits of assigning and mutating, and we ask a different question: what if a program were just functions applied to immutable values? We'll start by separating expressions from statements, trace the idea back to Alonzo Church's lambda calculus, and then build up the pillars of the functional style — pure functions, referential transparency, immutability, and recursion. Along the way you'll see why purity buys us parallelization, memoization, and laziness almost for free. Don't aim to be an FP zealot — aim to be a better programmer.
+  </div>
+
+  <nav class="contents">
+    <h2>On this sheet</h2>
+    <ol>
+      <li><span class="num">0</span><a href="#overview">What this lecture covers</a></li>
+      <li><span class="num">1</span><a href="#expressions-vs-statements">Expressions vs. Statements</a></li>
+      <li><span class="num">2</span><a href="#lambda-calculus">Lambda Calculus</a></li>
+      <li><span class="num">3</span><a href="#pure-functions">Pure Functions</a></li>
+      <li><span class="num">4</span><a href="#parallelization-memoization-laziness">Parallelization, memoization, laziness</a></li>
+      <li><span class="num">5</span><a href="#recursion">Recursion instead of loops</a></li>
+      <li><span class="num">6</span><a href="#referential-transparency-immutability">Referential transparency &amp; immutability</a></li>
+      <li><span class="num">7</span><a href="#first-class-higher-order">First-class &amp; higher-order functions</a></li>
+      <li><span class="num">8</span><a href="#advantages-disadvantages">Advantages &amp; disadvantages</a></li>
+      <li><span class="num">★</span><a href="#practice">Practice — try these</a></li>
+    </ol>
+  </nav>
+
+  <!-- ===== Section 0 ===== -->
+  <section class="lecture" id="overview">
+    <div class="sec-head">
+      <span class="sec-num">0</span>
+      <h2 class="sec-title">What this lecture covers</h2>
+    </div>
+    <p>This lecture introduces the core ideas of <strong>functional programming (FP)</strong>: building software out of functions over immutable variables. We move from a knowledge recap of <em>expressions vs. statements</em> into the theoretical foundation of <strong>lambda calculus</strong>, and then through the main FP concepts — pure functions, parallelization, memoization, laziness, recursion, referential transparency, immutability, and higher-order functions.</p>
+    <p>We close with the practical trade-offs (advantages and disadvantages) of the pure-functional style and a short group activity to put the ideas into practice.</p>
+
+    <p class="voice"><em>The goal isn't to pick a tribe — OOP or FP — it's to use functions to the best effect for clean, maintainable software.</em></p>
+
+    <div class="callout tone-blue">
+      <div class="co-title">One-line definition</div>
+      <p class="co-body">Functional programming is all about building functions for immutable variables, using functions to the best effect for creating clean and maintainable software.</p>
+    </div>
+  </section>
+
+  <!-- ===== Section 1 ===== -->
+  <section class="lecture" id="expressions-vs-statements">
+    <div class="sec-head">
+      <span class="sec-num">1</span>
+      <h2 class="sec-title">Expressions vs. Statements</h2>
+    </div>
+    <p>An <strong>expression</strong> is a combination of values and functions that the compiler combines and interprets to produce a <em>new value</em>. A <strong>statement</strong> is a standalone unit of execution that doesn't return anything.</p>
+    <p>The useful way to think about it: the purpose of an <em>expression</em> is to create a value (possibly with some side-effects), while the sole purpose of a <em>statement</em> is to have side-effects. Functional programming leans heavily on expressions, because an expression <em>evaluates to a value</em> rather than mutating state.</p>
+
+    <p class="voice"><em>If it produces a value, it's an expression. If its whole point is to do something on the side, it's a statement.</em></p>
+
+    <div class="callout tone-teal">
+      <div class="co-title">Why it matters for FP</div>
+      <p class="co-body">FP prefers expressions because evaluating an expression yields a value without needing to assign and mutate variables.</p>
+    </div>
+
+    <div class="codeblock">
+      <div class="cb-label">if/then/else as a statement (imperative)</div>
+      <pre><code>let result;
+if (x &gt; 0) {
+  result = "positive";
+} else {
+  result = "non-positive";
+}
+// the if-block returns nothing; it only assigns `result`</code></pre>
+    </div>
+
+    <div class="codeblock">
+      <div class="cb-label">if/then/else as an expression (functional)</div>
+      <pre><code>const result = x &gt; 0 ? "positive" : "non-positive";
+// the whole construct evaluates to a value</code></pre>
+    </div>
+
+    <p class="widget-leadin"><span class="wl-tag">Interactive</span>Now you choose how to write the same branching logic and watch what comes out the other end. One form evaluates to a value you can bind; the others run purely to assign or print. Decide which one fits the functional style and see why.</p>
+    <div class="widget-frame">
+      <div id="expr-vs-stmt-picker"></div>
+    </div>
+  </section>
+
+  <!-- ===== Section 2 ===== -->
+  <section class="lecture" id="lambda-calculus">
+    <div class="sec-head">
+      <span class="sec-num">2</span>
+      <h2 class="sec-title">Lambda Calculus</h2>
+    </div>
+    <p><strong>Lambda calculus</strong> is a theoretical framework that describes functions and their evaluation. Instead of statements, it makes use of <em>expressions</em>: unlike a statement, which is executed to assign variables, the evaluation of an expression produces a value.</p>
+    <p>Developed by <strong>Alonzo Church</strong>, lambda calculus forms the basis of almost all functional programming languages in use today. It is similar in spirit to the Turing machine that laid the foundation for the imperative style — and remarkably, it can be seen as the most succinct programming language of them all: anything computable can be expressed in it.</p>
+
+    <p>In the lecture's notation we write the identity function as $\lambda x.\, x$ — given any input it returns that input unchanged. Applying an "add one" function to 5, written $(\lambda x.\, x + 1)\, 5$, evaluates to 6. Here $x$ is the bound variable, the body after the dot is the result, and juxtaposition denotes application:</p>
+
+    $$(\lambda x.\, x + 1)\, 5 \;=\; 6.$$
+
+    <p class="voice"><em>Lambda calculus is to functional programming what the Turing machine is to imperative programming — the foundation underneath the whole style.</em></p>
+
+    <div class="callout tone-purple">
+      <div class="co-title">Three things to remember</div>
+      <p class="co-body">It describes functions and their evaluation; it is computationally complete (anything computable is computable in it); and it underpins nearly every functional language.</p>
+    </div>
+
+    <div class="codeblock">
+      <div class="cb-label">identity and a simple function in lambda notation</div>
+      <pre><code>λx. x          -- the identity function
+(λx. x + 1) 5  -- apply 'add one' to 5, evaluates to 6</code></pre>
+    </div>
+
+    <p class="widget-leadin"><span class="wl-tag">Interactive</span>Now you feed in a lambda term and step through it: we find the redex, substitute the argument for the bound variable, and reduce until no more applications remain. You'll see for yourself that evaluating an expression produces a value — the whole point Church built the calculus around.</p>
+    <div class="widget-frame">
+      <div id="lambda-beta-reducer"></div>
+    </div>
+  </section>
+
+  <!-- ===== Section 3 ===== -->
+  <section class="lecture" id="pure-functions">
+    <div class="sec-head">
+      <span class="sec-num">3</span>
+      <h2 class="sec-title">Pure Functions</h2>
+    </div>
+    <p>A <strong>pure function</strong> is a function whose return value is determined <em>only</em> by its input values, without observable side effects. Pure functions have two important properties:</p>
+    <ul>
+      <li>They <strong>always produce the same output for the same arguments</strong>, regardless of any other factors (this is tied to immutability).</li>
+      <li>They are <strong>deterministic</strong> and have <strong>no side-effects</strong> — they don't modify their arguments or global variables.</li>
+    </ul>
+    <p>Because of this, programs built in the functional paradigm are easy to debug, and pure functions make writing concurrent applications easier.</p>
+
+    <p class="voice"><em>Same inputs, same output, no surprises — that's the whole promise of purity.</em></p>
+
+    <div class="callout tone-green">
+      <div class="co-title">Pays off in concurrency</div>
+      <p class="co-body">Because pure functions never touch shared state, they make concurrent applications easier to write and reason about.</p>
+    </div>
+
+    <div class="codeblock">
+      <div class="cb-label">pure vs. impure</div>
+      <pre><code>// pure: output depends only on inputs, no side effects
+function add(a, b) {
+  return a + b;
+}
+
+// impure: reads/writes external state
+let total = 0;
+function addToTotal(x) {
+  total += x;      // side effect
+  return total;    // depends on hidden state
+}</code></pre>
+    </div>
+  </section>
+
+  <!-- ===== Section 4 ===== -->
+  <section class="lecture" id="parallelization-memoization-laziness">
+    <div class="sec-head">
+      <span class="sec-num">4</span>
+      <h2 class="sec-title">What purity buys: parallelization, memoization, laziness</h2>
+    </div>
+    <p>Purity isn't just tidiness — it unlocks concrete optimizations.</p>
+    <p><strong>Parallelization.</strong> Pure functions can always be parallelized. In the slide example, a sequential <code>#map</code> took 10 seconds while the parallel <code>#pmap</code> version took only 2.5 seconds — but we can only swap <code>#map</code> for <code>#pmap</code> if we <em>know</em> the function called is pure.</p>
+    <p><strong>Memoization.</strong> Because pure functions are referentially transparent, we only need to compute their output once for given inputs. Caching and reusing that result is called <em>memoization</em>, and it can only be done safely with pure functions.</p>
+    <p><strong>Laziness.</strong> Invoking a pure function specifies a dependency: this output depends on these inputs. But if you never use the output, and the function can't cause side effects, it doesn't matter whether it's called at all — so a smart system can be <strong>lazy</strong> and optimize the call away. With <em>lazy evaluation</em>, only the values actually needed are computed; the rest is ignored.</p>
+
+    <p class="voice"><em>When the code is written in a functional style, a capable compiler can memoize results, parallelize instructions, and wait before evaluating — all because it can trust your functions.</em></p>
+
+    <div class="callout tone-amber">
+      <div class="co-title">The catch</div>
+      <p class="co-body">Every one of these optimizations depends on purity. Swap in parallel or cached evaluation for an impure function and you'll get wrong, non-deterministic results.</p>
+    </div>
+
+    <div class="codeblock">
+      <div class="cb-label">parallel map only when the function is pure</div>
+      <pre><code>results = map  pureFn collection   -- ~10s, sequential
+results = pmap pureFn collection   -- ~2.5s, parallel (safe: pureFn is pure)</code></pre>
+    </div>
+  </section>
+
+  <!-- ===== Section 5 ===== -->
+  <section class="lecture" id="recursion">
+    <div class="sec-head">
+      <span class="sec-num">5</span>
+      <h2 class="sec-title">Recursion instead of loops</h2>
+    </div>
+    <p>Functional programming languages have no <code>for</code> or <code>while</code> loops. Instead, they <strong>rely on recursion for iteration</strong>.</p>
+    <p>Recursion is implemented using recursive functions, which repetitively call themselves until a <strong>base case</strong> is reached. The base case stops the recursion; every recursive call should make progress toward it. The standard recursive definition of factorial captures the shape exactly — $n! = n \times (n-1)!$ for $n > 0$, with base case $0! = 1$.</p>
+
+    <p class="voice"><em>No loop counters to mutate — just a function that calls itself with a smaller problem until it bottoms out.</em></p>
+
+    <div class="callout tone-blue">
+      <div class="co-title">Mind the base case</div>
+      <p class="co-body">Without a reachable base case, a recursive function never terminates. Each call must move closer to that stopping condition.</p>
+    </div>
+
+    <div class="codeblock">
+      <div class="cb-label">factorial by recursion (no loops)</div>
+      <pre><code>function factorial(n) {
+  if (n === 0) return 1;     // base case
+  return n * factorial(n - 1); // recursive case
+}</code></pre>
+    </div>
+
+    <p class="widget-leadin"><span class="wl-tag">Interactive</span>Now you pick an n and watch factorial(n) recurse: each call pushes a frame that waits, the base case stops the descent, and the answers multiply back up as the stack unwinds. This is iteration without a single mutable loop counter.</p>
+    <div class="widget-frame">
+      <div id="recursion-callstack-tracer"></div>
+    </div>
+  </section>
+
+  <!-- ===== Section 6 ===== -->
+  <section class="lecture" id="referential-transparency-immutability">
+    <div class="sec-head">
+      <span class="sec-num">6</span>
+      <h2 class="sec-title">Referential transparency &amp; immutability</h2>
+    </div>
+    <p><strong>Referential transparency</strong> means a variable, once defined, isn't allowed to change the value it holds throughout the program's execution. It assures that the same language expression always gives the same output — and because of this, any variable can be safely replaced by its actual value at any point in the program.</p>
+    <p>Functional programs have no assignment statements. To store additional values you must <strong>define new variables</strong> rather than reassign existing ones, so the state of a variable is <em>constant at any moment in time</em>. This is the same idea as <strong>immutability</strong>: once a variable is initialized it cannot be modified; you can only create a new variable. The immutable nature of variables preserves the state throughout the program's execution and eliminates undesired effects.</p>
+
+    <p class="voice"><em>If the same expression always means the same value, you can reason about — and rewrite — your program with the confidence of algebra.</em></p>
+
+    <div class="callout tone-green">
+      <div class="co-title">Substitution model</div>
+      <p class="co-body">Referential transparency lets you replace any expression with its value (and vice versa) without changing the program's meaning.</p>
+    </div>
+
+    <div class="codeblock">
+      <div class="cb-label">create a new value, never mutate</div>
+      <pre><code>const xs = [1, 2, 3];
+const ys = [...xs, 4]; // new array; xs is untouched
+// xs === [1,2,3], ys === [1,2,3,4]</code></pre>
+    </div>
+  </section>
+
+  <!-- ===== Section 7 ===== -->
+  <section class="lecture" id="first-class-higher-order">
+    <div class="sec-head">
+      <span class="sec-num">7</span>
+      <h2 class="sec-title">First-class &amp; higher-order functions</h2>
+    </div>
+    <p>In the functional style, functions are treated as values — they are <strong>first-class functions</strong>. This means they can be passed to other functions as parameters, returned from functions, or stored in data structures, just like any ordinary value.</p>
+    <p>A <strong>higher-order function</strong> is a function that takes other functions as arguments and/or returns functions. First-class functions are what make higher-order functions possible in functional programming languages.</p>
+
+    <p class="voice"><em>Once functions are just values, you can build functions that build functions — composition becomes the main tool.</em></p>
+
+    <div class="callout tone-purple">
+      <div class="co-title">First-class ⇒ higher-order</div>
+      <p class="co-body">Because functions are first-class values, you can write higher-order functions like map, filter, and reduce that take a function as input.</p>
+    </div>
+
+    <div class="codeblock">
+      <div class="cb-label">a higher-order function that takes a function</div>
+      <pre><code>const map = (fn, xs) =&gt; xs.map(fn);
+const double = x =&gt; x * 2;
+map(double, [1, 2, 3]); // [2, 4, 6]</code></pre>
+    </div>
+  </section>
+
+  <!-- ===== Section 8 ===== -->
+  <section class="lecture" id="advantages-disadvantages">
+    <div class="sec-head">
+      <span class="sec-num">8</span>
+      <h2 class="sec-title">Advantages &amp; disadvantages of pure functions</h2>
+    </div>
+    <p><strong>Advantages.</strong> Because pure functions don't change any state and depend entirely on their input, they are simple to understand — their return value <em>is</em> their output, and their signature tells you the argument and return types. Avoiding changes to outside data makes concurrency efficacious. Purity supports lazy evaluation (compute and store a value only when required), produces no hidden output (making debugging and testing easier), and treating functions as values that can be passed around enhances code readability.</p>
+    <p><strong>Disadvantages.</strong> Immutable values combined with recursion might reduce performance. In some cases writing pure functions reduces code readability. Although writing pure functions is easy, combining them with the rest of the application and with I/O operations is hard. And writing programs recursively, in place of loops, can be a daunting task.</p>
+
+    <p class="voice"><em>Purity is a trade: you gain reasoning power, testability, and concurrency, but you pay in performance and in the friction of dealing with the messy, side-effecting real world.</em></p>
+
+    <div class="callout tone-green">
+      <div class="co-title">Strengths</div>
+      <p class="co-body">Easy to understand and test, no hidden output, friendly to concurrency, supports lazy evaluation, and improves readability via functions-as-values.</p>
+    </div>
+
+    <div class="callout tone-red">
+      <div class="co-title">Costs</div>
+      <p class="co-body">Immutability plus recursion can hurt performance; integrating pure code with I/O is hard; recursive style can be harder to write than loops.</p>
+    </div>
+
+    <p class="widget-leadin"><span class="wl-tag">Self-check</span>Now you test yourself on the payoff of purity: four questions on why pure functions can be parallelized, memoized, and evaluated lazily — and what referential transparency actually licenses you to do.</p>
+    <div class="widget-frame">
+      <div id="purity-payoff-quiz"></div>
+    </div>
+  </section>
+
+  <!-- ===== Homework ===== -->
+  <section class="homework" id="practice">
+    <h2>Practice — try these on your own</h2>
+    <p class="hw-sub">Small activities to test your grip on today's ideas. Try each one first, then reveal the worked solution to compare. Nothing here is handed in — it's purely for your own checking.</p>
+
+    <div class="hw-item">
+      <h3>1 · Classify expressions vs. statements</h3>
+      <div class="hw-body">
+        <p>For each fragment below, decide whether it is an <strong>expression</strong> (produces a value) or a <strong>statement</strong> (executed for its side-effect, returns nothing). Justify each answer in one phrase.</p>
+        <div class="codeblock">
+          <div class="cb-label">fragments to classify</div>
+          <pre><code>(a) 3 + 4 * 2
+(b) let y = 10;
+(c) x &gt; 0 ? "pos" : "neg"
+(d) console.log("hi");
+(e) Math.max(a, b)</code></pre>
+        </div>
+      </div>
+      <div class="hw-selfcheck">
+        <span class="hw-selfcheck-label">Self-check after you've tried</span>
+        <ul>
+          <li>Each item is labelled either 'expression' or 'statement'.</li>
+          <li>Ask yourself 'does this evaluate to a value I could assign to a variable?' — if yes, it's an expression.</li>
+          <li>A fragment whose only job is a side-effect (assignment, printing) is a statement.</li>
+        </ul>
+      </div>
+      <details class="hw-solution">
+        <summary>Show worked solution</summary>
+        <div class="hw-solution-body">
+          <p>Recall the rule: an <strong>expression</strong> combines values and functions to produce a <em>new value</em>; a <strong>statement</strong> is a standalone unit of execution whose purpose is a side-effect and which returns nothing.</p>
+          <ul>
+            <li><strong>(a) <code>3 + 4 * 2</code> → expression.</strong> It evaluates to the value <code>11</code>.</li>
+            <li><strong>(b) <code>let y = 10;</code> → statement.</strong> Its purpose is the side-effect of binding <code>y</code>; the declaration itself returns nothing.</li>
+            <li><strong>(c) <code>x &gt; 0 ? "pos" : "neg"</code> → expression.</strong> The ternary evaluates to one of the two string values, so it can be assigned.</li>
+            <li><strong>(d) <code>console.log("hi");</code> → statement.</strong> Its whole point is the side-effect of printing; it yields no useful value.</li>
+            <li><strong>(e) <code>Math.max(a, b)</code> → expression.</strong> A function application that produces a value (the larger of <code>a</code> and <code>b</code>).</li>
+          </ul>
+          <p><strong>Result:</strong> expressions are (a), (c), (e); statements are (b), (d). The discriminating question is always <em>"does evaluating this produce a value?"</em></p>
+        </div>
+      </details>
+    </div>
+
+    <div class="hw-item">
+      <h3>2 · Spot the impurity and fix it</h3>
+      <div class="hw-body">
+        <p>The function below is <strong>not pure</strong>. Identify <em>why</em> it violates purity, then rewrite it so that its return value depends only on its inputs and it causes no observable side effects.</p>
+        <div class="codeblock">
+          <div class="cb-label">impure function</div>
+          <pre><code>let count = 0;
+function tag(label) {
+  count += 1;
+  return label + "-" + count;
+}</code></pre>
+        </div>
+      </div>
+      <div class="hw-selfcheck">
+        <span class="hw-selfcheck-label">Self-check after you've tried</span>
+        <ul>
+          <li>You named at least one side-effect (mutating <code>count</code>) and the hidden-state dependency.</li>
+          <li>Your rewritten function returns the same output for the same arguments.</li>
+          <li>The rewrite touches no variable declared outside it.</li>
+        </ul>
+      </div>
+      <details class="hw-solution">
+        <summary>Show worked solution</summary>
+        <div class="hw-solution-body">
+          <p><strong>Why it's impure.</strong> A pure function's return value must be determined <em>only</em> by its inputs, with no observable side effects. <code>tag</code> breaks this on two counts:</p>
+          <ul>
+            <li>It <strong>mutates external state</strong> (<code>count += 1</code>) — a side effect.</li>
+            <li>Its output <strong>depends on hidden state</strong>: calling <code>tag("a")</code> twice gives <code>"a-1"</code> then <code>"a-2"</code>. Same input, different output ⇒ not deterministic, not referentially transparent.</li>
+          </ul>
+          <p><strong>Fix.</strong> Make the counter an explicit input and return the next value alongside the result, so nothing outside the function changes:</p>
+          <div class="codeblock">
+            <div class="cb-label">pure rewrite</div>
+            <pre><code>function tag(label, count) {
+  return { value: label + "-" + (count + 1), count: count + 1 };
+}</code></pre>
+          </div>
+          <p>Now <code>tag("a", 0)</code> always yields <code>{ value: "a-1", count: 1 }</code>. The caller threads the new <code>count</code> forward instead of relying on a mutable global. <strong>Result:</strong> same inputs ⇒ same output, no external mutation — the function is pure and could be safely memoized or parallelized.</p>
+        </div>
+      </details>
+    </div>
+
+    <div class="hw-item">
+      <h3>3 · Turn a loop into recursion</h3>
+      <div class="hw-body">
+        <p>Functional languages replace <code>for</code>/<code>while</code> loops with <strong>recursion</strong>. Rewrite this imperative sum as a recursive function with an explicit base case, and state what the base case is and how each call makes progress toward it.</p>
+        <div class="codeblock">
+          <div class="cb-label">imperative sum</div>
+          <pre><code>function sum(xs) {
+  let total = 0;
+  for (const x of xs) total += x;
+  return total;
+}</code></pre>
+        </div>
+      </div>
+      <div class="hw-selfcheck">
+        <span class="hw-selfcheck-label">Self-check after you've tried</span>
+        <ul>
+          <li>Your function has a clearly identified base case (empty list → 0).</li>
+          <li>Each recursive call is made on a strictly smaller input.</li>
+          <li>No mutable accumulator variable is reassigned.</li>
+          <li><code>sum([1,2,3])</code> returns 6.</li>
+        </ul>
+      </div>
+      <details class="hw-solution">
+        <summary>Show worked solution</summary>
+        <div class="hw-solution-body">
+          <p>Iteration in FP is expressed by a function that calls itself until a <strong>base case</strong> stops it. For summing a list:</p>
+          <ul>
+            <li><strong>Base case:</strong> an empty list sums to <code>0</code>.</li>
+            <li><strong>Recursive case:</strong> the sum of a non-empty list is its first element plus the sum of the rest.</li>
+            <li><strong>Progress:</strong> each call drops the head, so the list shrinks toward the empty base case and the recursion terminates.</li>
+          </ul>
+          <div class="codeblock">
+            <div class="cb-label">recursive sum</div>
+            <pre><code>function sum(xs) {
+  if (xs.length === 0) return 0;        // base case
+  const [head, ...tail] = xs;           // split off the first element
+  return head + sum(tail);              // recursive case
+}</code></pre>
+          </div>
+          <p>Tracing <code>sum([1, 2, 3])</code>:</p>
+          $$\text{sum}([1,2,3]) = 1 + \text{sum}([2,3]) = 1 + (2 + \text{sum}([3])) = 1 + (2 + (3 + \text{sum}([\,]))) = 1 + 2 + 3 + 0 = 6.$$
+          <p><strong>Result:</strong> <code>6</code>, with no mutable accumulator — only function application and the base case to terminate.</p>
+        </div>
+      </details>
+    </div>
+
+    <div class="hw-item">
+      <h3>4 · Write a higher-order function</h3>
+      <div class="hw-body">
+        <p>Functions are <em>first-class values</em>, so they can be passed as arguments. Write a higher-order function <code>applyTwice(fn, x)</code> that returns the result of applying <code>fn</code> to <code>x</code>, and then to that result again — i.e. <code>fn(fn(x))</code>. Then evaluate <code>applyTwice(n =&gt; n + 3, 10)</code> by hand.</p>
+      </div>
+      <div class="hw-selfcheck">
+        <span class="hw-selfcheck-label">Self-check after you've tried</span>
+        <ul>
+          <li><code>applyTwice</code> takes a function as its first argument.</li>
+          <li>It applies that function exactly twice, feeding the first result into the second call.</li>
+          <li>Your hand evaluation of <code>applyTwice(n =&gt; n + 3, 10)</code> gives 16.</li>
+        </ul>
+      </div>
+      <details class="hw-solution">
+        <summary>Show worked solution</summary>
+        <div class="hw-solution-body">
+          <p>A <strong>higher-order function</strong> takes another function as an argument and/or returns one. Here <code>applyTwice</code> takes the function <code>fn</code> as a first-class value and applies it twice:</p>
+          <div class="codeblock">
+            <div class="cb-label">applyTwice</div>
+            <pre><code>function applyTwice(fn, x) {
+  return fn(fn(x));
+}</code></pre>
+          </div>
+          <p><strong>Hand evaluation of <code>applyTwice(n =&gt; n + 3, 10)</code>.</strong> Let <code>fn = n =&gt; n + 3</code>.</p>
+          <ul>
+            <li>Inner call: <code>fn(10) = 10 + 3 = 13</code>.</li>
+            <li>Outer call: <code>fn(13) = 13 + 3 = 16</code>.</li>
+          </ul>
+          <p>So <code>applyTwice(n =&gt; n + 3, 10)</code> evaluates to <strong>16</strong>. Because <code>fn</code> here is pure, <code>applyTwice</code> is itself pure: the same <code>fn</code> and <code>x</code> will always yield the same answer.</p>
+        </div>
+      </details>
+    </div>
+  </section>
+
+  <footer class="sheet-footer">
+    <span>FP-02 · Functional Programming Concepts · Aleksey Vesyoliy · TSI</span>
+    <span>Sheet rev. B — "Be a better programmer."</span>
+  </footer>
+
+</div>
+
+<!-- widget: lambda-beta-reducer · rebuilt 2026-06-04T15:54:51.513Z -->
+<script type="text/babel">
+(function () {
+  try {
+    const { useState, useEffect, useRef, useMemo } = React;
+
+    // ---------- parser ----------
+    function tokenize(src) {
+      const toks = [];
+      let i = 0;
+      const isIdStart = c => /[A-Za-z_]/.test(c);
+      const isId = c => /[A-Za-z0-9_]/.test(c);
+      while (i < src.length) {
+        const c = src[i];
+        if (/\s/.test(c)) { i++; continue; }
+        if (c === 'λ' || c === '\\') { toks.push({ t: 'LAM' }); i++; continue; }
+        if (c === '.') { toks.push({ t: 'DOT' }); i++; continue; }
+        if (c === '(') { toks.push({ t: 'LP' }); i++; continue; }
+        if (c === ')') { toks.push({ t: 'RP' }); i++; continue; }
+        if (c === '+') { toks.push({ t: 'PLUS' }); i++; continue; }
+        if (/[0-9]/.test(c)) {
+          let j = i; while (j < src.length && /[0-9]/.test(src[j])) j++;
+          toks.push({ t: 'NUM', v: parseInt(src.slice(i, j), 10) }); i = j; continue;
+        }
+        if (isIdStart(c)) {
+          let j = i; while (j < src.length && isId(src[j])) j++;
+          toks.push({ t: 'ID', v: src.slice(i, j) }); i = j; continue;
+        }
+        throw new Error('Unexpected character: ' + c);
+      }
+      return toks;
+    }
+
+    function parse(src) {
+      const toks = tokenize(src);
+      let p = 0;
+      const peek = () => toks[p];
+      const next = () => toks[p++];
+      const expect = t => { const k = next(); if (!k || k.t !== t) throw new Error('Expected ' + t); return k; };
+      function parseExpr() { return parseAdd(); }
+      function parseAdd() {
+        let left = parseApp();
+        while (peek() && peek().t === 'PLUS') { next(); left = { type: 'add', left, right: parseApp() }; }
+        return left;
+      }
+      function startsAtom() {
+        const k = peek();
+        return k && (k.t === 'LAM' || k.t === 'LP' || k.t === 'ID' || k.t === 'NUM');
+      }
+      function parseApp() {
+        let left = parseAtom();
+        while (startsAtom()) { left = { type: 'app', fn: left, arg: parseAtom() }; }
+        return left;
+      }
+      function parseAtom() {
+        const k = peek();
+        if (!k) throw new Error('Unexpected end of input');
+        if (k.t === 'LAM') {
+          next();
+          const param = expect('ID').v;
+          expect('DOT');
+          const body = parseExpr();
+          return { type: 'abs', param, body };
+        }
+        if (k.t === 'LP') { next(); const e = parseExpr(); expect('RP'); return e; }
+        if (k.t === 'NUM') { next(); return { type: 'num', value: k.v }; }
+        if (k.t === 'ID') { next(); return { type: 'var', name: k.v }; }
+        throw new Error('Unexpected token');
+      }
+      const e = parseExpr();
+      if (p !== toks.length) throw new Error('Trailing input after expression');
+      return e;
+    }
+
+    // ---------- reduction ----------
+    function clone(n) {
+      if (n.type === 'var') return { type: 'var', name: n.name };
+      if (n.type === 'num') return { type: 'num', value: n.value };
+      if (n.type === 'abs') return { type: 'abs', param: n.param, body: clone(n.body) };
+      if (n.type === 'app') return { type: 'app', fn: clone(n.fn), arg: clone(n.arg) };
+      if (n.type === 'add') return { type: 'add', left: clone(n.left), right: clone(n.right) };
+    }
+    function freeVars(n) {
+      if (n.type === 'var') return new Set([n.name]);
+      if (n.type === 'num') return new Set();
+      if (n.type === 'abs') { const s = freeVars(n.body); s.delete(n.param); return s; }
+      if (n.type === 'app') return new Set([...freeVars(n.fn), ...freeVars(n.arg)]);
+      if (n.type === 'add') return new Set([...freeVars(n.left), ...freeVars(n.right)]);
+    }
+    function freshName(base, used) {
+      let cand = base; let k = 1;
+      while (used.has(cand)) { cand = base + k; k++; }
+      return cand;
+    }
+    function subst(node, name, val) {
+      if (node.type === 'var') return node.name === name ? clone(val) : node;
+      if (node.type === 'num') return node;
+      if (node.type === 'app') return { type: 'app', fn: subst(node.fn, name, val), arg: subst(node.arg, name, val) };
+      if (node.type === 'add') return { type: 'add', left: subst(node.left, name, val), right: subst(node.right, name, val) };
+      if (node.type === 'abs') {
+        if (node.param === name) return node; // shadowed
+        const fv = freeVars(val);
+        if (fv.has(node.param)) {
+          const used = new Set([...fv, ...freeVars(node.body)]); used.add(name);
+          const fresh = freshName(node.param, used);
+          const renamed = subst(node.body, node.param, { type: 'var', name: fresh });
+          return { type: 'abs', param: fresh, body: subst(renamed, name, val) };
+        }
+        return { type: 'abs', param: node.param, body: subst(node.body, name, val) };
+      }
+    }
+    function findRedex(node) {
+      if (node.type === 'app') {
+        if (node.fn.type === 'abs') return node;
+        return findRedex(node.fn) || findRedex(node.arg);
+      }
+      if (node.type === 'add') {
+        if (node.left.type === 'num' && node.right.type === 'num') return node;
+        return findRedex(node.left) || findRedex(node.right);
+      }
+      if (node.type === 'abs') return findRedex(node.body);
+      return null;
+    }
+    function reduceNode(redex) {
+      if (redex.type === 'app') return subst(redex.fn.body, redex.fn.param, redex.arg);
+      if (redex.type === 'add') return { type: 'num', value: redex.left.value + redex.right.value };
+    }
+    function reduceWith(root, redex) {
+      function go(n) {
+        if (n === redex) return reduceNode(redex);
+        if (n.type === 'app') return { type: 'app', fn: go(n.fn), arg: go(n.arg) };
+        if (n.type === 'add') return { type: 'add', left: go(n.left), right: go(n.right) };
+        if (n.type === 'abs') return { type: 'abs', param: n.param, body: go(n.body) };
+        return n;
+      }
+      return go(root);
+    }
+    function buildFrames(src) {
+      let cur = parse(src);
+      const list = [];
+      let guard = 0;
+      while (guard < 80) {
+        const redex = findRedex(cur);
+        list.push({ term: cur, redex });
+        if (!redex) break;
+        cur = reduceWith(cur, redex);
+        guard++;
+      }
+      return list;
+    }
+
+    // ---------- pretty print ----------
+    function precOf(n) {
+      if (n.type === 'var' || n.type === 'num') return 4;
+      if (n.type === 'app') return 3;
+      if (n.type === 'add') return 2;
+      return 1;
+    }
+    function stringify(node, minPrec) {
+      const prec = precOf(node);
+      let s;
+      if (node.type === 'var') s = node.name;
+      else if (node.type === 'num') s = String(node.value);
+      else if (node.type === 'abs') s = 'λ' + node.param + '. ' + stringify(node.body, 1);
+      else if (node.type === 'app') s = stringify(node.fn, 3) + ' ' + stringify(node.arg, 4);
+      else if (node.type === 'add') s = stringify(node.left, 2) + ' + ' + stringify(node.right, 3);
+      return prec < minPrec ? '(' + s + ')' : s;
+    }
+
+    // ---------- component ----------
+    const PRESETS = [
+      '(λx. x) y',
+      '(λx. x + 1) 5',
+      '(λx. λy. x) a b',
+      '(λf. λx. f (f x)) (λn. n + 3) 10'
+    ];
+    const STAGES = ['Locate the redex', 'Substitute argument', 'Reduce & check'];
+    const PERIOD = 1150;
+
+    function Widget() {
+      const mount = document.getElementById('lambda-beta-reducer');
+      if (!mount) return null;
+
+      const [src, setSrc] = useState(PRESETS[1]);
+      const [committed, setCommitted] = useState(PRESETS[1]);
+      const [st, setSt] = useState({ i: 0, phase: 0 });
+      const [playing, setPlaying] = useState(false);
+      const framesRef = useRef([]);
+
+      const built = useMemo(() => {
+        try { return { list: buildFrames(committed), error: null }; }
+        catch (e) { return { list: [], error: e.message || String(e) }; }
+      }, [committed]);
+
+      useEffect(() => {
+        framesRef.current = built.list;
+        setSt({ i: 0, phase: 0 });
+        setPlaying(false);
+      }, [built]);
+
+      useEffect(() => {
+        if (!playing) return;
+        const id = setInterval(() => {
+          setSt(s => {
+            const fr = framesRef.current[s.i];
+            if (!fr || fr.redex == null) return s;
+            if (s.phase < 2) return { i: s.i, phase: s.phase + 1 };
+            return { i: s.i + 1, phase: 0 };
+          });
+        }, PERIOD);
+        return () => clearInterval(id);
+      }, [playing]);
+
+      useEffect(() => {
+        const fr = built.list[st.i];
+        if (playing && fr && fr.redex == null) setPlaying(false);
+      }, [st, built, playing]);
+
+      const commit = (text) => { setSrc(text); setCommitted(text); };
+      const onPlay = () => {
+        setSt(s => {
+          const fr = framesRef.current[s.i];
+          if (!fr || fr.redex == null) return { i: 0, phase: 0 };
+          return s;
+        });
+        setPlaying(true);
+      };
+      const onPause = () => setPlaying(false);
+      const onReset = () => { setPlaying(false); setSt({ i: 0, phase: 0 }); };
+      const onStep = () => {
+        setPlaying(false);
+        setSt(s => {
+          const fr = framesRef.current[s.i];
+          if (!fr || fr.redex == null) return s;
+          return { i: s.i + 1, phase: 0 };
+        });
+      };
+      const onBack = () => { setPlaying(false); setSt(s => ({ i: Math.max(0, s.i - 1), phase: 0 })); };
+
+      const list = built.list;
+      const frame = list[st.i];
+      const redexRef = frame ? frame.redex : null;
+      const phase = st.phase;
+      const redexClass = 'lbr-redex' + (phase === 1 ? ' sub' : '');
+      const totalSteps = Math.max(0, list.length - 1);
+
+      const keyRef = { n: 0 };
+      function buildJSX(node, minPrec) {
+        const prec = precOf(node);
+        let inner;
+        if (node.type === 'var') inner = node.name;
+        else if (node.type === 'num') inner = String(node.value);
+        else if (node.type === 'abs') inner = <>λ{node.param}. {buildJSX(node.body, 1)}</>;
+        else if (node.type === 'app') inner = <>{buildJSX(node.fn, 3)} {buildJSX(node.arg, 4)}</>;
+        else if (node.type === 'add') inner = <>{buildJSX(node.left, 2)} + {buildJSX(node.right, 3)}</>;
+        let out = prec < minPrec ? <>({inner})</> : inner;
+        if (node === redexRef) out = <span key={keyRef.n++} className={redexClass}>{out}</span>;
+        return <span key={keyRef.n++}>{out}</span>;
+      }
+
+      const actionMsg = (() => {
+        if (built.error) return '';
+        if (!frame) return '';
+        if (frame.redex == null) return 'Normal form reached — value: ' + stringify(frame.term, 0);
+        const r = frame.redex;
+        if (phase === 0) {
+          if (r.type === 'app') return 'Found a redex: an abstraction (λ' + r.fn.param + '. …) applied to ' + stringify(r.arg, 4) + '.';
+          return 'Found a primitive: ' + stringify(r.left, 2) + ' + ' + stringify(r.right, 3) + '.';
+        }
+        if (phase === 1) {
+          if (r.type === 'app') return 'Substitute ' + stringify(r.arg, 4) + ' for every free ' + r.fn.param + ' in the body.';
+          return 'Apply the primitive: ' + r.left.value + ' + ' + r.right.value + ' = ' + (r.left.value + r.right.value) + '.';
+        }
+        return 'Reduced — now scan the new term for the next redex.';
+      })();
+
+      const atNormalForm = frame && frame.redex == null;
+      const activeStage = (frame && frame.redex) ? phase : -1;
+
+      const css = `
+        #lambda-beta-reducer .lbr-root { font-family: var(--font-mono); color: var(--ink); background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; max-width: 100%; box-sizing: border-box; }
+        #lambda-beta-reducer .lbr-title { font-family: var(--font-display); letter-spacing: .04em; text-transform: uppercase; font-size: 13px; color: var(--accent); margin: 0 0 10px; }
+        #lambda-beta-reducer .lbr-inputrow { display: flex; gap: 8px; flex-wrap: wrap; align-items: stretch; margin-bottom: 10px; }
+        #lambda-beta-reducer .lbr-input { flex: 1 1 220px; min-width: 180px; font-family: var(--font-mono); font-size: 15px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; background: #fff; color: var(--ink); }
+        #lambda-beta-reducer .lbr-input:focus { outline: 2px solid var(--accent-2); outline-offset: 0; }
+        #lambda-beta-reducer .lbr-btn { font-family: var(--font-mono); font-size: 13px; padding: 8px 12px; border: 1px solid var(--accent); border-radius: 6px; background: var(--surface); color: var(--accent); cursor: pointer; transition: background .15s, color .15s; }
+        #lambda-beta-reducer .lbr-btn:hover { background: var(--accent); color: #fff; }
+        #lambda-beta-reducer .lbr-btn:disabled { opacity: .4; cursor: not-allowed; }
+        #lambda-beta-reducer .lbr-btn.primary { background: var(--accent); color: #fff; }
+        #lambda-beta-reducer .lbr-btn.primary:hover { background: var(--accent-2); }
+        #lambda-beta-reducer .lbr-chips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+        #lambda-beta-reducer .lbr-chip { font-family: var(--font-mono); font-size: 12px; padding: 5px 9px; border: 1px dashed var(--border); border-radius: 20px; background: transparent; color: var(--ink-soft); cursor: pointer; }
+        #lambda-beta-reducer .lbr-chip:hover { border-color: var(--accent-2); color: var(--accent); }
+        #lambda-beta-reducer .lbr-chip.on { background: var(--accent); color: #fff; border-style: solid; border-color: var(--accent); }
+        #lambda-beta-reducer .lbr-stage { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
+        #lambda-beta-reducer .lbr-pill { flex: 1 1 0; min-width: 120px; text-align: center; font-size: 11px; letter-spacing: .03em; text-transform: uppercase; padding: 7px 6px; border: 1px solid var(--border); border-radius: 6px; color: var(--ink-soft); background: #fff; transition: all .2s; }
+        #lambda-beta-reducer .lbr-pill.active { background: var(--accent-2); color: #fff; border-color: var(--accent-2); box-shadow: 0 2px 6px rgba(31,93,140,.25); }
+        #lambda-beta-reducer .lbr-pill.done { background: var(--good); color: #fff; border-color: var(--good); }
+        #lambda-beta-reducer .lbr-stagenum { display: inline-block; width: 16px; height: 16px; line-height: 16px; border-radius: 50%; background: var(--border); color: #fff; font-size: 10px; margin-right: 5px; }
+        #lambda-beta-reducer .lbr-pill.active .lbr-stagenum, #lambda-beta-reducer .lbr-pill.done .lbr-stagenum { background: rgba(255,255,255,.35); }
+        #lambda-beta-reducer .lbr-term { font-size: clamp(18px, 4vw, 26px); line-height: 1.6; padding: 18px 16px; background: var(--page-bg); border: 1px solid var(--border); border-radius: 8px; overflow-x: auto; white-space: nowrap; min-height: 38px; }
+        #lambda-beta-reducer .lbr-redex { background: var(--accent); color: #fff; border-radius: 4px; padding: 1px 4px; box-shadow: 0 0 0 2px var(--accent); }
+        #lambda-beta-reducer .lbr-redex.sub { background: var(--accent-2); box-shadow: 0 0 0 2px var(--accent-2); animation: lbrpulse 1s ease-in-out infinite; }
+        @keyframes lbrpulse { 0%,100% { opacity: 1; } 50% { opacity: .55; } }
+        #lambda-beta-reducer .lbr-msg { font-size: 13px; color: var(--ink-soft); margin: 12px 2px; min-height: 34px; line-height: 1.45; }
+        #lambda-beta-reducer .lbr-value { color: var(--good); font-weight: bold; }
+        #lambda-beta-reducer .lbr-ctrls { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 6px; }
+        #lambda-beta-reducer .lbr-count { font-size: 12px; color: var(--ink-soft); margin-left: auto; }
+        #lambda-beta-reducer .lbr-err { color: var(--bad); font-size: 13px; padding: 10px; border: 1px solid var(--bad); border-radius: 6px; background: rgba(176,54,54,.06); }
+        #lambda-beta-reducer .lbr-hint { font-size: 11px; color: var(--ink-soft); margin-top: 4px; }
+        #lambda-beta-reducer .widget-fail { color: var(--bad); padding: 12px; }
+      `;
+
+      return (
+        <div className="lbr-root">
+          <style dangerouslySetInnerHTML={{ __html: css }} />
+          <p className="lbr-title">β-reduction · evaluate a λ-term to a value</p>
+
+          <div className="lbr-inputrow">
+            <input
+              className="lbr-input"
+              value={src}
+              aria-label="lambda term to reduce"
+              spellCheck={false}
+              onChange={e => setSrc(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') commit(src); }}
+            />
+            <button className="lbr-btn" aria-label="insert lambda"
+              onClick={() => setSrc(s => s + 'λ')}>insert λ</button>
+            <button className="lbr-btn primary" onClick={() => commit(src)}>Reduce</button>
+          </div>
+
+          <div className="lbr-chips">
+            {PRESETS.map((p, k) => (
+              <button key={k}
+                className={'lbr-chip' + (committed === p ? ' on' : '')}
+                onClick={() => commit(p)}>{p}</button>
+            ))}
+          </div>
+
+          {built.error ? (
+            <div className="lbr-err">Parse error: {built.error}</div>
+          ) : (
+            <>
+              <div className="lbr-stage">
+                {STAGES.map((label, k) => {
+                  let cls = 'lbr-pill';
+                  if (atNormalForm && k === 2) cls += ' done';
+                  else if (k === activeStage) cls += ' active';
+                  return (
+                    <div key={k} className={cls}>
+                      <span className="lbr-stagenum">{k + 1}</span>{label}
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="lbr-term">
+                {frame ? buildJSX(frame.term, 0) : null}
+              </div>
+
+              <div className="lbr-msg">
+                {atNormalForm
+                  ? <>Normal form reached — the value is <span className="lbr-value">{stringify(frame.term, 0)}</span>. Evaluating an expression produced a value.</>
+                  : actionMsg}
+              </div>
+
+              <div className="lbr-ctrls">
+                {playing
+                  ? <button className="lbr-btn primary" onClick={onPause}>⏸ Pause</button>
+                  : <button className="lbr-btn primary" onClick={onPlay} disabled={atNormalForm && st.i === 0 ? false : atNormalForm}>▶ Play</button>}
+                <button className="lbr-btn" onClick={onStep} disabled={atNormalForm}>Step ▸</button>
+                <button className="lbr-btn" onClick={onBack} disabled={st.i === 0}>◂ Back</button>
+                <button className="lbr-btn" onClick={onReset}>⟲ Reset</button>
+                <span className="lbr-count">step {st.i} / {totalSteps}</span>
+              </div>
+              <div className="lbr-hint">Type a term (use \ or λ for lambda, juxtaposition for application, e.g. (λx. x + 1) 5) and press Reduce, then Play.</div>
+            </>
+          )}
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('lambda-beta-reducer')).render(<Widget />);
+  } catch (e) {
+    const mount = document.getElementById('lambda-beta-reducer');
+    if (mount) mount.innerHTML = '<div class="widget-fail">Widget failed to load</div>';
+    console.error(e);
+  }
+})();
+</script>
+<!-- widget: recursion-callstack-tracer (animator) -->
+<script type="text/babel">
+(function () {
+  try {
+    const { useState, useEffect, useRef, useMemo } = React;
+
+    const PRESETS = [
+      { key: 'fact0', label: 'factorial(0)', kind: 'fact', n: 0 },
+      { key: 'fact3', label: 'factorial(3)', kind: 'fact', n: 3 },
+      { key: 'fact5', label: 'factorial(5)', kind: 'fact', n: 5 },
+      { key: 'sum123', label: 'sum([1, 2, 3])', kind: 'sum', xs: [1, 2, 3] }
+    ];
+
+    const CODE = {
+      fact: [
+        'function factorial(n) {',
+        '  if (n === 0) return 1;        // base case',
+        '  return n * factorial(n - 1); // recursive case',
+        '}'
+      ],
+      sum: [
+        'function sum(xs) {',
+        '  if (xs.length === 0) return 0;  // base case',
+        '  const [head, ...tail] = xs;',
+        '  return head + sum(tail);        // recursive case',
+        '}'
+      ]
+    };
+    const HL = {
+      fact: { base: 1, push: 2, unwind: 2, done: -1 },
+      sum: { base: 1, push: 3, unwind: 3, done: -1 }
+    };
+
+    function buildFactorial(n) {
+      const steps = [];
+      const stack = [];
+      for (let i = n; i >= 0; i--) {
+        const isBase = i === 0;
+        const frame = { id: 'f' + i, label: 'factorial(' + i + ')', state: isBase ? 'base' : 'waiting' };
+        stack.push(frame);
+        steps.push({
+          desc: isBase
+            ? 'factorial(0) — base case reached, stop descending'
+            : 'call factorial(' + i + ') → push a frame that waits for factorial(' + (i - 1) + ')',
+          stack: stack.map(function (f) { return Object.assign({}, f); }),
+          top: frame.id,
+          phase: isBase ? 'base' : 'push'
+        });
+      }
+      const ret = [1];
+      for (let i = 1; i <= n; i++) { ret[i] = i * ret[i - 1]; }
+      for (let i = 0; i <= n; i++) {
+        const popped = stack.pop();
+        const desc = i === 0
+          ? 'factorial(0) returns 1'
+          : 'factorial(' + i + ') returns ' + i + ' × ' + ret[i - 1] + ' = ' + ret[i];
+        steps.push({
+          desc: desc,
+          stack: stack.map(function (f) { return Object.assign({}, f); }),
+          top: stack.length ? stack[stack.length - 1].id : null,
+          lastReturn: { label: popped.label, value: ret[i] },
+          phase: 'unwind'
+        });
+      }
+      steps.push({ desc: 'done — factorial(' + n + ') = ' + ret[n], stack: [], top: null, result: ret[n], phase: 'done' });
+      return { steps: steps, result: ret[n] };
+    }
+
+    function buildSum(xs) {
+      const steps = [];
+      const stack = [];
+      let cur = xs.slice();
+      while (true) {
+        const isBase = cur.length === 0;
+        const frame = { id: 's' + stack.length, label: 'sum([' + cur.join(', ') + '])', state: isBase ? 'base' : 'waiting' };
+        stack.push(frame);
+        steps.push({
+          desc: isBase
+            ? 'sum([]) — base case reached, stop descending'
+            : 'call sum([' + cur.join(', ') + ']) → head ' + cur[0] + ', recurse on the tail',
+          stack: stack.map(function (f) { return Object.assign({}, f); }),
+          top: frame.id,
+          phase: isBase ? 'base' : 'push'
+        });
+        if (isBase) break;
+        cur = cur.slice(1);
+      }
+      let childRet = 0;
+      let popped = stack.pop();
+      steps.push({
+        desc: 'sum([]) returns 0',
+        stack: stack.map(function (f) { return Object.assign({}, f); }),
+        top: stack.length ? stack[stack.length - 1].id : null,
+        lastReturn: { label: popped.label, value: 0 },
+        phase: 'unwind'
+      });
+      for (let j = xs.length - 1; j >= 0; j--) {
+        const r = xs[j] + childRet;
+        popped = stack.pop();
+        steps.push({
+          desc: 'sum([' + xs.slice(j).join(', ') + ']) returns ' + xs[j] + ' + ' + childRet + ' = ' + r,
+          stack: stack.map(function (f) { return Object.assign({}, f); }),
+          top: stack.length ? stack[stack.length - 1].id : null,
+          lastReturn: { label: popped.label, value: r },
+          phase: 'unwind'
+        });
+        childRet = r;
+      }
+      steps.push({ desc: 'done — sum([' + xs.join(', ') + ']) = ' + childRet, stack: [], top: null, result: childRet, phase: 'done' });
+      return { steps: steps, result: childRet };
+    }
+
+    function buildSteps(preset) {
+      return preset.kind === 'fact' ? buildFactorial(preset.n) : buildSum(preset.xs);
+    }
+
+    function Widget() {
+      const mount = document.getElementById('recursion-callstack-tracer');
+      if (!mount) return null;
+
+      const [presetKey, setPresetKey] = useState('fact3');
+      const [idx, setIdx] = useState(0);
+      const [playing, setPlaying] = useState(false);
+      const [speed, setSpeed] = useState(850);
+      const timer = useRef(null);
+
+      const preset = PRESETS.find(function (p) { return p.key === presetKey; });
+      const built = useMemo(function () { return buildSteps(preset); }, [presetKey]);
+      const steps = built.steps;
+      const safeIdx = Math.min(idx, steps.length - 1);
+      const cur = steps[safeIdx];
+      const atEnd = safeIdx >= steps.length - 1;
+
+      useEffect(function () {
+        const s = document.createElement('style');
+        s.textContent =
+          '#recursion-callstack-tracer .rct-wrap{font-family:var(--font-body);color:var(--ink);max-height:760px;overflow:auto;}' +
+          '#recursion-callstack-tracer .rct-grid{display:grid;grid-template-columns:minmax(260px,1fr) minmax(240px,1fr);gap:16px;}' +
+          '@media(max-width:640px){#recursion-callstack-tracer .rct-grid{grid-template-columns:1fr;}}' +
+          '#recursion-callstack-tracer .rct-btn{font-family:var(--font-display);letter-spacing:.04em;text-transform:uppercase;font-size:13px;padding:7px 14px;border-radius:7px;border:1.5px solid var(--accent);background:var(--surface);color:var(--accent);cursor:pointer;transition:background .15s,color .15s;}' +
+          '#recursion-callstack-tracer .rct-btn:hover{background:var(--accent);color:#fff;}' +
+          '#recursion-callstack-tracer .rct-btn:disabled{opacity:.4;cursor:not-allowed;}' +
+          '#recursion-callstack-tracer .rct-btn.primary{background:var(--accent);color:#fff;}' +
+          '#recursion-callstack-tracer .rct-pill{font-size:12px;padding:6px 11px;border-radius:999px;border:1.5px solid var(--border);background:var(--surface);color:var(--ink-soft);cursor:pointer;font-family:var(--font-mono);}' +
+          '#recursion-callstack-tracer .rct-pill.active{border-color:var(--accent);background:var(--accent);color:#fff;}' +
+          '#recursion-callstack-tracer .rct-code{margin:0;font-family:var(--font-mono);font-size:12.5px;line-height:1.5;background:#0f2233;border-radius:8px;padding:10px 4px;overflow-x:auto;}' +
+          '#recursion-callstack-tracer .rct-code .ln{display:block;padding:1px 12px;white-space:pre;color:#bcd4e6;}' +
+          '#recursion-callstack-tracer .rct-code .ln.hot{background:rgba(47,127,176,.45);color:#fff;border-left:3px solid var(--accent-2);padding-left:9px;}' +
+          '#recursion-callstack-tracer .rct-read{font-family:var(--font-mono);font-size:15px;padding:10px 12px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface);min-height:20px;}' +
+          '#recursion-callstack-tracer .rct-desc{font-size:13.5px;line-height:1.5;color:var(--ink-soft);min-height:40px;}' +
+          '#recursion-callstack-tracer .widget-fail{padding:16px;color:var(--bad);font-family:var(--font-mono);}';
+        mount.appendChild(s);
+        return function () { try { mount.removeChild(s); } catch (e) {} };
+      }, []);
+
+      useEffect(function () {
+        setIdx(0);
+        setPlaying(false);
+      }, [presetKey]);
+
+      useEffect(function () {
+        if (!playing) return undefined;
+        if (atEnd) { setPlaying(false); return undefined; }
+        timer.current = setTimeout(function () {
+          setIdx(function (i) { return Math.min(i + 1, steps.length - 1); });
+        }, speed);
+        return function () { clearTimeout(timer.current); };
+      }, [playing, safeIdx, speed, atEnd, steps.length]);
+
+      function onPlay() {
+        if (atEnd) { setIdx(0); }
+        setPlaying(true);
+      }
+      function onPause() { setPlaying(false); }
+      function onReset() { setPlaying(false); setIdx(0); }
+      function onStep(d) {
+        setPlaying(false);
+        setIdx(function (i) { return Math.max(0, Math.min(i + d, steps.length - 1)); });
+      }
+
+      const svgW = 460;
+      const svgH = 360;
+      const frameH = 40;
+      const gap = 8;
+      const padB = 30;
+
+      const readout = cur.phase === 'done'
+        ? 'result = ' + cur.result
+        : (cur.lastReturn
+            ? cur.lastReturn.label + ' → ' + cur.lastReturn.value
+            : 'stack depth = ' + cur.stack.length);
+
+      const hotLine = HL[preset.kind][cur.phase];
+
+      return (
+        <div className="rct-wrap">
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '12px' }}>
+            {PRESETS.map(function (p) {
+              return (
+                <button
+                  key={p.key}
+                  className={'rct-pill' + (p.key === presetKey ? ' active' : '')}
+                  aria-pressed={p.key === presetKey}
+                  onClick={function () { setPresetKey(p.key); }}>
+                  {p.label}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="rct-grid">
+            <div>
+              <svg viewBox={'0 0 ' + svgW + ' ' + svgH} width="100%" role="img"
+                   aria-label="recursion call stack" style={{ background: 'var(--page-bg)', borderRadius: '10px', border: '1.5px solid var(--border)' }}>
+                <line x1="40" y1={svgH - padB + 4} x2={svgW - 40} y2={svgH - padB + 4}
+                      stroke="var(--border)" strokeWidth="2" strokeDasharray="5 5" />
+                <text x="40" y={svgH - 8} fontSize="12" fill="var(--ink-soft)" fontFamily="var(--font-mono)">stack base · main()</text>
+                <text x={svgW - 40} y="22" textAnchor="end" fontSize="12" fill="var(--ink-soft)" fontFamily="var(--font-mono)">↑ grows with each call</text>
+
+                {cur.stack.map(function (f, k) {
+                  const y = svgH - padB - (k + 1) * frameH - k * gap;
+                  const isTop = f.id === cur.top;
+                  const isBase = f.state === 'base';
+                  return (
+                    <g key={f.id} transform={'translate(0,' + y + ')'} style={{ transition: 'transform .4s ease' }}>
+                      <rect x="70" y="0" width="320" height={frameH} rx="8"
+                            fill={isTop ? 'var(--accent)' : 'var(--surface)'}
+                            stroke={isBase ? 'var(--good)' : 'var(--accent-2)'}
+                            strokeWidth={isTop ? 3 : 1.5} />
+                      <text x="88" y={frameH / 2} dominantBaseline="middle" fontFamily="var(--font-mono)"
+                            fontSize="15" fill={isTop ? '#fff' : 'var(--ink)'}>{f.label}</text>
+                      <text x="372" y={frameH / 2} textAnchor="end" dominantBaseline="middle"
+                            fontSize="13" fill={isTop ? '#fff' : (isBase ? 'var(--good)' : 'var(--ink-soft)')}>
+                        {isBase ? '⏹ base' : '⏳ waiting'}
+                      </text>
+                    </g>
+                  );
+                })}
+
+                {cur.lastReturn ? (
+                  <g transform={'translate(0,' + (svgH - padB - (cur.stack.length + 1) * frameH - cur.stack.length * gap) + ')'}
+                     style={{ transition: 'transform .4s ease' }}>
+                    <text x="230" y={frameH / 2} textAnchor="middle" dominantBaseline="middle"
+                          fontFamily="var(--font-mono)" fontSize="15" fill="var(--good)" fontWeight="700">
+                      ↑ returns {cur.lastReturn.value}
+                    </text>
+                  </g>
+                ) : null}
+
+                {cur.phase === 'done' ? (
+                  <text x={svgW / 2} y={svgH / 2} textAnchor="middle" dominantBaseline="middle"
+                        fontFamily="var(--font-display)" fontSize="30" fill="var(--accent)" fontWeight="700">
+                    = {cur.result}
+                  </text>
+                ) : null}
+              </svg>
+            </div>
+
+            <div>
+              <pre className="rct-code">
+                {CODE[preset.kind].map(function (line, li) {
+                  return (
+                    <span key={li} className={'ln' + (li === hotLine ? ' hot' : '')}>{line}</span>
+                  );
+                })}
+              </pre>
+
+              <div style={{ margin: '12px 0 6px', fontFamily: 'var(--font-display)', textTransform: 'uppercase', letterSpacing: '.05em', fontSize: '12px', color: 'var(--ink-soft)' }}>
+                step {safeIdx + 1} / {steps.length} ·{' '}
+                <span style={{ color: cur.phase === 'unwind' ? 'var(--good)' : cur.phase === 'base' ? 'var(--accent)' : 'var(--accent-2)' }}>
+                  {cur.phase}
+                </span>
+              </div>
+              <div className="rct-read">{readout}</div>
+              <p className="rct-desc">{cur.desc}</p>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px', marginTop: '14px' }}>
+            {playing
+              ? <button className="rct-btn primary" onClick={onPause} aria-label="pause">⏸ Pause</button>
+              : <button className="rct-btn primary" onClick={onPlay} aria-label="play">▶ Play</button>}
+            <button className="rct-btn" onClick={function () { onStep(-1); }} disabled={safeIdx === 0} aria-label="step back">◀ Step</button>
+            <button className="rct-btn" onClick={function () { onStep(1); }} disabled={atEnd} aria-label="step forward">Step ▶</button>
+            <button className="rct-btn" onClick={onReset} aria-label="reset">⟲ Reset</button>
+
+            <label style={{ marginLeft: 'auto', fontSize: '12px', color: 'var(--ink-soft)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              speed
+              <input type="range" min="250" max="1600" step="50"
+                     value={1850 - speed}
+                     onChange={function (e) { setSpeed(1850 - Number(e.target.value)); }}
+                     aria-label="animation speed" />
+            </label>
+          </div>
+
+          <input type="range" min="0" max={steps.length - 1} step="1" value={safeIdx}
+                 onChange={function (e) { setPlaying(false); setIdx(Number(e.target.value)); }}
+                 aria-label="scrub steps"
+                 style={{ width: '100%', marginTop: '12px' }} />
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('recursion-callstack-tracer')).render(<Widget />);
+  } catch (e) {
+    const mount = document.getElementById('recursion-callstack-tracer');
+    if (mount) mount.innerHTML = '<div class="widget-fail">Widget failed to load</div>';
+    console.error(e);
+  }
+})();
+</script>
+<!-- widget: expr-vs-stmt-picker (picker) -->
+<script type="text/babel">
+(function () {
+  try {
+    const { useState, useMemo, useEffect, useRef } = React;
+
+    const CHOICES = [
+      {
+        key: 'assign',
+        kind: 'statement',
+        label: 'if/else that assigns',
+        code: [
+          "let result;",
+          "if (x > 0) {",
+          "  result = 'positive';",
+          "} else {",
+          "  result = 'non-positive';",
+          "}"
+        ],
+        note: "The if-block returns nothing — it exists only to mutate the pre-declared result.",
+        valueOut: false,
+        channel: 'mutate'
+      },
+      {
+        key: 'ternary',
+        kind: 'expression',
+        label: 'ternary expression',
+        code: [
+          "const result =",
+          "  x > 0",
+          "    ? 'positive'",
+          "    : 'non-positive';"
+        ],
+        note: "The whole construct evaluates to one value, bound directly — no mutable result needed.",
+        valueOut: true,
+        channel: 'bind'
+      },
+      {
+        key: 'print',
+        kind: 'statement',
+        label: 'if/else that prints',
+        code: [
+          "if (x > 0)",
+          "  console.log('positive');",
+          "else",
+          "  console.log('non-positive');"
+        ],
+        note: "Branches that exist only for their printing side-effect — nothing flows back to bind.",
+        valueOut: false,
+        channel: 'print'
+      }
+    ];
+
+    function Widget() {
+      const mount = document.getElementById('expr-vs-stmt-picker');
+      if (!mount) return null;
+
+      const [x, setX] = useState(3);
+      const [pick, setPick] = useState('ternary');
+      const [tick, setTick] = useState(0);
+
+      useEffect(() => {
+        const s = document.createElement('style');
+        s.textContent = `
+          #expr-vs-stmt-picker .evw { font-family: var(--font-body); color: var(--ink);
+            background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+            padding: 14px; max-height: 760px; overflow: auto; }
+          #expr-vs-stmt-picker .evw-choices { display: grid; gap: 8px; margin: 0 0 12px; }
+          #expr-vs-stmt-picker .evw-btn { text-align: left; cursor: pointer; border-radius: 8px;
+            border: 1px solid var(--border); background: var(--page-bg); color: var(--ink-soft);
+            font-family: var(--font-body); padding: 9px 11px; font-size: 13px;
+            transition: border-color .15s, background .15s, color .15s; display:flex; gap:9px; align-items:center; }
+          #expr-vs-stmt-picker .evw-btn:hover { border-color: var(--accent-2); }
+          #expr-vs-stmt-picker .evw-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+          #expr-vs-stmt-picker .evw-btn[aria-pressed="true"] { background: var(--surface);
+            border-color: var(--accent); color: var(--ink); box-shadow: inset 3px 0 0 var(--accent); }
+          #expr-vs-stmt-picker .evw-dot { width:11px; height:11px; border-radius:50%;
+            border:2px solid var(--border); flex:0 0 auto; }
+          #expr-vs-stmt-picker .evw-btn[aria-pressed="true"] .evw-dot { border-color: var(--accent); background: var(--accent); }
+          #expr-vs-stmt-picker .evw-kind { font-family: var(--font-display); letter-spacing:.04em;
+            text-transform: uppercase; font-size: 10px; margin-left:auto; padding:2px 7px; border-radius: 20px; }
+          #expr-vs-stmt-picker .evw-kind.expr { color: var(--good); border:1px solid var(--good); }
+          #expr-vs-stmt-picker .evw-kind.stmt { color: var(--bad); border:1px solid var(--bad); }
+          #expr-vs-stmt-picker .evw-x { display:flex; align-items:center; gap:10px; margin: 4px 0 14px; font-size: 13px; }
+          #expr-vs-stmt-picker .evw-x input[type=range] { flex:1; accent-color: var(--accent); }
+          #expr-vs-stmt-picker .evw-note { margin-top: 12px; font-size: 12.5px; line-height: 1.5;
+            color: var(--ink-soft); border-left: 3px solid var(--accent-2); padding-left: 10px; }
+          #expr-vs-stmt-picker .evw-note b { color: var(--ink); }
+          #expr-vs-stmt-picker .evw-flow { color: var(--accent); }
+          @keyframes evw-dash { to { stroke-dashoffset: -16; } }
+          @keyframes evw-pulse { 0%,100%{opacity:.55} 50%{opacity:1} }
+        `;
+        mount.appendChild(s);
+        return () => { try { mount.removeChild(s); } catch (e) {} };
+      }, []);
+
+      const choice = useMemo(() => CHOICES.find(c => c.key === pick) || CHOICES[1], [pick]);
+      const value = x > 0 ? 'positive' : 'non-positive';
+      const valColor = x > 0 ? 'var(--good)' : 'var(--bad)';
+
+      // re-trigger flow animation on pick / x change
+      useEffect(() => { setTick(t => t + 1); }, [pick, x]);
+
+      // geometry
+      const W = 520, H = 300;
+      const boxX = 26, boxY = 56, boxW = 220, boxH = 188;
+      const outX = boxX + boxW;            // right edge of construct
+      const midY = boxY + boxH / 2;
+
+      // target boxes on the right
+      const bindY = 86, mutateY = 150, printY = 214;
+      const tgtX = 360, tgtW = 134, tgtH = 44;
+
+      const channel = choice.channel;
+      const valueOut = choice.valueOut;
+
+      function Lane(y, active, fill, stroke, title, body) {
+        return (
+          <g opacity={active ? 1 : 0.28} style={{ transition: 'opacity .35s' }}>
+            <rect x={tgtX} y={y} width={tgtW} height={tgtH} rx="8"
+              fill={active ? fill : 'var(--page-bg)'} stroke={active ? stroke : 'var(--border)'} strokeWidth="1.5" />
+            <text x={tgtX + tgtW / 2} y={y + 17} textAnchor="middle"
+              fontFamily="var(--font-display)" fontSize="10" letterSpacing="0.06em"
+              fill={active ? stroke : 'var(--ink-soft)'} style={{ textTransform: 'uppercase' }}>{title}</text>
+            <text x={tgtX + tgtW / 2} y={y + 33} textAnchor="middle"
+              fontFamily="var(--font-mono)" fontSize="12"
+              fill={active ? 'var(--ink)' : 'var(--ink-soft)'}>{body}</text>
+          </g>
+        );
+      }
+
+      // path from construct out-edge to a target lane
+      function laneTargetY(y) { return y + tgtH / 2; }
+      function flowPath(y) {
+        const sy = midY, ty = laneTargetY(y);
+        const c1x = outX + 60, c2x = tgtX - 60;
+        return `M ${outX} ${sy} C ${c1x} ${sy}, ${c2x} ${ty}, ${tgtX} ${ty}`;
+      }
+
+      const activeY = channel === 'bind' ? bindY : channel === 'mutate' ? mutateY : printY;
+      const activeStroke = channel === 'bind' ? 'var(--good)' : channel === 'mutate' ? 'var(--accent)' : 'var(--bad)';
+      const flowsValue = valueOut; // only the expression sends an actual value token
+
+      return (
+        <div className="evw">
+          <div className="evw-choices" role="radiogroup" aria-label="Pick the branching form">
+            {CHOICES.map(c => (
+              <button key={c.key} className="evw-btn" role="radio"
+                aria-checked={pick === c.key} aria-pressed={pick === c.key}
+                onClick={() => setPick(c.key)}>
+                <span className="evw-dot" />
+                <span>{c.label}</span>
+                <span className={'evw-kind ' + (c.kind === 'expression' ? 'expr' : 'stmt')}>{c.kind}</span>
+              </button>
+            ))}
+          </div>
+
+          <div className="evw-x">
+            <span>x = <b style={{ color: valColor }}>{x}</b></span>
+            <input type="range" min="-6" max="6" step="1" value={x}
+              aria-label="value of x"
+              onChange={e => setX(parseInt(e.target.value, 10))} />
+            <span style={{ color: valColor, fontFamily: 'var(--font-mono)' }}>
+              {x > 0 ? 'x > 0' : 'x ≤ 0'}
+            </span>
+          </div>
+
+          <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ display: 'block' }}
+            role="img" aria-label="data flow out of the chosen branching form">
+            <defs>
+              <marker id="evw-arr" markerWidth="9" markerHeight="9" refX="7" refY="3"
+                orient="auto" markerUnits="strokeWidth">
+                <path d="M0,0 L7,3 L0,6 Z" fill={activeStroke} />
+              </marker>
+              <linearGradient id="evw-box" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stopColor="var(--surface)" />
+                <stop offset="1" stopColor="var(--page-bg)" />
+              </linearGradient>
+            </defs>
+
+            {/* construct box */}
+            <rect x={boxX} y={boxY} width={boxW} height={boxH} rx="10"
+              fill="url(#evw-box)" stroke={choice.kind === 'expression' ? 'var(--good)' : 'var(--bad)'}
+              strokeWidth="1.8" />
+            <text x={boxX + 12} y={boxY - 10} fontFamily="var(--font-display)" fontSize="11"
+              letterSpacing="0.05em" fill="var(--ink-soft)" style={{ textTransform: 'uppercase' }}>
+              {choice.kind === 'expression' ? 'expression — yields a value' : 'statement — runs for side-effect'}
+            </text>
+            {choice.code.map((line, i) => (
+              <text key={i} x={boxX + 13} y={boxY + 24 + i * 22}
+                fontFamily="var(--font-mono)" fontSize="12.5" fill="var(--ink)"
+                style={{ whiteSpace: 'pre' }}>{line}</text>
+            ))}
+
+            {/* value token sitting at the out edge — only present for the expression */}
+            <g opacity={flowsValue ? 1 : 0} style={{ transition: 'opacity .3s' }}>
+              <circle cx={outX} cy={midY} r="6" fill={valColor}>
+                <animate attributeName="r" values="5;7;5" dur="1.6s" repeatCount="indefinite" />
+              </circle>
+            </g>
+            {/* "no value" marker for statements */}
+            <g opacity={flowsValue ? 0 : 1} style={{ transition: 'opacity .3s' }}>
+              <text x={outX + 6} y={midY + 4} fontFamily="var(--font-mono)" fontSize="11" fill="var(--ink-soft)">⊘ no value</text>
+            </g>
+
+            {/* flow path to the active lane */}
+            <path key={'flow' + tick} d={flowPath(activeY)} fill="none"
+              stroke={activeStroke} strokeWidth="2.4"
+              strokeDasharray={flowsValue ? '8 8' : '3 6'}
+              markerEnd="url(#evw-arr)"
+              style={{ animation: 'evw-dash 0.9s linear infinite' }} />
+
+            {/* three lanes on the right */}
+            {Lane(bindY, channel === 'bind', 'rgba(31,122,77,0.10)', 'var(--good)',
+              'bound value', 'result = ' + (channel === 'bind' ? `'${value}'` : '…'))}
+            {Lane(mutateY, channel === 'mutate', 'rgba(31,93,140,0.10)', 'var(--accent)',
+              'mutated var', channel === 'mutate' ? `result := '${value}'` : 'result := …')}
+            {Lane(printY, channel === 'print', 'rgba(176,54,54,0.10)', 'var(--bad)',
+              'console', channel === 'print' ? `▸ ${value}` : '▸ …')}
+          </svg>
+
+          <div className="evw-note">
+            <b>{choice.kind === 'expression' ? 'Value flows out.' : 'Nothing flows out.'}</b>{' '}
+            {choice.note}{' '}
+            {valueOut
+              ? <span className="evw-flow">FP leans on this form — it yields a value you can bind without mutating state.</span>
+              : <span>The functional style avoids this: it works by <i>side-effect</i> ({channel === 'print' ? 'printing' : 'assigning'}), not by evaluating to a value.</span>}
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('expr-vs-stmt-picker')).render(<Widget />);
+  } catch (e) {
+    const mount = document.getElementById('expr-vs-stmt-picker');
+    if (mount) mount.innerHTML = '<div class="widget-fail">Widget failed to load</div>';
+    console.error(e);
+  }
+})();
+</script>
+<!-- widget: purity-payoff-quiz (mcq) -->
+<script type="text/babel">
+(function () {
+  try {
+    const { useState } = React;
+
+    const QUESTIONS = [
+      {
+        q: "Why is it safe to swap #map for the parallel #pmap only when the function passed in is pure?",
+        options: [
+          "Because pure functions run faster on a single thread, so the scheduler naturally prefers to spread them across cores.",
+          "Because pure functions cache their results automatically, so every worker thread reads from one shared cache.",
+          "Because pure functions never read or write shared state, so concurrent calls cannot interfere with one another.",
+          "Because pure functions always return numeric values, which are cheap to copy between threads safely."
+        ],
+        correct: 2,
+        explain: "Parallelization is safe precisely because a pure function touches no external or shared state — its result depends only on its arguments, so running calls concurrently can't cause interference or data races."
+      },
+      {
+        q: "Caching and reusing a pure function's output for the same inputs (memoization) is safe because…",
+        options: [
+          "the function is referentially transparent, so the same inputs always map to the same output.",
+          "the function mutates a global cache on every call, which keeps the stored value perpetually fresh.",
+          "the function's output drifts over time, so the cache simply has to be refreshed on every call.",
+          "the runtime locks the function while it runs to stop other threads from recomputing the result."
+        ],
+        correct: 0,
+        explain: "Referential transparency guarantees the same inputs always yield the same output, so a cached result can be reused indefinitely without ever going stale — that's what makes memoization sound."
+      },
+      {
+        q: "Why must every recursive call make progress toward the base case?",
+        options: [
+          "Because functional languages secretly compile recursion into for-loops that still need a counter.",
+          "Because the base case mutates a shared accumulator that all the other calls depend on reading.",
+          "Because higher-order functions demand that the input list shrink on every single application.",
+          "Because without reaching the base case the function keeps calling itself forever and never terminates."
+        ],
+        correct: 3,
+        explain: "The base case is the only thing that stops the recursion; if calls don't shrink the problem toward it, the function recurses endlessly and never returns."
+      },
+      {
+        q: "What does referential transparency license you to do to an expression without changing the program's meaning?",
+        options: [
+          "Reassign the variable it binds to a fresh value partway through the program's execution.",
+          "Replace the expression with the value it evaluates to, anywhere that expression appears.",
+          "Run the expression across threads even while it is performing observable I/O side effects.",
+          "Defer all of the expression's side effects until the very end of the program's execution."
+        ],
+        correct: 1,
+        explain: "Because a referentially transparent expression always denotes the same value, you can substitute the value for the expression (or vice versa) anywhere — the substitution model that lets you reason about FP like algebra."
+      }
+    ];
+
+    const STYLE = `
+      #purity-payoff-quiz .ppq {
+        font-family: var(--font-body);
+        color: var(--ink);
+        max-width: 760px;
+        margin: 0 auto;
+      }
+      #purity-payoff-quiz .ppq-prog {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 18px;
+        align-items: center;
+      }
+      #purity-payoff-quiz .ppq-dot {
+        flex: 1;
+        height: 6px;
+        border-radius: 3px;
+        background: var(--border);
+        transition: background .35s ease;
+      }
+      #purity-payoff-quiz .ppq-dot.answered { background: var(--accent-2); }
+      #purity-payoff-quiz .ppq-dot.right { background: var(--good); }
+      #purity-payoff-quiz .ppq-dot.wrong { background: var(--bad); }
+      #purity-payoff-quiz .ppq-count {
+        font-size: 13px;
+        color: var(--ink-soft);
+        white-space: nowrap;
+        letter-spacing: .04em;
+      }
+      #purity-payoff-quiz .ppq-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 22px 22px 18px;
+        box-shadow: 0 6px 20px rgba(22,40,58,0.06);
+      }
+      #purity-payoff-quiz .ppq-tag {
+        font-family: var(--font-display);
+        text-transform: uppercase;
+        letter-spacing: .12em;
+        font-size: 12px;
+        color: var(--accent);
+        margin-bottom: 8px;
+      }
+      #purity-payoff-quiz .ppq-q {
+        font-family: var(--font-display);
+        font-size: 19px;
+        line-height: 1.4;
+        margin: 0 0 18px;
+        color: var(--ink);
+      }
+      #purity-payoff-quiz .ppq-opts {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      #purity-payoff-quiz .ppq-opt {
+        text-align: left;
+        font-family: var(--font-body);
+        font-size: 14px;
+        line-height: 1.45;
+        color: var(--ink);
+        background: var(--page-bg);
+        border: 1.5px solid var(--border);
+        border-radius: 9px;
+        padding: 12px 14px 12px 44px;
+        position: relative;
+        cursor: pointer;
+        transition: border-color .18s ease, background .18s ease, transform .08s ease;
+      }
+      #purity-payoff-quiz .ppq-opt:hover:not(:disabled) {
+        border-color: var(--accent-2);
+        transform: translateY(-1px);
+      }
+      #purity-payoff-quiz .ppq-opt:focus-visible {
+        outline: 3px solid var(--accent-2);
+        outline-offset: 2px;
+      }
+      #purity-payoff-quiz .ppq-opt:disabled { cursor: default; }
+      #purity-payoff-quiz .ppq-mark {
+        position: absolute;
+        left: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        border: 1.5px solid var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--ink-soft);
+        background: var(--surface);
+      }
+      #purity-payoff-quiz .ppq-opt.correct {
+        border-color: var(--good);
+        background: rgba(31,122,77,0.10);
+      }
+      #purity-payoff-quiz .ppq-opt.correct .ppq-mark {
+        border-color: var(--good);
+        background: var(--good);
+        color: #fff;
+      }
+      #purity-payoff-quiz .ppq-opt.incorrect {
+        border-color: var(--bad);
+        background: rgba(176,54,54,0.09);
+      }
+      #purity-payoff-quiz .ppq-opt.incorrect .ppq-mark {
+        border-color: var(--bad);
+        background: var(--bad);
+        color: #fff;
+      }
+      #purity-payoff-quiz .ppq-opt.reveal {
+        border-color: var(--good);
+      }
+      #purity-payoff-quiz .ppq-opt.reveal .ppq-mark {
+        border-color: var(--good);
+        color: var(--good);
+      }
+      #purity-payoff-quiz .ppq-opt.dim { opacity: .55; }
+      #purity-payoff-quiz .ppq-explain {
+        margin-top: 16px;
+        padding: 13px 15px;
+        border-left: 3px solid var(--accent);
+        background: rgba(31,93,140,0.06);
+        border-radius: 0 8px 8px 0;
+        font-size: 13.5px;
+        line-height: 1.55;
+        color: var(--ink-soft);
+      }
+      #purity-payoff-quiz .ppq-explain b { color: var(--ink); }
+      #purity-payoff-quiz .ppq-foot {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 18px;
+        gap: 12px;
+      }
+      #purity-payoff-quiz .ppq-btn {
+        font-family: var(--font-display);
+        text-transform: uppercase;
+        letter-spacing: .08em;
+        font-size: 13px;
+        padding: 9px 18px;
+        border-radius: 8px;
+        border: 1.5px solid var(--accent);
+        background: var(--accent);
+        color: #fff;
+        cursor: pointer;
+        transition: filter .15s ease, opacity .15s ease;
+      }
+      #purity-payoff-quiz .ppq-btn:hover:not(:disabled) { filter: brightness(1.08); }
+      #purity-payoff-quiz .ppq-btn:disabled { opacity: .4; cursor: default; }
+      #purity-payoff-quiz .ppq-btn.ghost {
+        background: transparent;
+        color: var(--accent);
+      }
+      #purity-payoff-quiz .ppq-hint {
+        font-size: 12.5px;
+        color: var(--ink-soft);
+      }
+      #purity-payoff-quiz .ppq-done {
+        text-align: center;
+        padding: 8px 4px 4px;
+      }
+      #purity-payoff-quiz .ppq-score {
+        font-family: var(--font-display);
+        font-size: 42px;
+        color: var(--accent);
+        line-height: 1;
+        margin: 6px 0 2px;
+      }
+      #purity-payoff-quiz .ppq-scorelbl {
+        font-size: 13px;
+        color: var(--ink-soft);
+        letter-spacing: .05em;
+      }
+      #purity-payoff-quiz .ppq-msg {
+        margin: 14px 0 18px;
+        font-size: 14px;
+        line-height: 1.5;
+        color: var(--ink);
+      }
+      #purity-payoff-quiz .widget-fail {
+        font-family: var(--font-body);
+        color: var(--bad);
+        padding: 16px;
+      }
+    `;
+
+    const LETTERS = ['A', 'B', 'C', 'D'];
+
+    function Widget() {
+      const mount = document.getElementById('purity-payoff-quiz');
+      if (!mount) return null;
+
+      const [idx, setIdx] = useState(0);
+      const [picked, setPicked] = useState(null);
+      const [results, setResults] = useState(Array(QUESTIONS.length).fill(null));
+      const [done, setDone] = useState(false);
+
+      const q = QUESTIONS[idx];
+      const answered = picked !== null;
+
+      function choose(i) {
+        if (answered) return;
+        setPicked(i);
+        const r = results.slice();
+        r[idx] = (i === q.correct);
+        setResults(r);
+      }
+
+      function next() {
+        if (idx < QUESTIONS.length - 1) {
+          setIdx(idx + 1);
+          setPicked(null);
+        } else {
+          setDone(true);
+        }
+      }
+
+      function restart() {
+        setIdx(0);
+        setPicked(null);
+        setResults(Array(QUESTIONS.length).fill(null));
+        setDone(false);
+      }
+
+      const score = results.filter(Boolean).length;
+
+      if (done) {
+        let msg;
+        if (score === QUESTIONS.length) {
+          msg = "Perfect — the payoff of purity has landed: no shared state means safe parallelism, referential transparency means sound memoization, a reachable base case means termination, and substitution is what referential transparency licenses.";
+        } else if (score >= QUESTIONS.length - 1) {
+          msg = "Almost there — one slip. Revisit how purity (no side effects, same input → same output) is the single property underwriting parallelization, memoization, and laziness.";
+        } else {
+          msg = "Worth another pass. The thread running through every answer is purity: a function whose result depends only on its inputs and touches no outside state is what makes these optimizations safe.";
+        }
+        return (
+          <div className="ppq">
+            <style>{STYLE}</style>
+            <div className="ppq-card">
+              <div className="ppq-done">
+                <div className="ppq-tag">Self-check complete</div>
+                <div className="ppq-score">{score} / {QUESTIONS.length}</div>
+                <div className="ppq-scorelbl">correct</div>
+                <p className="ppq-msg">{msg}</p>
+                <button className="ppq-btn" onClick={restart}>Try again</button>
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      return (
+        <div className="ppq">
+          <style>{STYLE}</style>
+          <div className="ppq-prog">
+            {QUESTIONS.map((_, i) => {
+              let cls = "ppq-dot";
+              if (results[i] === true) cls += " right";
+              else if (results[i] === false) cls += " wrong";
+              else if (i < idx) cls += " answered";
+              return <div key={i} className={cls} />;
+            })}
+            <span className="ppq-count">Q{idx + 1} / {QUESTIONS.length}</span>
+          </div>
+
+          <div className="ppq-card">
+            <div className="ppq-tag">Practice · purity payoff</div>
+            <h3 className="ppq-q">{q.q}</h3>
+
+            <div className="ppq-opts" role="group" aria-label="Answer choices">
+              {q.options.map((opt, i) => {
+                let cls = "ppq-opt";
+                let symbol = LETTERS[i];
+                if (answered) {
+                  if (i === picked && i === q.correct) { cls += " correct"; symbol = "✓"; }
+                  else if (i === picked && i !== q.correct) { cls += " incorrect"; symbol = "✗"; }
+                  else if (i === q.correct) { cls += " reveal"; symbol = "✓"; }
+                  else { cls += " dim"; }
+                }
+                return (
+                  <button
+                    key={i}
+                    className={cls}
+                    onClick={() => choose(i)}
+                    disabled={answered}
+                    aria-pressed={picked === i}
+                  >
+                    <span className="ppq-mark" aria-hidden="true">{symbol}</span>
+                    {opt}
+                  </button>
+                );
+              })}
+            </div>
+
+            {answered && (
+              <div className="ppq-explain">
+                <b>{picked === q.correct ? "Correct. " : "Not quite. "}</b>
+                {q.explain}
+              </div>
+            )}
+
+            <div className="ppq-foot">
+              <span className="ppq-hint">
+                {answered
+                  ? (picked === q.correct ? "Nicely reasoned." : "Read the explanation, then continue.")
+                  : "Pick the option that best fits."}
+              </span>
+              <button className="ppq-btn" onClick={next} disabled={!answered}>
+                {idx < QUESTIONS.length - 1 ? "Next →" : "See score"}
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('purity-payoff-quiz')).render(<Widget />);
+  } catch (e) {
+    const mount = document.getElementById('purity-payoff-quiz');
+    if (mount) mount.innerHTML = '<div class="widget-fail">Widget failed to load</div>';
+    console.error(e);
+  }
+})();
+</script>
+</body>
+</html>
