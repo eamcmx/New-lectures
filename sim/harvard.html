@@ -85,7 +85,7 @@ table.cells tr.res td.k{background:#e3edda;color:var(--good)} table.cells tr.res
     <rect class="dpbox cpu" x="300" y="12" width="628" height="308" rx="8"/>
     <text class="dplbl" x="308" y="28">CPU</text>
     <rect x="834" y="14" width="86" height="26" rx="6" fill="#2F5496"/>
-    <text id="tstate" x="877" y="32" text-anchor="middle" fill="#fff" style="font:700 14px var(--mono),monospace">T0</text>
+    <text id="tstate" x="877" y="32" text-anchor="middle" fill="#fff" style="font:700 14px var(--mono),monospace">τ0</text>
     <text id="phase" x="828" y="32" text-anchor="end" style="font:700 10px Inter,sans-serif;fill:#8a8067">idle</text>
     <!-- control unit -->
     <rect class="dpbox" id="cu" x="316" y="46" width="596" height="52" rx="6"/>
@@ -113,6 +113,7 @@ table.cells tr.res td.k{background:#e3edda;color:var(--good)} table.cells tr.res
   <div style="display:flex;align-items:center;gap:14px;margin-top:8px;flex-wrap:wrap">
     <div style="flex:1;min-width:240px"><span id="microcap">Press <b>Compile ✓</b>, then <b>Step ▸</b> to advance one T-state.</span></div>
     <div style="font-size:11.5px">bus: <span class="actpill off" id="ipill">instruction</span><span class="actpill off" id="dpill">data</span></div>
+    <span style="font-size:11px;color:#8a8067;white-space:nowrap">τ = clock T-state · T0–T16 = memory cells</span>
     <label class="spd">speed <input id="spd" type="range" min="1" max="6" value="3" style="width:90px"></label>
   </div>
 </div>
@@ -193,11 +194,11 @@ HLT</textarea>
       var list=v.errors.slice(0,8).map(function(e){ return '&nbsp;&nbsp;<b>Line '+e.line+'</b> &nbsp;<code>'+esc(e.text)+'</code><br>&nbsp;&nbsp;&nbsp;&nbsp;&#8627; '+esc(e.msg); }).join('<br>');
       $('microcap').innerHTML='<b style="color:#c62828">&#10007; '+v.errors.length+' compilation error'+(v.errors.length>1?'s':'')+' — fix before running:</b><br>'+list+(v.errors.length>8?'<br>&nbsp;&nbsp;&hellip;and '+(v.errors.length-8)+' more':'');
       $('msg').className='msg err'; $('msg').textContent='✗ '+v.errors.length+' compilation error'+(v.errors.length>1?'s':'')+' (line '+v.errors.map(function(e){return e.line;}).slice(0,6).join(', ')+') — see above';
-      setRegs({PC:0,IR:'—',DMAR:'—',DMDR:'—',ACC:0}); clearAlu(); $('tstate').textContent='T0'; $('phase').textContent='error'; setPill(null); $('step').disabled=true; return false;
+      setRegs({PC:0,IR:'—',DMAR:'—',DMDR:'—',ACC:0}); clearAlu(); $('tstate').textContent='τ0'; $('phase').textContent='error'; setPill(null); $('step').disabled=true; return false;
     }
     try{ vnm.load($('src').value, initMem); }catch(e){ $('msg').className='msg err'; $('msg').textContent='✗ '+e.message; return false; }
     compiled=true; $('step').disabled=false;
-    prev={}; pendingOps=[]; dispPC=0; setRegs({PC:0,IR:'—',DMAR:'—',DMDR:'—',ACC:0}); clearAlu(); $('tstate').textContent='T0'; $('phase').textContent='ready'; setPill(null);
+    prev={}; pendingOps=[]; dispPC=0; setRegs({PC:0,IR:'—',DMAR:'—',DMDR:'—',ACC:0}); clearAlu(); $('tstate').textContent='τ0'; $('phase').textContent='ready'; setPill(null);
     $('microcap').innerHTML='Compiled ✓ — '+vnm.prog.cells.length+' lines in program memory. Press <b>Step ▸</b> for one T-state, or <b>Run ⏵</b>.'; $('msg').className='msg ok'; $('msg').textContent='✓ compiled '+vnm.prog.cells.length+' lines, no errors';
     renderLines(); renderProgMem(); renderDataMem(); renderCells(); markPC(); return true;
   }
@@ -291,7 +292,7 @@ HLT</textarea>
   }
   function playOneOp(o,done){
     clearHi();
-    $('tstate').textContent='T'+o._t; $('phase').textContent=o.phase||''; $('microcap').textContent='T'+o._t+' · '+(o.phase||'')+' — '+o.cap;
+    $('tstate').textContent='τ'+o._t; $('phase').textContent=o.phase||''; $('microcap').textContent='τ'+o._t+' · '+(o.phase||'')+' — '+o.cap;
     (o.hi||[]).forEach(function(h){ hiReg(h,true); });
     if(o.bus==='i'){ $('ibus').classList.add('ibuson'); setPill('i'); } else if(o.bus==='d'){ $('dbus').classList.add('dbuson'); setPill('d'); } else setPill(null);
     if(o.mem) memHi(o.mem); if(o.memw) memHi(o.memw,'w');
@@ -365,7 +366,7 @@ HLT</textarea>
   $('step').onclick=step;
   $('run').onclick=toggleRun;
   $('fastrun').onclick=runToEnd;
-  $('reset').onclick=function(){ stopRun(); vnm.reset(initMem); prev={}; pendingOps=[]; dispPC=0; clearHi(); setPill(null); clearAlu(); setRegs({PC:0,IR:'—',DMAR:'—',DMDR:'—',ACC:0}); $('tstate').textContent='T0'; $('phase').textContent='ready'; $('microcap').innerHTML='Reset. Press <b>Step ▸</b> for one T-state.'; render(); $('msg').className='msg ok'; $('msg').textContent='↺ reset to your inputs'; };
+  $('reset').onclick=function(){ stopRun(); vnm.reset(initMem); prev={}; pendingOps=[]; dispPC=0; clearHi(); setPill(null); clearAlu(); setRegs({PC:0,IR:'—',DMAR:'—',DMDR:'—',ACC:0}); $('tstate').textContent='τ0'; $('phase').textContent='ready'; $('microcap').innerHTML='Reset. Press <b>Step ▸</b> for one T-state.'; render(); $('msg').className='msg ok'; $('msg').textContent='↺ reset to your inputs'; };
   $('cells').addEventListener('change',function(e){ if(e.target&&e.target.dataset&&e.target.dataset.cell){ initMem=readInputs(); renderDataMem(); } });
   var PKEY='cssa_vnmsim_progs';
   function getProgs(){ try{ return JSON.parse(localStorage.getItem(PKEY)||'{}'); }catch(e){ return {}; } }

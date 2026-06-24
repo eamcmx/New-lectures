@@ -51,7 +51,7 @@ table.cells tr.res td.k{background:#e3edda;color:var(--good)} table.cells tr.res
 <body>
 <div class="sim">
 <div class="simhead">🧮 vnmsim — Von Neumann Machine Simulator <span style="font-weight:400;color:#666;font-size:.8rem">· see inside the CPU · CW1</span><a href="https://eamcmx.github.io/New-lectures/sim/harvard.html" style="font-weight:600;font-size:.78rem;color:#7b2d8e;text-decoration:none;border:1px solid #d9c2e2;border-radius:6px;padding:3px 8px;margin-left:8px">🧠 Harvard sim</a><a href="https://eamcmx.github.io/New-lectures/sim/compare.html" style="font-weight:600;font-size:.78rem;color:#2F5496;text-decoration:none;border:1px solid #bcc9e2;border-radius:6px;padding:3px 8px;margin-left:6px">⇄ compare</a></div>
-<div class="note"><strong style="color:#b45309">Watch what happens inside the CPU, one T-state at a time.</strong> The machine runs the <b>fetch–decode–execute–store</b> cycle across timing states <b>T1, T2, T3…</b> — <em>Step</em> advances <b>one T-state</b>; <em>Run</em> plays them all continuously (the <b>speed</b> slider sets the pace). FETCH: MAR←PC → address bus → MDR←M[PC] → IR←MDR, PC++. EXECUTE: operands flow into the ALU (which shows the two values and the operation symbol). STORE: the result is written to ACC or a memory cell. Jumps target a <b>line number</b> (counting comments/blanks) — no labels. Result conventionally in cell <b>Z</b>. Mirrors the real <a href="https://github.com/c2r0b/vnmsim" target="_blank" rel="noopener">vnmsim</a>.</div>
+<div class="note"><strong style="color:#b45309">Watch what happens inside the CPU, one T-state at a time.</strong> The machine runs the <b>fetch–decode–execute–store</b> cycle across timing states <b>τ1, τ2, τ3…</b> — <em>Step</em> advances <b>one T-state</b>; <em>Run</em> plays them all continuously (the <b>speed</b> slider sets the pace). FETCH: MAR←PC → address bus → MDR←M[PC] → IR←MDR, PC++. EXECUTE: operands flow into the ALU (which shows the two values and the operation symbol). STORE: the result is written to ACC or a memory cell. Jumps target a <b>line number</b> (counting comments/blanks) — no labels. Result conventionally in cell <b>Z</b>. Mirrors the real <a href="https://github.com/c2r0b/vnmsim" target="_blank" rel="noopener">vnmsim</a>.</div>
 
 <div class="card">
   <h3>The CPU &amp; memory — fetch / decode / execute / store, T-state by T-state</h3>
@@ -66,7 +66,7 @@ table.cells tr.res td.k{background:#e3edda;color:var(--good)} table.cells tr.res
     <rect class="dpbox cpu" x="300" y="14" width="586" height="272" rx="8"/>
     <text class="dplbl" x="308" y="30">CPU</text>
     <rect x="792" y="16" width="86" height="26" rx="6" fill="#2F5496"/>
-    <text id="tstate" x="835" y="34" text-anchor="middle" fill="#fff" style="font:700 14px var(--mono),monospace">T0</text>
+    <text id="tstate" x="835" y="34" text-anchor="middle" fill="#fff" style="font:700 14px var(--mono),monospace">τ0</text>
     <text id="phase" x="786" y="34" text-anchor="end" style="font:700 10px Inter,sans-serif;fill:#8a8067">idle</text>
     <rect class="dpbox" id="cu" x="316" y="48" width="554" height="56" rx="6"/>
     <text class="dplbl" x="324" y="62" style="fill:#7b6a45">Control unit</text>
@@ -90,6 +90,7 @@ table.cells tr.res td.k{background:#e3edda;color:var(--good)} table.cells tr.res
   </svg>
   <div style="display:flex;align-items:center;gap:14px;margin-top:8px;flex-wrap:wrap">
     <div style="flex:1;min-width:240px"><span id="microcap">Press <b>Assemble</b>, then <b>Step ▸</b> to advance one T-state at a time.</span></div>
+    <span style="font-size:11px;color:#8a8067;white-space:nowrap">τ = clock T-state · T0–T16 = memory cells</span>
     <label class="spd">speed <input id="spd" type="range" min="1" max="6" value="3" style="width:90px"></label>
   </div>
 </div>
@@ -164,12 +165,12 @@ HLT</textarea>
       var list=v.errors.slice(0,8).map(function(e){ return '&nbsp;&nbsp;<b>Line '+e.line+'</b> &nbsp;<code>'+esc(e.text)+'</code><br>&nbsp;&nbsp;&nbsp;&nbsp;&#8627; '+esc(e.msg); }).join('<br>');
       $('microcap').innerHTML='<b style="color:#c62828">&#10007; '+v.errors.length+' compilation error'+(v.errors.length>1?'s':'')+' — fix before running:</b><br>'+list+(v.errors.length>8?'<br>&nbsp;&nbsp;&hellip;and '+(v.errors.length-8)+' more':'');
       $('msg').className='msg err'; $('msg').textContent='✗ '+v.errors.length+' compilation error'+(v.errors.length>1?'s':'')+' (line '+v.errors.map(function(e){return e.line;}).slice(0,6).join(', ')+') — see above';
-      setRegs({PC:0,IR:'—',MAR:'—',MDR:'—',ACC:0}); clearAlu(); $('tstate').textContent='T0'; $('phase').textContent='error';
+      setRegs({PC:0,IR:'—',MAR:'—',MDR:'—',ACC:0}); clearAlu(); $('tstate').textContent='τ0'; $('phase').textContent='error';
       $('step').disabled=true; return false;
     }
     try{ vnm.load($('src').value, initMem); }catch(e){ $('msg').className='msg err'; $('msg').textContent='✗ '+e.message; return false; }
     compiled=true; $('step').disabled=false;
-    prev={}; pendingOps=[]; dispPC=0; setRegs({PC:0,IR:'—',MAR:'—',MDR:'—',ACC:0}); clearAlu(); $('tstate').textContent='T0'; $('phase').textContent='ready';
+    prev={}; pendingOps=[]; dispPC=0; setRegs({PC:0,IR:'—',MAR:'—',MDR:'—',ACC:0}); clearAlu(); $('tstate').textContent='τ0'; $('phase').textContent='ready';
     $('microcap').innerHTML='Compiled ✓ — '+vnm.prog.cells.length+' lines, no errors. Press <b>Step ▸</b> for one T-state, or <b>Run ⏵</b>.'; $('msg').className='msg ok'; $('msg').textContent='✓ compiled '+vnm.prog.cells.length+' lines, no errors';
     renderLines(); renderMem(); renderCells(); markPC(); return true;
   }
@@ -257,7 +258,7 @@ HLT</textarea>
   }
   function playOneOp(o,done){
     clearHi();
-    $('tstate').textContent='T'+o._t; $('phase').textContent=o.phase||''; $('microcap').textContent='T'+o._t+' · '+(o.phase||'')+' — '+o.cap;
+    $('tstate').textContent='τ'+o._t; $('phase').textContent=o.phase||''; $('microcap').textContent='τ'+o._t+' · '+(o.phase||'')+' — '+o.cap;
     (o.hi||[]).forEach(function(h){ hiReg(h,true); });
     if(o.bus==='a') $('abus').classList.add('buson'); if(o.bus==='d') $('dbus').classList.add('buson');
     if(o.mem) memHi(o.mem); if(o.memw) memHi(o.memw,'w');
@@ -331,7 +332,7 @@ HLT</textarea>
   $('step').onclick=step;
   $('run').onclick=toggleRun;
   $('fastrun').onclick=runToEnd;
-  $('reset').onclick=function(){ stopRun(); vnm.reset(initMem); prev={}; pendingOps=[]; dispPC=0; clearHi(); clearAlu(); setRegs({PC:0,IR:'—',MAR:'—',MDR:'—',ACC:0}); $('tstate').textContent='T0'; $('phase').textContent='ready'; $('microcap').innerHTML='Reset. Press <b>Step ▸</b> for one T-state.'; render(); $('msg').className='msg ok'; $('msg').textContent='↺ reset to your inputs'; };
+  $('reset').onclick=function(){ stopRun(); vnm.reset(initMem); prev={}; pendingOps=[]; dispPC=0; clearHi(); clearAlu(); setRegs({PC:0,IR:'—',MAR:'—',MDR:'—',ACC:0}); $('tstate').textContent='τ0'; $('phase').textContent='ready'; $('microcap').innerHTML='Reset. Press <b>Step ▸</b> for one T-state.'; render(); $('msg').className='msg ok'; $('msg').textContent='↺ reset to your inputs'; };
   $('cells').addEventListener('change',function(e){ if(e.target&&e.target.dataset&&e.target.dataset.cell){ initMem=readInputs(); renderMem(); } });
   var PKEY='cssa_vnmsim_progs';
   function getProgs(){ try{ return JSON.parse(localStorage.getItem(PKEY)||'{}'); }catch(e){ return {}; } }
