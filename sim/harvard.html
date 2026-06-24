@@ -1,0 +1,402 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Harvard Machine Simulator — separate program &amp; data memory (CSSA)</title>
+<style>
+:root{--blue:#2F5496;--paper:#fbfaf6;--ink:#222;--line:#d8d2c4;--good:#2e7d32;--warn:#c62828;--amber:#a06000;--mag:#7b2d8e;--mono:'JetBrains Mono',ui-monospace,Consolas,monospace;}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:Inter,system-ui,Arial,sans-serif;font-size:15px;line-height:1.5}
+.sim{max-width:1180px;margin:0 auto;padding:14px}
+.simhead{display:flex;align-items:center;gap:10px;font-weight:700;color:var(--blue);font-size:1.1rem;margin-bottom:4px}
+.simhead a{font-weight:600;font-size:.78rem;color:#7b2d8e;text-decoration:none;border:1px solid #d9c2e2;border-radius:6px;padding:3px 8px}
+.note{margin:0 0 12px;padding:10px 14px;border-left:5px solid var(--mag);background:#f9f2fb;border-radius:8px;color:#5b2168;font-size:12.5px;line-height:1.5}
+.card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px;box-shadow:0 1px 3px rgba(0,0,0,.05);margin-bottom:12px}
+.card h3{margin:0 0 8px;font-size:.8rem;letter-spacing:.06em;text-transform:uppercase;color:var(--blue)}
+#dp{width:100%;height:auto;display:block;background:#fcfbf7;border:1px solid var(--line);border-radius:8px}
+.dpbox{fill:#f5f3ec;stroke:var(--line);stroke-width:1.5}
+.dpbox.cpu{fill:#fbfaf6}
+.dpbox.pmem{fill:#eef2fb;stroke:#b9c4e0}
+.dpbox.dmem{fill:#f3f7ee;stroke:#bcd0a8}
+.dplbl{font:700 11px Inter,sans-serif;fill:var(--blue);text-transform:uppercase;letter-spacing:.04em}
+.reg{fill:#fff;stroke:#b9b09a;stroke-width:1.4}
+.regk{font:700 11px var(--mono);fill:#555}
+.regv{font:700 13px var(--mono);fill:#1a1a1a}
+.bus{stroke-width:8;stroke-linecap:round;fill:none}
+.ibus{stroke:#9bb0dd} .dbus{stroke:#a8c98a}
+.buslbl{font:600 9.5px Inter,sans-serif;fill:#8a8067;text-transform:uppercase;letter-spacing:.05em}
+.hi{stroke:var(--blue)!important;stroke-width:2.6!important}
+.hi.reg{fill:#e8eef7!important}
+.alu-hi{fill:#eef3fb!important;stroke:var(--blue)!important;stroke-width:2.4!important}
+.ibuson{stroke:#1f4fb0!important;stroke-width:9!important} .dbuson{stroke:#3f8c2a!important;stroke-width:9!important}
+.memrow{font:11px var(--mono)}
+.memaddr{fill:#9a8f78} .memins{fill:#3a3a3a} .memcellk{fill:var(--good);font-weight:700}
+#packet rect{fill:var(--blue)} #packet text{fill:#fff;font:700 11px var(--mono);text-anchor:middle}
+#microcap{font:600 13px var(--mono);fill:#243f73}
+.simwrap{display:grid;grid-template-columns:minmax(330px,1fr) minmax(300px,.8fr);gap:12px;align-items:start}
+@media(max-width:840px){.simwrap{grid-template-columns:1fr}}
+textarea{width:100%;height:200px;font-family:var(--mono);font-size:13px;line-height:1.5;border:1px solid var(--line);border-radius:8px;padding:10px;background:#fcfcfa;color:#1a1a1a;resize:vertical;tab-size:4}
+.toolbar{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 0;align-items:center}
+button.b{font:inherit;font-size:13px;font-weight:600;border:1px solid var(--blue);background:var(--blue);color:#fff;border-radius:7px;padding:6px 12px;cursor:pointer}
+button.b.alt{background:#fff;color:var(--blue)} button.b:disabled{opacity:.45;cursor:default}
+select.b{font:inherit;font-size:13px;font-weight:600;border:1px solid var(--blue);background:#fff;color:var(--blue);border-radius:7px;padding:6px 10px}
+label.spd{font-size:12px;color:#555;display:flex;align-items:center;gap:5px}
+.msg{font-family:var(--mono);font-size:12px;min-height:18px;margin-top:6px}
+.msg.err{color:var(--warn)} .msg.ok{color:var(--good)}
+.lines{font-family:var(--mono);font-size:12px;max-height:160px;overflow:auto;border:1px solid var(--line);border-radius:8px}
+.lrow{display:grid;grid-template-columns:30px 1fr;gap:8px;padding:1px 8px;white-space:pre}
+.lrow .idx{color:#9a8f78;text-align:right} .lrow.cur{background:#e8eef7;border-left:3px solid var(--blue)}
+.lrow.errln{background:#fde8e8;border-left:3px solid #c62828} .lrow.errln .ins{color:#b3261e;font-weight:700}
+.lrow.nop .ins{color:#9a8f78;font-style:italic} .lrow .jt{color:var(--amber)}
+table.cells{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:13px}
+table.cells td{border:1px solid var(--line);padding:3px 6px} table.cells td.k{width:42px;color:#444;background:#f7f5ef;font-weight:700;text-align:center}
+table.cells input{width:100%;border:none;background:transparent;font-family:var(--mono);font-size:13px;color:#1a1a1a;padding:2px 4px}
+table.cells tr.res td.k{background:#e3edda;color:var(--good)} table.cells tr.res input{color:var(--good);font-weight:700}
+.hint{font-size:11.5px;color:#777;margin-top:6px}
+.changed{background:#fff3cd!important}
+.vh{display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:12.5px}
+.vh .vn{background:#fff7ed;border:1px solid #f0d9b8;border-radius:8px;padding:8px 10px}
+.vh .ha{background:#f9f2fb;border:1px solid #e2cce8;border-radius:8px;padding:8px 10px}
+.vh b{color:var(--blue)}
+.actpill{display:inline-block;font:700 11px var(--mono);padding:2px 8px;border-radius:10px;margin-left:6px}
+.actpill.i{background:#e7edfa;color:#1f4fb0} .actpill.d{background:#eaf3e2;color:#3f8c2a} .actpill.off{background:#eee;color:#999}
+</style></head>
+<body>
+<div class="sim">
+<div class="simhead">🧠 Harvard Machine Simulator <span style="font-weight:400;color:#666;font-size:.8rem">· separate program &amp; data memory · CSSA</span>
+  <a href="https://eamcmx.github.io/New-lectures/sim/vnmsim.html" title="Open the Von Neumann simulator">↔ Von Neumann sim</a>
+  <a href="https://eamcmx.github.io/New-lectures/sim/compare.html" title="Run the same program on both architectures">⇄ compare</a></div>
+<div class="note"><strong style="color:#7b2d8e">A Harvard machine has TWO separate memories and TWO separate buses.</strong> The <b style="color:#1f4fb0">program memory</b> (instructions) is reached over the <b style="color:#1f4fb0">instruction bus</b>; the <b style="color:#3f8c2a">data memory</b> (your X, Y, Z, W, T… cells) over the <b style="color:#3f8c2a">data bus</b>. Because they are independent, fetching an instruction and accessing data never compete for the same wires — so they can <em>overlap</em>. That is the opposite of the <a href="https://eamcmx.github.io/New-lectures/sim/vnmsim.html" target="_blank" rel="noopener">Von Neumann</a> machine, where one shared bus forces instructions and data to take turns (the <b>von Neumann bottleneck</b>). The <b>STC89C52 / 8051</b> you program on the real board in T4–T7 is a Harvard machine: program in ROM, data in RAM. Same instruction set as our Von Neumann sim, so you can run the very same program here and watch the difference.</div>
+
+<div class="card">
+  <h3>The Harvard CPU — two memories, two buses, fetch / decode / execute / store</h3>
+  <svg id="dp" viewBox="0 0 940 330" xmlns="http://www.w3.org/2000/svg">
+    <!-- program memory -->
+    <rect class="dpbox pmem" id="pmembox" x="12" y="12" width="196" height="150" rx="8"/>
+    <text class="dplbl" x="20" y="28" style="fill:#1f4fb0">Program memory (instructions)</text>
+    <g id="pmemrows"></g>
+    <!-- data memory -->
+    <rect class="dpbox dmem" id="dmembox" x="12" y="178" width="196" height="142" rx="8"/>
+    <text class="dplbl" x="20" y="194" style="fill:#3f8c2a">Data memory (X Y Z W T…)</text>
+    <g id="dmemrows"></g>
+    <!-- buses -->
+    <line class="bus ibus" id="ibus" x1="208" y1="70" x2="300" y2="70"/>
+    <text class="buslbl" x="210" y="63" style="fill:#1f4fb0">instr. bus ▸</text>
+    <line class="bus dbus" id="dbus" x1="208" y1="246" x2="300" y2="246"/>
+    <text class="buslbl" x="210" y="266" style="fill:#3f8c2a">◂ data bus ▸</text>
+    <!-- CPU -->
+    <rect class="dpbox cpu" x="300" y="12" width="628" height="308" rx="8"/>
+    <text class="dplbl" x="308" y="28">CPU</text>
+    <rect x="834" y="14" width="86" height="26" rx="6" fill="#2F5496"/>
+    <text id="tstate" x="877" y="32" text-anchor="middle" fill="#fff" style="font:700 14px var(--mono),monospace">T0</text>
+    <text id="phase" x="828" y="32" text-anchor="end" style="font:700 10px Inter,sans-serif;fill:#8a8067">idle</text>
+    <!-- control unit -->
+    <rect class="dpbox" id="cu" x="316" y="46" width="596" height="52" rx="6"/>
+    <text class="dplbl" x="324" y="60" style="fill:#7b6a45">Control unit</text>
+    <rect class="reg" id="r_pc" x="330" y="62" width="92" height="30" rx="5"/>
+    <text class="regk" x="336" y="74">PC</text><text class="regv" id="v_pc" x="414" y="84" text-anchor="end">0</text>
+    <rect class="reg" id="r_ir" x="440" y="62" width="300" height="30" rx="5"/>
+    <text class="regk" x="446" y="74">IR</text><text class="regv" id="v_ir" x="476" y="82" style="font-size:12px">—</text>
+    <!-- data memory address/data registers -->
+    <rect class="reg" id="r_dmar" x="316" y="120" width="128" height="32" rx="5"/>
+    <text class="regk" x="322" y="133">DMAR</text><text class="regv" id="v_dmar" x="438" y="146" text-anchor="end">—</text>
+    <rect class="reg" id="r_dmdr" x="316" y="182" width="128" height="32" rx="5"/>
+    <text class="regk" x="322" y="195">DMDR</text><text class="regv" id="v_dmdr" x="438" y="208" text-anchor="end">—</text>
+    <!-- ALU -->
+    <text class="dplbl" x="670" y="116" text-anchor="middle" style="fill:#7b6a45">ALU</text>
+    <polygon class="dpbox" id="alu" points="596,122 744,122 714,188 626,188"/>
+    <text id="alu_a" x="638" y="154" text-anchor="middle" style="font:700 14px var(--mono);fill:#1a1a1a"></text>
+    <text id="alu_op" x="670" y="153" text-anchor="middle" style="font:700 18px var(--mono);fill:var(--blue)"></text>
+    <text id="alu_b" x="702" y="154" text-anchor="middle" style="font:700 14px var(--mono);fill:#1a1a1a"></text>
+    <text id="alu_r" x="670" y="180" text-anchor="middle" style="font:700 14px var(--mono);fill:var(--good)"></text>
+    <rect class="reg" id="r_acc" x="600" y="216" width="150" height="40" rx="6"/>
+    <text class="regk" x="608" y="232">ACC (accumulator)</text><text class="regv" id="v_acc" x="742" y="249" text-anchor="end" style="font-size:16px">0</text>
+    <g id="packet" style="opacity:0"><rect x="-22" y="-12" width="44" height="24" rx="5"></rect><text x="0" y="5"></text></g>
+  </svg>
+  <div style="display:flex;align-items:center;gap:14px;margin-top:8px;flex-wrap:wrap">
+    <div style="flex:1;min-width:240px"><span id="microcap">Press <b>Compile ✓</b>, then <b>Step ▸</b> to advance one T-state.</span></div>
+    <div style="font-size:11.5px">bus: <span class="actpill off" id="ipill">instruction</span><span class="actpill off" id="dpill">data</span></div>
+    <label class="spd">speed <input id="spd" type="range" min="1" max="6" value="3" style="width:90px"></label>
+  </div>
+</div>
+
+<div class="simwrap">
+  <div>
+    <div class="card">
+      <h3>Program (lives in program memory)</h3>
+      <textarea id="src" spellcheck="false">// sum 1..X -> Z
+LOD #0
+STO Z
+LOD X
+JMZ 12
+LOD Z
+ADD X
+STO Z
+LOD X
+SUB #1
+STO X
+JMP 3
+HLT</textarea>
+      <div class="toolbar">
+        <button class="b" id="asm" title="Compile &amp; check the program">Compile ✓</button>
+        <button class="b alt" id="step">Step ▸</button>
+        <button class="b alt" id="run">Run ⏵</button>
+        <button class="b alt" id="fastrun" title="Run straight to the end with no animation">⏩ Finish</button>
+        <button class="b alt" id="reset">Reset ⟲</button>
+        <select id="examplesel" class="b alt" style="max-width:165px" title="Load a worked example"><option value="">📚 Examples…</option></select>
+      </div>
+      <div class="toolbar">
+        <select id="progsel" class="b alt" style="max-width:175px"><option value="">📂 My saved programs…</option></select>
+        <button class="b alt" id="saveprog">💾 Save</button>
+        <button class="b alt" id="delprog">🗑</button>
+        <button class="b alt" id="openfile">⬆ Import</button>
+        <button class="b alt" id="exportprog">⬇ Download</button>
+        <input type="file" id="fileinput" accept=".vnm,.asm,.txt,text/plain" style="display:none">
+      </div>
+      <div class="msg" id="msg"></div>
+    </div>
+    <div class="card">
+      <h3>Program lines — jump targets ▸</h3>
+      <div class="lines" id="lines"></div>
+      <div class="hint">Jumps target a program-memory <b>line number</b> (comment/blank lines count, acting as NOP). Cell names are case-insensitive.</div>
+    </div>
+  </div>
+  <div>
+    <div class="card">
+      <h3>Data memory cells</h3>
+      <table class="cells" id="cells"></table>
+      <div class="hint">Type your inputs (e.g. <b>X</b>, <b>Y</b>), then Compile. <b>Z</b> is the conventional result.</div>
+    </div>
+    <div class="card">
+      <h3>Von Neumann vs Harvard</h3>
+      <div class="vh">
+        <div class="vn"><b>Von Neumann</b><br>ONE memory holds instructions <em>and</em> data. ONE bus. A fetch and a data access must take turns → the <b>bottleneck</b>.</div>
+        <div class="ha"><b>Harvard</b><br>TWO memories (program + data), TWO buses. A fetch (instruction bus) and a data access (data bus) are independent → they can <b>overlap</b>.</div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+<script src="./vnmsim.js"></script>
+<script>
+(function(){
+  var $=function(id){return document.getElementById(id);};
+  var SVGNS='http://www.w3.org/2000/svg';
+  var vnm=new vnmsim.VNM(), initMem={}, prev={}, pendingOps=[], dispPC=0, busy=false, running=false, gapTimer=null, compiled=false;
+  var PORT={ PC:[400,77],IR:[480,77],DMAR:[380,136],DMDR:[380,198],ALU:[670,162],ALUL:[636,142],ALUR:[704,142],ACC:[675,236],PMEM:[208,70],DMEM:[208,246] };
+  function readInputs(){ var m={}; document.querySelectorAll('#cells input').forEach(function(i){ var v=parseInt(i.value,10); if(!isNaN(v)) m[i.dataset.cell]=v; }); return m; }
+  function esc(s){return (s||'').replace(/[&<>]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;'}[c];});}
+  function assemble(){
+    stopRun(); compiled=false; initMem=readInputs();
+    var v=vnmsim.validate($('src').value);
+    if(!v.ok){
+      vnm.prog=vnmsim.parse($('src').value); vnm.halted=true; vnm.error='compilation error'; pendingOps=[]; dispPC=-1;
+      renderLines();
+      v.errors.forEach(function(e){ var r=$('lines').querySelector('.lrow[data-i="'+e.line+'"]'); if(r) r.classList.add('errln'); });
+      var list=v.errors.slice(0,8).map(function(e){ return '&nbsp;&nbsp;<b>Line '+e.line+'</b> &nbsp;<code>'+esc(e.text)+'</code><br>&nbsp;&nbsp;&nbsp;&nbsp;&#8627; '+esc(e.msg); }).join('<br>');
+      $('microcap').innerHTML='<b style="color:#c62828">&#10007; '+v.errors.length+' compilation error'+(v.errors.length>1?'s':'')+' — fix before running:</b><br>'+list+(v.errors.length>8?'<br>&nbsp;&nbsp;&hellip;and '+(v.errors.length-8)+' more':'');
+      $('msg').className='msg err'; $('msg').textContent='✗ '+v.errors.length+' compilation error'+(v.errors.length>1?'s':'')+' (line '+v.errors.map(function(e){return e.line;}).slice(0,6).join(', ')+') — see above';
+      setRegs({PC:0,IR:'—',DMAR:'—',DMDR:'—',ACC:0}); clearAlu(); $('tstate').textContent='T0'; $('phase').textContent='error'; setPill(null); $('step').disabled=true; return false;
+    }
+    try{ vnm.load($('src').value, initMem); }catch(e){ $('msg').className='msg err'; $('msg').textContent='✗ '+e.message; return false; }
+    compiled=true; $('step').disabled=false;
+    prev={}; pendingOps=[]; dispPC=0; setRegs({PC:0,IR:'—',DMAR:'—',DMDR:'—',ACC:0}); clearAlu(); $('tstate').textContent='T0'; $('phase').textContent='ready'; setPill(null);
+    $('microcap').innerHTML='Compiled ✓ — '+vnm.prog.cells.length+' lines in program memory. Press <b>Step ▸</b> for one T-state, or <b>Run ⏵</b>.'; $('msg').className='msg ok'; $('msg').textContent='✓ compiled '+vnm.prog.cells.length+' lines, no errors';
+    renderLines(); renderProgMem(); renderDataMem(); renderCells(); markPC(); return true;
+  }
+  function renderLines(){
+    var html='', lines=vnm.prog.lines, cells=vnm.prog.cells;
+    for(var i=0;i<lines.length;i++){ var c=cells[i];
+      var shown=esc(lines[i]).replace(/\b(JM[PZ])\s+(-?\d+)/g,'$1 <span class="jt">$2</span>');
+      html+='<div class="lrow'+(c==null?' nop':'')+'" data-i="'+i+'"><span class="idx">'+i+'</span><span class="ins">'+(shown||'&nbsp;')+'</span></div>'; }
+    $('lines').innerHTML=html; markPC();
+  }
+  function markPC(){ $('lines').querySelectorAll('.lrow').forEach(function(r){ r.classList.toggle('cur', Number(r.dataset.i)===dispPC && !vnm.halted); });
+    var cur=$('lines').querySelector('.lrow.cur'); if(cur) cur.scrollIntoView({block:'nearest'}); }
+  function dataCellNames(){ var n=['X','Y','Z','W']; try{ vnm.cellNames().forEach(function(c){ if(n.indexOf(c)<0) n.push(c); }); }catch(e){} return n; }
+  function el(tag,attrs){ var e=document.createElementNS(SVGNS,tag); for(var k in attrs) e.setAttribute(k,attrs[k]); return e; }
+  function renderProgMem(){
+    var g=$('pmemrows'); g.innerHTML='';
+    var lines=vnm.prog.lines, N=lines.length;
+    var maxRows=8, start=0; if(N>maxRows){ start=Math.max(0,Math.min(dispPC-2,N-maxRows)); }
+    var y=44, end=Math.min(N,start+maxRows);
+    if(start>0){ var t0=el('text',{x:22,y:y,'class':'memrow memaddr'}); t0.textContent='⋮'; g.appendChild(t0); y+=14; }
+    for(var i=start;i<end;i++){ var row=el('g',{}); row.setAttribute('data-mem',i);
+      row.appendChild(el('rect',{x:16,y:y-11,width:188,height:13,rx:3,fill:'transparent','class':'membg'}));
+      var a=el('text',{x:22,y:y,'class':'memrow memaddr'}); a.textContent=(i<10?' ':'')+i;
+      var ins=el('text',{x:44,y:y,'class':'memrow memins'}); ins.textContent=(lines[i]||'').replace(/\s+$/,'').slice(0,22)||'·';
+      row.appendChild(a); row.appendChild(ins); g.appendChild(row); y+=14; }
+    if(end<N){ var t1=el('text',{x:22,y:y,'class':'memrow memaddr'}); t1.textContent='⋮'; g.appendChild(t1); }
+  }
+  function renderDataMem(){
+    var g=$('dmemrows'); g.innerHTML='';
+    var dc=dataCellNames(), y=210, max=7;
+    dc.slice(0,max).forEach(function(nm){ var row=el('g',{}); row.setAttribute('data-cell',nm);
+      row.appendChild(el('rect',{x:16,y:y-11,width:188,height:13,rx:3,fill:'transparent','class':'membg'}));
+      var k=el('text',{x:22,y:y,'class':'memrow memcellk'}); k.textContent=nm;
+      var v=el('text',{x:58,y:y,'class':'memrow memins'}); v.textContent='= '+((vnm.mem&&vnm.mem[nm]!=null)?vnm.mem[nm]:0);
+      row.appendChild(k); row.appendChild(v); g.appendChild(row); y+=14; });
+    if(dc.length>max){ var t=el('text',{x:22,y:y,'class':'memrow memaddr'}); t.textContent='⋮ +'+(dc.length-max)+' more'; g.appendChild(t); }
+  }
+  function memHi(sel,col){ var r=$('dp').querySelector(sel); if(r){ var bg=r.querySelector('.membg'); if(bg){ bg.setAttribute('fill',col==='w'?'#e3edda':'#fff3cd'); bg.setAttribute('stroke',col==='w'?'#7bbf5a':'#e0a800'); bg.setAttribute('stroke-width','1.2'); } } }
+  function memClear(){ $('dp').querySelectorAll('.membg').forEach(function(b){ b.setAttribute('fill','transparent'); b.removeAttribute('stroke'); }); }
+  function setRegs(o){ for(var k in o){ var t=$('v_'+k.toLowerCase()); if(t){ var s=(''+o[k]); t.textContent=s.length>30?s.slice(0,29)+'…':s; } } }
+  function hiReg(id,on){ if(id==='alu'){ $('alu').classList.toggle('alu-hi',!!on); return; } var r=$('r_'+id.toLowerCase())||$(id.toLowerCase()); if(r) r.classList.toggle('hi',!!on); }
+  function clearHi(){ ['pc','ir','dmar','dmdr','acc','alu','cu'].forEach(function(i){ hiReg(i,false); }); $('cu').classList.remove('hi'); $('ibus').classList.remove('ibuson'); $('dbus').classList.remove('dbuson'); memClear(); }
+  function setPill(bus){ $('ipill').className='actpill '+(bus==='i'?'i':'off'); $('dpill').className='actpill '+(bus==='d'?'d':'off'); }
+  function setAlu(a,op,b,r){ $('alu_a').textContent=(a==null?'':(''+a)); $('alu_op').textContent=(op==null?'':op); $('alu_b').textContent=(b==null?'':(''+b)); $('alu_r').textContent=(r==null?'':(''+r)); }
+  function clearAlu(){ setAlu('','','',''); }
+  function animMs(){ return ({1:900,2:600,3:400,4:250,5:120,6:45})[$('spd').value]||400; }
+  function movePacket(from,to,val,col,cb){
+    var pk=$('packet'), rect=pk.querySelector('rect'), txt=pk.querySelector('text');
+    txt.textContent=(''+val).slice(0,8); var w=Math.max(34,txt.textContent.length*9+14); rect.setAttribute('width',w); rect.setAttribute('x',-w/2);
+    rect.setAttribute('fill', col==='i'?'#1f4fb0':col==='d'?'#3f8c2a':'#2F5496');
+    pk.style.opacity='1'; var t0=null, dur=animMs();
+    function fr(ts){ if(!t0)t0=ts; var p=Math.min(1,(ts-t0)/dur); var e=p<.5?2*p*p:1-Math.pow(-2*p+2,2)/2;
+      pk.setAttribute('transform','translate('+(from[0]+(to[0]-from[0])*e)+','+(from[1]+(to[1]-from[1])*e)+')');
+      if(p<1) requestAnimationFrame(fr); else { pk.style.opacity='0'; cb&&cb(); } }
+    requestAnimationFrame(fr);
+  }
+  function microOps(pc,cell){
+    var ops=[], pcv=pc, instr=(vnm.prog.lines[pcv]||'').trim()||'(nop)';
+    // FETCH — over the INSTRUCTION bus, from program memory
+    ops.push({cap:'PC ('+pcv+') addresses program memory',phase:'FETCH',hi:['pc'],bus:'i',mem:'#pmemrows [data-mem="'+pcv+'"]',from:PORT.PC,to:PORT.PMEM,val:pcv});
+    ops.push({cap:'instruction M['+pcv+'] = "'+instr.slice(0,14)+'" → IR on the INSTRUCTION bus ;  PC ← '+(pcv+1),phase:'FETCH',hi:['ir','pc'],bus:'i',mem:'#pmemrows [data-mem="'+pcv+'"]',from:PORT.PMEM,to:PORT.IR,val:instr.slice(0,8),set:{IR:instr,PC:pcv+1}});
+    if(cell==null){ ops.push({cap:'blank / comment line → NOP',phase:'DECODE',hi:['cu']}); return ops; }
+    var op=cell.op, arg=cell.arg;
+    ops.push({cap:'the control unit decodes IR = '+op+(arg!=null?(' '+arg):''),phase:'DECODE',hi:['cu','ir']});
+    function operandVal(){ if(arg==null)return 0; if(arg.charAt(0)==='#')return parseInt(arg.slice(1),10); return (vnm.mem[arg]!=null?vnm.mem[arg]:0); }
+    function fetchData(){   // read a data cell into DMDR over the DATA bus
+      ops.push({cap:'DMAR ← address('+arg+')',phase:'EXECUTE',hi:['ir','dmar'],from:PORT.IR,to:PORT.DMAR,val:arg,set:{DMAR:arg}});
+      ops.push({cap:'DMDR ← data memory['+arg+'] = '+operandVal()+' on the DATA bus',phase:'EXECUTE',hi:['dmdr'],bus:'d',mem:'#dmemrows [data-cell="'+arg+'"]',from:PORT.DMEM,to:PORT.DMDR,val:operandVal(),set:{DMDR:operandVal()}});
+    }
+    if(op==='LOD'){
+      if(arg&&arg.charAt(0)==='#') ops.push({cap:'ACC ← '+arg.slice(1)+' (immediate, from IR)',phase:'STORE',hi:['ir','acc'],from:PORT.IR,to:PORT.ACC,val:operandVal(),set:{ACC:operandVal()}});
+      else { fetchData(); ops.push({cap:'ACC ← DMDR ('+operandVal()+')',phase:'STORE',hi:['dmdr','acc'],from:PORT.DMDR,to:PORT.ACC,val:operandVal(),set:{ACC:operandVal()}}); }
+    } else if(op==='STO'){
+      ops.push({cap:'DMAR ← address('+arg+')',phase:'EXECUTE',hi:['ir','dmar'],from:PORT.IR,to:PORT.DMAR,val:arg,set:{DMAR:arg}});
+      ops.push({cap:'DMDR ← ACC ('+vnm.acc+')',phase:'EXECUTE',hi:['acc','dmdr'],from:PORT.ACC,to:PORT.DMDR,val:vnm.acc,set:{DMDR:vnm.acc}});
+      ops.push({cap:'data memory['+arg+'] ← DMDR on the DATA bus',phase:'STORE',hi:['dmdr'],bus:'d',memw:'#dmemrows [data-cell="'+arg+'"]',from:PORT.DMDR,to:PORT.DMEM,val:vnm.acc,commit:true});
+    } else if(op==='ADD'||op==='SUB'||op==='MUL'||op==='DIV'){
+      var sym={ADD:'+',SUB:'−',MUL:'×',DIV:'÷'}[op], oval=operandVal(), accv=vnm.acc;
+      var res = op==='ADD'?accv+oval : op==='SUB'?accv-oval : op==='MUL'?accv*oval : (oval===0?null:Math.trunc(accv/oval));
+      if(arg&&arg.charAt(0)==='#') ops.push({cap:'operand '+oval+' (immediate) → ALU right input',phase:'EXECUTE',hi:['ir','alu'],from:PORT.IR,to:PORT.ALUR,val:oval,aluB:oval});
+      else { fetchData(); ops.push({cap:'DMDR ('+oval+') → ALU right input',phase:'EXECUTE',hi:['dmdr','alu'],from:PORT.DMDR,to:PORT.ALUR,val:oval,aluB:oval}); }
+      ops.push({cap:'ACC ('+accv+') → ALU left input; operation = '+sym,phase:'EXECUTE',hi:['acc','alu'],from:PORT.ACC,to:PORT.ALUL,val:accv,aluA:accv,aluOp:sym});
+      ops.push({cap:(res==null?'ALU: division by zero is undefined':('ALU computes  '+accv+' '+sym+' '+oval+' = '+res)),phase:'EXECUTE',hi:['alu'],aluR:(res==null?'÷0!':res)});
+      if(res!=null) ops.push({cap:'ACC ← ALU result ('+res+')',phase:'STORE',hi:['alu','acc'],from:PORT.ALU,to:PORT.ACC,val:res,set:{ACC:res},aluClear:true});
+    } else if(op==='JMZ'){
+      ops.push({cap:(vnm.acc===0?('ACC = 0 → PC ← '+arg):('ACC ≠ 0 ('+vnm.acc+') → PC ← '+(pcv+1)+', no jump')),phase:'EXECUTE',hi:['cu','pc','acc'],set:{PC:(vnm.acc===0?parseInt(arg,10):pcv+1)}});
+    } else if(op==='JMP'){ ops.push({cap:'PC ← '+arg,phase:'EXECUTE',hi:['cu','pc'],set:{PC:parseInt(arg,10)}});
+    } else if(op==='NOP'){ ops.push({cap:'NOP — do nothing',phase:'EXECUTE',hi:['cu']});
+    } else if(op==='HLT'){ ops.push({cap:'HLT — the machine stops',phase:'EXECUTE',hi:['cu']}); }
+    return ops;
+  }
+  function playOneOp(o,done){
+    clearHi();
+    $('tstate').textContent='T'+o._t; $('phase').textContent=o.phase||''; $('microcap').textContent='T'+o._t+' · '+(o.phase||'')+' — '+o.cap;
+    (o.hi||[]).forEach(function(h){ hiReg(h,true); });
+    if(o.bus==='i'){ $('ibus').classList.add('ibuson'); setPill('i'); } else if(o.bus==='d'){ $('dbus').classList.add('dbuson'); setPill('d'); } else setPill(null);
+    if(o.mem) memHi(o.mem); if(o.memw) memHi(o.memw,'w');
+    var fin=function(){
+      if(o.set) setRegs(o.set);
+      if(o.aluA!=null) $('alu_a').textContent=o.aluA; if(o.aluB!=null) $('alu_b').textContent=o.aluB;
+      if(o.aluOp!=null) $('alu_op').textContent=o.aluOp; if(o.aluR!=null) $('alu_r').textContent=o.aluR;
+      if(o.aluClear) clearAlu();
+      if(o.commit){ renderDataMem(); }
+      done&&done();
+    };
+    if(o.from&&o.to) movePacket(o.from,o.to,o.val,o.bus,fin); else setTimeout(fin, Math.max(120,animMs()*0.75));
+  }
+  function genNextInstr(){
+    if(vnm.halted) return false;
+    var pc=vnm.pc, cell=vnm.prog.cells[pc];
+    if(pc<0||pc>=vnm.prog.cells.length){ vnm.halted=true; return false; }
+    dispPC=pc; markPC(); renderProgMem(); clearAlu();
+    pendingOps=microOps(pc,cell); pendingOps.forEach(function(o,i){ o._t=i+1; });
+    vnm.step();
+    return true;
+  }
+  function microStepOnce(done){
+    if(pendingOps.length===0){ if(!genNextInstr()){ done&&done(false); return; } }
+    if(pendingOps.length===0){ done&&done(false); return; }
+    var op=pendingOps.shift();
+    playOneOp(op, function(){
+      if(pendingOps.length===0){ dispPC=(vnm.halted?dispPC:vnm.pc); renderProgMem(); renderDataMem(); renderCells(); markPC(); }
+      done&&done(true);
+    });
+  }
+  function haltMsg(){ clearHi(); setPill(null); $('tstate').textContent='—'; $('phase').textContent='halted';
+    $('microcap').innerHTML=vnm.error?('<span style="color:#c62828">✗ '+vnm.error+'</span>'):('<b>Halted.</b> ACC='+vnm.acc+', Z='+(vnm.mem.Z!=null?vnm.mem.Z:'(unset)'));
+    $('msg').className='msg '+(vnm.error?'err':'ok'); $('msg').textContent=vnm.error?('✗ '+vnm.error):('✓ halted — Z='+(vnm.mem.Z!=null?vnm.mem.Z:'(unset)')); render(); }
+  function step(){
+    if(busy||running) return;
+    if(vnm.halted){ haltMsg(); return; }
+    if(!compiled){ if(!assemble()) return; }
+    busy=true; $('step').disabled=true;
+    microStepOnce(function(ok){ busy=false; $('step').disabled=false; if(!ok||vnm.halted) haltMsg(); });
+  }
+  function stopRun(){ running=false; if(gapTimer){ clearTimeout(gapTimer); gapTimer=null; } $('run').textContent='Run ⏵'; $('step').disabled=false; }
+  function runStart(){
+    if(running) return;
+    if(vnm.halted){ haltMsg(); return; }
+    if(!compiled){ if(!assemble()) return; }
+    running=true; $('run').textContent='Pause ⏸'; $('step').disabled=true; loop();
+  }
+  function loop(){ if(!running) return;
+    microStepOnce(function(ok){ if(!ok||vnm.halted){ stopRun(); haltMsg(); return; } if(running) gapTimer=setTimeout(loop, Math.max(20,animMs()*0.12)); });
+  }
+  function toggleRun(){ if(running) stopRun(); else runStart(); }
+  function runToEnd(){
+    stopRun();
+    if(!compiled){ if(!assemble()) return; }
+    if(vnm.halted){ haltMsg(); return; }
+    var n=0; while(!vnm.halted && n<500000){ vnm.step(); n++; }
+    if(!vnm.halted){ vnm.error='step limit exceeded — does anything reach the JMZ/HLT exit?'; vnm.halted=true; }
+    pendingOps=[]; dispPC=vnm.pc; clearHi(); setPill(null); clearAlu(); setRegs({PC:vnm.pc,ACC:vnm.acc}); haltMsg();
+  }
+  function renderCells(){
+    var names=dataCellNames(), cur=readInputs(), html='';
+    names.forEach(function(n){ var val=(vnm.mem&&vnm.mem[n]!=null)?vnm.mem[n]:(cur[n]!=null?cur[n]:0);
+      var ch=prev[n]!==undefined&&prev[n]!==val;
+      html+='<tr class="'+(n==='Z'?'res':'')+'"><td class="k">'+n+'</td><td'+(ch?' class="changed"':'')+'><input data-cell="'+n+'" type="number" value="'+val+'"></td></tr>'; });
+    $('cells').innerHTML=html;
+  }
+  function render(){ renderProgMem(); renderDataMem(); renderCells(); prev={}; dataCellNames().forEach(function(n){ prev[n]=(vnm.mem&&vnm.mem[n]!=null)?vnm.mem[n]:0; }); markPC(); }
+  $('asm').onclick=assemble;
+  $('src').addEventListener('input',function(){ compiled=false; $('msg').className='msg'; $('msg').textContent='program changed — press Compile ✓'; $('lines').querySelectorAll('.lrow.errln').forEach(function(r){ r.classList.remove('errln'); }); });
+  $('step').onclick=step;
+  $('run').onclick=toggleRun;
+  $('fastrun').onclick=runToEnd;
+  $('reset').onclick=function(){ stopRun(); vnm.reset(initMem); prev={}; pendingOps=[]; dispPC=0; clearHi(); setPill(null); clearAlu(); setRegs({PC:0,IR:'—',DMAR:'—',DMDR:'—',ACC:0}); $('tstate').textContent='T0'; $('phase').textContent='ready'; $('microcap').innerHTML='Reset. Press <b>Step ▸</b> for one T-state.'; render(); $('msg').className='msg ok'; $('msg').textContent='↺ reset to your inputs'; };
+  $('cells').addEventListener('change',function(e){ if(e.target&&e.target.dataset&&e.target.dataset.cell){ initMem=readInputs(); renderDataMem(); } });
+  var PKEY='cssa_vnmsim_progs';
+  function getProgs(){ try{ return JSON.parse(localStorage.getItem(PKEY)||'{}'); }catch(e){ return {}; } }
+  function refreshProgs(sel){ var p=getProgs(),n=Object.keys(p).sort(),s=$('progsel'); s.innerHTML='<option value="">📂 My saved programs ('+n.length+')…</option>'; n.forEach(function(x){var o=document.createElement('option');o.value=x;o.textContent=x;s.appendChild(o);}); if(sel)s.value=sel; }
+  $('saveprog').onclick=function(){ var nm=prompt('Save this program in your browser as:',$('progsel').value||'my-program'); if(nm==null)return; nm=nm.trim(); if(!nm)return; var p=getProgs(); p[nm]=$('src').value; try{localStorage.setItem(PKEY,JSON.stringify(p));}catch(e){alert('Could not save.');return;} refreshProgs(nm); $('msg').className='msg ok'; $('msg').textContent='💾 saved "'+nm+'"'; };
+  $('delprog').onclick=function(){ var nm=$('progsel').value; if(!nm){$('msg').textContent='Pick a saved program first.';return;} if(!confirm('Delete "'+nm+'"?'))return; var p=getProgs(); delete p[nm]; localStorage.setItem(PKEY,JSON.stringify(p)); refreshProgs(); $('msg').textContent='🗑 deleted'; };
+  $('progsel').onchange=function(){ var nm=this.value; if(!nm)return; var p=getProgs(); if(p[nm]!=null){ $('src').value=p[nm]; assemble(); } };
+  $('exportprog').onclick=function(){ var nm=($('progsel').value||'program').replace(/[^\w.\-]+/g,'_'); var a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([$('src').value],{type:'text/plain'})); a.download=nm+'.vnm'; document.body.appendChild(a); a.click(); document.body.removeChild(a); setTimeout(function(){URL.revokeObjectURL(a.href);},800); $('msg').className='msg ok'; $('msg').textContent='⬇ downloaded '+nm+'.vnm'; };
+  $('openfile').onclick=function(){ $('fileinput').click(); };
+  $('fileinput').onchange=function(){ var f=this.files&&this.files[0]; if(!f)return; var r=new FileReader(); r.onload=function(){ $('src').value=r.result; assemble(); $('msg').className='msg ok'; $('msg').textContent='⬆ loaded '+f.name; }; r.readAsText(f); this.value=''; };
+  refreshProgs();
+  var EXAMPLES={
+    'Addition: X + Y → Z':['// X + Y = Z\nLOD X\nADD Y\nSTO Z\nHLT',{X:5,Y:3}],
+    'Subtraction: X − Y → Z':['// X - Y = Z\nLOD X\nSUB Y\nSTO Z\nHLT',{X:5,Y:3}],
+    'Multiplication: X × Y → Z':['// X * Y = Z\nLOD X\nMUL Y\nSTO Z\nHLT',{X:6,Y:7}],
+    'Division: X ÷ Y → Z':['// X / Y = Z\nLOD X\nDIV Y\nSTO Z\nHLT',{X:12,Y:3}],
+    'Power: X^Y → Z':['// X^Y = Z\nLOD #1\nSTO Z\nLOD Y\nJMZ 12\nLOD Z\nMUL X\nSTO Z\nLOD Y\nSUB #1\nSTO Y\nJMP 4\nHLT',{X:3,Y:2}],
+    'Sum 1..X → Z':['// sum 1..X -> Z\nLOD #0\nSTO Z\nLOD X\nJMZ 12\nLOD Z\nADD X\nSTO Z\nLOD X\nSUB #1\nSTO X\nJMP 3\nHLT',{X:5}],
+    'Factorial X! → Z':['// X! -> Z\nLOD #1\nSTO Z\nLOD X\nJMZ 12\nLOD Z\nMUL X\nSTO Z\nLOD X\nSUB #1\nSTO X\nJMP 3\nHLT',{X:5}]
+  };
+  (function(){ var s=$('examplesel'); Object.keys(EXAMPLES).forEach(function(k){ var o=document.createElement('option'); o.value=k; o.textContent=k; s.appendChild(o); }); })();
+  $('examplesel').onchange=function(){ var e=EXAMPLES[this.value]; if(!e)return; $('src').value=e[0];
+    var cur=e[1], html=''; ['X','Y','Z','W'].forEach(function(n){ if(cur[n]!=null) html+='<tr><td class="k">'+n+'</td><td><input data-cell="'+n+'" type="number" value="'+cur[n]+'"></td></tr>'; });
+    $('cells').innerHTML=html; assemble(); this.selectedIndex=0; };
+  $('cells').innerHTML='<tr><td class="k">X</td><td><input data-cell="X" type="number" value="5"></td></tr>';
+  window.SIM={ load:function(code){ $('src').value=code; assemble(); window.scrollTo(0,0); } };
+  assemble();
+})();
+</script>
+<script src="./tsi-buddy.js"></script>
+<script>
+if(window.TSIBuddy){TSIBuddy.mount({systemPrompt:"You are TSI Buddy, an Assistant-stage study tutor for a HARVARD-architecture machine simulator in the CSSA course. Knowledge base (answer ONLY from this and the simulator the student is using): a Harvard machine has TWO SEPARATE memories and TWO SEPARATE buses — a PROGRAM memory (instructions, reached over the instruction bus, addressed by PC) and a DATA memory (the named cells X, Y, Z, W, T0..Tn, reached over the data bus). Because the buses are independent, an instruction fetch and a data access never compete for the same wires and can OVERLAP. Contrast with the VON NEUMANN machine, which has ONE memory holding both instructions and data and ONE bus, so fetches and data accesses must take turns — the VON NEUMANN BOTTLENECK. The real STC89C52 / 8051 the student programs on the board in T4-T7 is Harvard: program in ROM, data in RAM. The instruction set is identical to the Von Neumann sim so the SAME program runs on both: LOD var|#num (ACC<-value), STO var (data cell<-ACC), ADD/SUB/MUL/DIV var|#num (DIV is integer; /0 is an error), JMZ n (jump to program-memory line n if ACC==0), JMP n, NOP, HLT, // comment. Cell names are CASE-INSENSITIVE (x = X). Jumps target a program-memory LINE NUMBER counted from 0 with comment+blank lines counting as NOP; there are NO labels. The answer is read from a data cell (conventionally Z), not from ACC. The CPU runs each instruction over T-states T1,T2,T3...: FETCH (PC addresses program memory, instruction returns on the instruction bus to IR, PC++), DECODE (control unit reads IR), EXECUTE (operands move via DMAR/DMDR over the DATA bus into the ALU, which shows its two inputs and the operation symbol), STORE (the result is written back to ACC or a data cell over the data bus). BEHAVIOUR: this is the Assistant stage. Help the student UNDERSTAND the Harvard vs Von Neumann difference, the two buses, and the T-states; help them PLAN and DEBUG — but if a coursework is assessed do NOT hand over a complete solution. Tell them to single-Step and watch which bus lights up (instruction vs data). Detect the student's language and reply in it.",contextLabel:'Harvard Machine Simulator (CSSA)',openingLine:'What is the difference between the instruction bus and the data bus, and why can a Harvard machine be faster than a Von Neumann one?'});}
+</script>
+</body></html>
