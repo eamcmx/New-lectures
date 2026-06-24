@@ -1,0 +1,44 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CSSA CPU Simulators — Von Neumann &amp; Harvard</title>
+<style>
+:root{--blue:#2F5496;--paper:#fbfaf6;--ink:#222;--line:#d8d2c4;--amber:#a06000;--mag:#7b2d8e;--mono:'JetBrains Mono',ui-monospace,Consolas,monospace;}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:Inter,system-ui,Arial,sans-serif;line-height:1.55}
+.wrap{max-width:920px;margin:0 auto;padding:30px 18px 60px}
+h1{color:var(--blue);font-size:1.7rem;margin:0 0 4px}
+.lead{color:#555;font-size:1rem;margin:0 0 24px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:680px){.grid{grid-template-columns:1fr}}
+a.card{display:block;text-decoration:none;color:inherit;background:#fff;border:1px solid var(--line);border-radius:12px;padding:18px 20px;box-shadow:0 1px 3px rgba(0,0,0,.06);transition:transform .12s,box-shadow .12s}
+a.card:hover{transform:translateY(-3px);box-shadow:0 6px 18px rgba(0,0,0,.10)}
+a.card.span{grid-column:1/-1}
+.ic{font-size:1.6rem}
+.ct{font-size:1.15rem;font-weight:700;margin:6px 0 4px}
+.card.vn{border-top:4px solid var(--amber)} .card.vn .ct{color:var(--amber)}
+.card.ha{border-top:4px solid var(--mag)} .card.ha .ct{color:var(--mag)}
+.card.cmp{border-top:4px solid var(--blue)} .card.cmp .ct{color:var(--blue)}
+.cd{font-size:.92rem;color:#555}
+.foot{margin-top:26px;font-size:.82rem;color:#888}
+code{font-family:var(--mono);font-size:.85em;background:#f1efe7;padding:1px 5px;border-radius:4px}
+</style></head>
+<body>
+<div class="wrap">
+  <h1>CPU Simulators</h1>
+  <p class="lead">Interactive single-accumulator machines for the <b>Computer Systems Architecture</b> course — watch the fetch&ndash;decode&ndash;execute&ndash;store cycle run, one T-state at a time. The same instruction set runs on both architectures, so you can see exactly what the architecture changes.</p>
+  <div class="grid">
+    <a class="card vn" href="./vnmsim.html">
+      <div class="ic">🧮</div><div class="ct">Von Neumann simulator (vnmsim)</div>
+      <div class="cd">One memory, one bus. The machine used in <b>CW1</b>. Compile, single-step through the T-states, watch the ALU, save your programs.</div>
+    </a>
+    <a class="card ha" href="./harvard.html">
+      <div class="ic">🧠</div><div class="ct">Harvard simulator</div>
+      <div class="cd">Separate program and data memories on separate buses — like the <b>8051 / STC89C52</b> on the bench. See the instruction bus and data bus light up independently.</div>
+    </a>
+    <a class="card cmp span" href="./compare.html">
+      <div class="ic">⇄</div><div class="ct">Von Neumann ⇄ Harvard — side by side</div>
+      <div class="cd">Run one program on both machines at once. The bus-cycle counters make the <b>von Neumann bottleneck</b> visible: Harvard does the same work in fewer cycles because a fetch and a data access never compete for the same bus.</div>
+    </a>
+  </div>
+  <p class="foot">Transport Telecommunication Institute · Computer Systems Architecture · instruction set: <code>LOD STO ADD SUB MUL DIV JMZ JMP NOP HLT</code>. Built on the <a href="https://github.com/c2r0b/vnmsim" style="color:var(--blue)">vnmsim</a> model.</p>
+</div>
+</body></html>

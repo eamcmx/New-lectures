@@ -1,0 +1,230 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Von Neumann ⇄ Harvard — same program, two architectures (CSSA)</title>
+<style>
+:root{--blue:#2F5496;--paper:#fbfaf6;--ink:#222;--line:#d8d2c4;--good:#2e7d32;--warn:#c62828;--amber:#a06000;--mag:#7b2d8e;--mono:'JetBrains Mono',ui-monospace,Consolas,monospace;}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:Inter,system-ui,Arial,sans-serif;font-size:15px;line-height:1.5}
+.sim{max-width:1180px;margin:0 auto;padding:14px}
+.simhead{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-weight:700;color:var(--blue);font-size:1.1rem;margin-bottom:4px}
+.simhead a{font-weight:600;font-size:.78rem;text-decoration:none;border-radius:6px;padding:3px 8px}
+.simhead a.vn{color:#a06000;border:1px solid #e8c98a} .simhead a.ha{color:#7b2d8e;border:1px solid #d9c2e2}
+.note{margin:0 0 12px;padding:10px 14px;border-left:5px solid var(--blue);background:#eef2fb;border-radius:8px;color:#243f73;font-size:12.5px;line-height:1.5}
+.card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px;box-shadow:0 1px 3px rgba(0,0,0,.05);margin-bottom:12px}
+.card h3{margin:0 0 8px;font-size:.8rem;letter-spacing:.06em;text-transform:uppercase;color:var(--blue)}
+.toolbar{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 0;align-items:center}
+button.b{font:inherit;font-size:13px;font-weight:600;border:1px solid var(--blue);background:var(--blue);color:#fff;border-radius:7px;padding:6px 12px;cursor:pointer}
+button.b.alt{background:#fff;color:var(--blue)} button.b:disabled{opacity:.45;cursor:default}
+select.b{font:inherit;font-size:13px;font-weight:600;border:1px solid var(--blue);background:#fff;color:var(--blue);border-radius:7px;padding:6px 10px}
+label.spd{font-size:12px;color:#555;display:flex;align-items:center;gap:5px}
+textarea{width:100%;height:118px;font-family:var(--mono);font-size:12.5px;line-height:1.45;border:1px solid var(--line);border-radius:8px;padding:9px;background:#fcfcfa;color:#1a1a1a;resize:vertical;tab-size:4}
+.inrow{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:8px;font-family:var(--mono);font-size:13px}
+.inrow input{width:62px;border:1px solid var(--line);border-radius:6px;padding:4px 6px;font-family:var(--mono);font-size:13px}
+.msg{font-family:var(--mono);font-size:12px;min-height:18px;margin-top:6px} .msg.err{color:var(--warn)} .msg.ok{color:var(--good)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start}
+@media(max-width:820px){.grid2{grid-template-columns:1fr}}
+.arch{border-radius:10px;border:1px solid var(--line);padding:10px;background:#fff}
+.arch.vn{border-top:4px solid var(--amber)} .arch.ha{border-top:4px solid var(--mag)}
+.arch h4{margin:0 0 2px;font-size:.98rem} .arch .sub{font-size:11.5px;color:#777;margin-bottom:6px}
+svg.diag{width:100%;height:auto;display:block;background:#fcfbf7;border:1px solid var(--line);border-radius:8px}
+.dbox{stroke-width:1.5} .dbox.mem{fill:#f1efe7;stroke:#c9b98f} .dbox.pmem{fill:#eef2fb;stroke:#b9c4e0} .dbox.dmem{fill:#f3f7ee;stroke:#bcd0a8} .dbox.cpu{fill:#fbfaf6;stroke:var(--line)}
+.dlbl{font:700 10px Inter,sans-serif;text-transform:uppercase;letter-spacing:.03em}
+.wire{stroke:#cfc7b2;stroke-width:7;stroke-linecap:round;fill:none}
+.wire.on{stroke:#e0a800!important;stroke-width:9!important}
+.wire.ion{stroke:#1f4fb0!important;stroke-width:9!important} .wire.don{stroke:#3f8c2a!important;stroke-width:9!important}
+.cap{font-family:var(--mono);font-size:12px;min-height:34px;margin-top:6px;color:#333}
+.cap b{color:var(--blue)}
+.tall{display:flex;align-items:center;gap:8px;margin-top:8px;font-family:var(--mono);font-size:12px}
+.barwrap{flex:1;height:16px;background:#eee;border-radius:8px;overflow:hidden} .bar{height:100%;width:0;transition:width .25s} .bar.vn{background:#e0a800} .bar.ha{background:var(--mag)}
+.cyc{font-weight:700;min-width:118px}
+.win{font-size:11px;color:#777}
+.sumtab{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:13px;margin-top:4px}
+.sumtab td,.sumtab th{border:1px solid var(--line);padding:5px 8px;text-align:left} .sumtab th{background:#f3f1ea;color:var(--blue)}
+.big{font-size:1.3rem;font-weight:800;color:var(--good)}
+</style></head>
+<body>
+<div class="sim">
+<div class="simhead">⇄ Von Neumann vs Harvard — the same program on both
+  <a class="vn" href="https://eamcmx.github.io/New-lectures/sim/vnmsim.html">🧮 Von Neumann sim</a>
+  <a class="ha" href="https://eamcmx.github.io/New-lectures/sim/harvard.html">🧠 Harvard sim</a></div>
+<div class="note"><strong>One program, two architectures.</strong> Both machines run the identical instruction set and compute the identical answer — what differs is how they reach memory. The <b style="color:#a06000">Von Neumann</b> machine has <b>one memory and one bus</b>: every instruction fetch and every data access take turns on the same wire (the <b>von Neumann bottleneck</b>). The <b style="color:#7b2d8e">Harvard</b> machine has <b>separate program and data memories on separate buses</b>: a fetch and a data access happen at the same time. Press <b>Step</b> to run one instruction on both and watch the buses; the <b>bus-cycle counters</b> show the gap grow.</div>
+
+<div class="card">
+  <h3>Program &amp; data — runs on both machines</h3>
+  <div class="grid2">
+    <div>
+      <select id="examplesel" class="b alt" style="max-width:230px"><option value="">📚 Load an example…</option></select>
+      <textarea id="src" spellcheck="false">// X + Y, then X * Y
+LOD X
+ADD Y
+STO Z
+LOD X
+MUL Y
+STO W
+HLT</textarea>
+    </div>
+    <div>
+      <div class="inrow">inputs: X <input id="inX" type="number" value="6"> Y <input id="inY" type="number" value="4"></div>
+      <div class="toolbar">
+        <button class="b" id="asm">Compile ✓</button>
+        <button class="b alt" id="step">Step ▸ (1 instruction)</button>
+        <button class="b alt" id="run">Run ⏵</button>
+        <button class="b alt" id="fastrun">⏩ Finish</button>
+        <button class="b alt" id="reset">Reset ⟲</button>
+      </div>
+      <label class="spd" style="margin-top:8px">speed <input id="spd" type="range" min="1" max="6" value="3" style="width:110px"></label>
+      <div class="msg" id="msg"></div>
+    </div>
+  </div>
+</div>
+
+<div class="grid2">
+  <div class="arch vn">
+    <h4 style="color:#a06000">🧮 Von Neumann</h4><div class="sub">one memory · one shared bus · accesses are SERIAL</div>
+    <svg class="diag" viewBox="0 0 460 180" xmlns="http://www.w3.org/2000/svg">
+      <rect class="dbox mem" x="14" y="40" width="150" height="100" rx="8"/>
+      <text class="dlbl" x="24" y="60" style="fill:#a06000">Memory</text>
+      <text x="24" y="78" style="font:11px var(--mono);fill:#666">instructions</text>
+      <text x="24" y="94" style="font:11px var(--mono);fill:#666">+ data</text>
+      <line class="wire" id="vn_bus" x1="164" y1="90" x2="300" y2="90"/>
+      <text class="dlbl" x="178" y="82" style="fill:#8a8067">shared bus</text>
+      <rect class="dbox cpu" x="300" y="40" width="146" height="100" rx="8"/>
+      <text class="dlbl" x="310" y="60" style="fill:var(--blue)">CPU</text>
+      <rect class="dbox" x="316" y="92" width="116" height="32" rx="5" fill="#fff" stroke="#b9b09a"/>
+      <text x="324" y="104" style="font:700 10px var(--mono);fill:#555">ACC</text>
+      <text id="vn_acc" x="424" y="113" text-anchor="end" style="font:700 14px var(--mono);fill:#1a1a1a">0</text>
+      <circle id="vn_dot" cx="0" cy="90" r="9" fill="#e0a800" style="opacity:0"/>
+    </svg>
+    <div class="cap" id="vn_cap">Press Compile, then Step.</div>
+    <div class="tall"><span class="cyc">bus cycles: <span id="vn_cyc">0</span></span><div class="barwrap"><div class="bar vn" id="vn_bar"></div></div></div>
+    <div class="win">every fetch and every data access is one more cycle on the single bus</div>
+  </div>
+
+  <div class="arch ha">
+    <h4 style="color:#7b2d8e">🧠 Harvard</h4><div class="sub">two memories · two buses · fetch ∥ data access</div>
+    <svg class="diag" viewBox="0 0 460 180" xmlns="http://www.w3.org/2000/svg">
+      <rect class="dbox pmem" x="14" y="20" width="150" height="62" rx="8"/>
+      <text class="dlbl" x="24" y="38" style="fill:#1f4fb0">Program mem</text>
+      <text x="24" y="56" style="font:11px var(--mono);fill:#666">instructions</text>
+      <rect class="dbox dmem" x="14" y="98" width="150" height="62" rx="8"/>
+      <text class="dlbl" x="24" y="116" style="fill:#3f8c2a">Data mem</text>
+      <text x="24" y="134" style="font:11px var(--mono);fill:#666">X Y Z W…</text>
+      <line class="wire" id="h_ibus" x1="164" y1="50" x2="300" y2="50"/>
+      <text class="dlbl" x="176" y="42" style="fill:#1f4fb0">instr. bus</text>
+      <line class="wire" id="h_dbus" x1="164" y1="130" x2="300" y2="130"/>
+      <text class="dlbl" x="176" y="150" style="fill:#3f8c2a">data bus</text>
+      <rect class="dbox cpu" x="300" y="40" width="146" height="100" rx="8"/>
+      <text class="dlbl" x="310" y="60" style="fill:var(--blue)">CPU</text>
+      <rect class="dbox" x="316" y="92" width="116" height="32" rx="5" fill="#fff" stroke="#b9b09a"/>
+      <text x="324" y="104" style="font:700 10px var(--mono);fill:#555">ACC</text>
+      <text id="ha_acc" x="424" y="113" text-anchor="end" style="font:700 14px var(--mono);fill:#1a1a1a">0</text>
+      <circle id="h_idot" cx="0" cy="50" r="9" fill="#1f4fb0" style="opacity:0"/>
+      <circle id="h_ddot" cx="0" cy="130" r="9" fill="#3f8c2a" style="opacity:0"/>
+    </svg>
+    <div class="cap" id="ha_cap">Press Compile, then Step.</div>
+    <div class="tall"><span class="cyc">bus cycles: <span id="ha_cyc">0</span></span><div class="barwrap"><div class="bar ha" id="ha_bar"></div></div></div>
+    <div class="win">fetch (instr bus) and data (data bus) share one cycle — they overlap</div>
+  </div>
+</div>
+
+<div class="card">
+  <h3>Scoreboard</h3>
+  <table class="sumtab">
+    <tr><th>after</th><th>instructions</th><th>data accesses</th><th>Von Neumann bus cycles</th><th>Harvard bus cycles</th><th>result Z</th></tr>
+    <tr><td>so far</td><td id="s_instr">0</td><td id="s_data">0</td><td id="s_vn">0</td><td id="s_ha">0</td><td id="s_z">—</td></tr>
+  </table>
+  <p style="margin:10px 2px 0;font-size:13px">Harvard does the same work in <span class="big" id="s_speed">1.00×</span> fewer bus cycles — that saving <em>is</em> the von Neumann bottleneck, and it is why the 8051 on your bench (a Harvard machine) keeps program in ROM and data in RAM on separate buses.</p>
+</div>
+</div>
+<script src="./vnmsim.js"></script>
+<script>
+(function(){
+  var $=function(id){return document.getElementById(id);};
+  var vnm=new vnmsim.VNM(), initMem={}, compiled=false, busy=false, running=false, timer=null;
+  var I=0, D=0, VN=0, HA=0;   // instructions, data accesses, VN bus cycles, Harvard bus cycles
+  function inputs(){ var m={}; var x=parseInt($('inX').value,10), y=parseInt($('inY').value,10); if(!isNaN(x))m.X=x; if(!isNaN(y))m.Y=y; return m; }
+  function animMs(){ return ({1:900,2:650,3:460,4:320,5:200,6:110})[$('spd').value]||460; }
+  function setBars(){
+    $('vn_cyc').textContent=VN; $('ha_cyc').textContent=HA;
+    $('s_instr').textContent=I; $('s_data').textContent=D; $('s_vn').textContent=VN; $('s_ha').textContent=HA;
+    var mx=Math.max(VN,HA,1); $('vn_bar').style.width=(100*VN/mx)+'%'; $('ha_bar').style.width=(100*HA/mx)+'%';
+    $('s_speed').textContent=(HA>0?(VN/HA).toFixed(2):'1.00')+'×';
+    $('s_z').textContent=(vnm.mem&&vnm.mem.Z!=null)?vnm.mem.Z:'—';
+    $('vn_acc').textContent=vnm.acc; $('ha_acc').textContent=vnm.acc;
+  }
+  function reset(){
+    stopRun(); initMem=inputs();
+    var v=vnmsim.validate($('src').value);
+    if(!v.ok){ compiled=false; $('msg').className='msg err'; $('msg').textContent='✗ line '+v.errors[0].line+': '+v.errors[0].msg; return false; }
+    try{ vnm.load($('src').value, initMem); }catch(e){ $('msg').className='msg err'; $('msg').textContent='✗ '+e.message; return false; }
+    compiled=true; I=D=VN=HA=0; setBars();
+    $('vn_cap').innerHTML='Compiled ✓ — Step to run one instruction.'; $('ha_cap').innerHTML='Compiled ✓ — Step to run one instruction.';
+    $('msg').className='msg ok'; $('msg').textContent='✓ compiled '+vnm.prog.cells.length+' lines'; return true;
+  }
+  function accessOf(cell){
+    if(cell==null) return {data:0,kind:'',imm:false};
+    var op=cell.op, imm=(cell.arg&&cell.arg.charAt(0)==='#');
+    if((op==='LOD'||op==='ADD'||op==='SUB'||op==='MUL'||op==='DIV')&&!imm) return {data:1,kind:'read',imm:false};
+    if(op==='STO') return {data:1,kind:'write',imm:false};
+    return {data:0,kind:'',imm:imm};
+  }
+  function dot(id,x0,x1,cb){ var d=$(id); d.style.opacity='1'; var t0=null,dur=animMs();
+    function fr(ts){ if(!t0)t0=ts; var p=Math.min(1,(ts-t0)/dur); d.setAttribute('cx', x0+(x1-x0)*p); if(p<1) requestAnimationFrame(fr); else { d.style.opacity='0'; cb&&cb(); } }
+    requestAnimationFrame(fr);
+  }
+  function wire(id,cls,on){ $(id).classList.toggle(cls,on); }
+  // animate ONE instruction on both machines; call done() when the (longer) VN side finishes
+  function stepOne(done){
+    // skip comment/blank NOP cells silently — count only real instructions
+    while(!vnm.halted && vnm.pc>=0 && vnm.pc<vnm.prog.cells.length && vnm.prog.cells[vnm.pc]==null){ vnm.step(); }
+    if(vnm.halted || vnm.pc<0 || vnm.pc>=vnm.prog.cells.length){ vnm.halted=true; done&&done(false); return; }
+    var pc=vnm.pc, cell=vnm.prog.cells[pc], a=accessOf(cell);
+    var instr=(vnm.prog.lines[pc]||'').trim()||'(nop)';
+    // narration
+    $('vn_cap').innerHTML='<b>'+instr+'</b><br>fetch on the bus'+(a.data?', then '+a.kind+' data on the SAME bus':'');
+    $('ha_cap').innerHTML='<b>'+instr+'</b><br>fetch on instr bus'+(a.data?' ∥ '+a.kind+' on data bus (parallel)':'');
+    // tally: VN = 1 fetch + data (serial); Harvard = max(1 fetch, data) = 1 (overlapped)
+    I+=1; D+=a.data; VN+=1+a.data; HA+=1; setBars();
+    vnm.step();   // advance the engine now; displays update as animation plays
+    // HARVARD: fetch + data simultaneously
+    wire('h_ibus','ion',true); if(a.data) wire('h_dbus','don',true);
+    dot('h_idot',164,300,function(){ wire('h_ibus','ion',false); });
+    if(a.data) dot('h_ddot',a.kind==='write'?300:164,a.kind==='write'?164:300,function(){ wire('h_dbus','don',false); });
+    // VON NEUMANN: fetch THEN data, serial on one bus
+    wire('vn_bus','on',true);
+    dot('vn_dot',164,300,function(){
+      wire('vn_bus','on',false);
+      if(a.data){
+        setTimeout(function(){ wire('vn_bus','on',true);
+          dot('vn_dot',a.kind==='write'?300:164,a.kind==='write'?164:300,function(){ wire('vn_bus','on',false); setBars(); done&&done(true); });
+        },40);
+      } else { setBars(); done&&done(true); }
+    });
+  }
+  function step(){ if(busy||running) return; if(!compiled){ if(!reset()) return; } if(vnm.halted){ $('msg').textContent='already halted — Reset to run again'; return; }
+    busy=true; setBtns(); stepOne(function(){ busy=false; setBtns(); if(vnm.halted) finishMsg(); }); }
+  function stopRun(){ running=false; if(timer){ clearTimeout(timer); timer=null; } $('run').textContent='Run ⏵'; setBtns(); }
+  function runStart(){ if(running) return; if(!compiled){ if(!reset()) return; } if(vnm.halted){ $('msg').textContent='already halted — Reset'; return; } running=true; $('run').textContent='Pause ⏸'; setBtns(); loop(); }
+  function loop(){ if(!running) return; stepOne(function(ok){ if(!ok||vnm.halted){ stopRun(); finishMsg(); return; } if(running) timer=setTimeout(loop,60); }); }
+  function toggleRun(){ if(running) stopRun(); else runStart(); }
+  function finishMsg(){ $('msg').className='msg ok'; $('msg').textContent='✓ done — Z='+((vnm.mem&&vnm.mem.Z!=null)?vnm.mem.Z:'(unset)')+'  ·  Von Neumann '+VN+' bus cycles vs Harvard '+HA; }
+  function runToEnd(){ stopRun(); if(!compiled){ if(!reset()) return; }
+    var n=0; while(!vnm.halted && n<500000){ n++; var cell=vnm.prog.cells[vnm.pc]; if(cell!=null){ var a=accessOf(cell); I+=1; D+=a.data; VN+=1+a.data; HA+=1; } vnm.step(); }
+    setBars(); finishMsg(); }
+  function setBtns(){ var dis=busy||running; $('step').disabled=dis; $('asm').disabled=running; }
+  $('asm').onclick=reset;
+  $('step').onclick=step; $('run').onclick=toggleRun; $('fastrun').onclick=runToEnd;
+  $('reset').onclick=function(){ reset(); };
+  $('src').addEventListener('input',function(){ compiled=false; });
+  ['inX','inY'].forEach(function(id){ $(id).addEventListener('change',function(){ compiled=false; }); });
+  var EX={
+    'X + Y, then X × Y (data-heavy)':['// X + Y, then X * Y\nLOD X\nADD Y\nSTO Z\nLOD X\nMUL Y\nSTO W\nHLT',6,4],
+    'Sum 1..X → Z (loop)':['// sum 1..X -> Z\nLOD #0\nSTO Z\nLOD X\nJMZ 12\nLOD Z\nADD X\nSTO Z\nLOD X\nSUB #1\nSTO X\nJMP 3\nHLT',5,0],
+    'Mostly immediates (few data)':['// immediate-heavy\nLOD #10\nADD #5\nADD #5\nSTO Z\nHLT',0,0],
+    'Factorial X! → Z':['// X! -> Z\nLOD #1\nSTO Z\nLOD X\nJMZ 12\nLOD Z\nMUL X\nSTO Z\nLOD X\nSUB #1\nSTO X\nJMP 3\nHLT',4,0]
+  };
+  (function(){ var s=$('examplesel'); Object.keys(EX).forEach(function(k){ var o=document.createElement('option'); o.value=k; o.textContent=k; s.appendChild(o); }); })();
+  $('examplesel').onchange=function(){ var e=EX[this.value]; if(!e)return; $('src').value=e[0]; $('inX').value=e[1]; $('inY').value=e[2]; this.selectedIndex=0; reset(); };
+  reset();
+})();
+</script>
+</body></html>
