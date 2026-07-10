@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prompt Studio — Linear Algebra for QC</title>
+<style>
+:root{
+  --bg:#0e1117;
+  --panel:#161b26;
+  --panel2:#1c2230;
+  --ink:#e6e9f0;
+  --muted:#8b94a7;
+  --grid:#232b3b;
+  --axis:#4a5568;
+  --blue:#58c4dd;
+  --yellow:#ffd35a;
+  --red:#fc6255;
+  --green:#83c167;
+  --purple:#c688eb;
+  --orange:#ff9f4b;
+  --line:#2a3347;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  background:var(--bg);color:var(--ink);
+  font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
+  line-height:1.55;
+}
+.wrap{max-width:1100px;margin:0 auto;padding:24px}
+.math{font-family:Georgia,'Times New Roman',serif;font-style:italic}
+header{margin-bottom:22px}
+header a.crumb{color:var(--muted);text-decoration:none;font-size:14px}
+header a.crumb:hover{color:var(--blue)}
+h1{font-size:30px;margin:10px 0 8px;font-weight:650}
+.paal{
+  display:inline-block;font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--purple);border:1px solid var(--purple);border-radius:999px;
+  padding:3px 10px;opacity:.85;margin-bottom:10px;
+}
+.subtitle{color:var(--muted);max-width:820px;font-size:15px}
+.panel{
+  background:var(--panel);border:1px solid var(--line);
+  border-radius:14px;padding:18px 20px;margin-bottom:20px;
+}
+h2{font-size:20px;font-weight:650;margin-bottom:6px}
+h2 .tag{font-size:12px;color:var(--muted);font-weight:400;margin-left:8px;letter-spacing:.04em}
+.lede{color:var(--muted);font-size:14.5px;max-width:860px;margin-bottom:14px}
+.lede strong{color:var(--ink);font-weight:600}
+
+/* traffic-light rubric */
+.lights{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:14px}
+@media(max-width:760px){.lights{grid-template-columns:1fr}}
+.light{
+  background:var(--panel2);border:1px solid var(--line);border-radius:12px;
+  padding:13px 15px;font-size:13.5px;color:var(--muted);
+}
+.light b{display:block;font-size:14px;margin-bottom:4px}
+.light.g{border-left:3px solid var(--green)} .light.g b{color:var(--green)}
+.light.y{border-left:3px solid var(--yellow)} .light.y b{color:var(--yellow)}
+.light.r{border-left:3px solid var(--red)} .light.r b{color:var(--red)}
+
+/* recipe builder */
+.recipe{display:grid;grid-template-columns:minmax(280px,420px) 1fr;gap:20px}
+@media(max-width:860px){.recipe{grid-template-columns:1fr}}
+.field{margin-bottom:13px}
+.field label{display:block;font-size:12.5px;letter-spacing:.05em;text-transform:uppercase;
+  color:var(--muted);margin-bottom:5px}
+.field .fixed{
+  background:var(--panel2);border:1px dashed var(--line);border-radius:9px;
+  padding:9px 12px;font-size:14px;color:var(--ink);
+}
+select,input[type="text"]{
+  width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--ink);
+  border-radius:9px;padding:9px 12px;font-size:14px;font-family:inherit;cursor:pointer;
+}
+input[type="text"]{cursor:text}
+select:focus,input[type="text"]:focus{outline:none;border-color:var(--blue)}
+select:hover{border-color:var(--blue)}
+#nRow{display:none}
+#nRow.show{display:block}
+.promptbox{
+  background:var(--panel2);border:1px solid var(--line);border-radius:12px;
+  padding:16px 18px;font-family:ui-monospace,'Cascadia Code',Consolas,Menlo,monospace;
+  font-size:13.2px;line-height:1.6;white-space:pre-wrap;color:var(--ink);
+  min-height:280px;max-height:460px;overflow-y:auto;
+}
+.promptbox .hl{color:var(--blue)}
+.outhead{display:flex;align-items:center;justify-content:space-between;gap:10px;
+  margin-bottom:8px;flex-wrap:wrap}
+.outhead span{font-size:12.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+button{
+  background:var(--panel2);border:1px solid var(--line);color:var(--ink);
+  border-radius:9px;padding:8px 14px;cursor:pointer;font-size:14px;
+  font-family:inherit;transition:border-color .15s,color .15s,background .15s;
+}
+button:hover{border-color:var(--blue)}
+button.active{border-color:var(--blue);color:var(--blue);background:rgba(88,196,221,.08)}
+button.good{border-color:var(--green);color:var(--green);background:rgba(131,193,103,.08)}
+.btnrow{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+a.buddy{
+  display:inline-block;background:var(--panel2);border:1px solid var(--line);
+  color:var(--ink);border-radius:9px;padding:8px 14px;font-size:14px;
+  text-decoration:none;transition:border-color .15s,color .15s;
+}
+a.buddy:hover{border-color:var(--purple);color:var(--purple)}
+.hint{font-size:12.5px;color:var(--muted);margin-top:8px}
+
+/* gallery accordion */
+.acc{border:1px solid var(--line);border-radius:11px;margin-bottom:10px;overflow:hidden;
+  background:var(--panel2)}
+.acc summary{
+  list-style:none;cursor:pointer;padding:12px 16px;font-size:14.5px;font-weight:600;
+  display:flex;align-items:center;gap:10px;user-select:none;
+}
+.acc summary::-webkit-details-marker{display:none}
+.acc summary .mode{
+  font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;
+  border:1px solid var(--line);border-radius:999px;padding:2px 9px;margin-left:auto;
+  white-space:nowrap;
+}
+.acc summary .arrow{color:var(--muted);transition:transform .2s;font-size:12px}
+.acc[open] summary .arrow{transform:rotate(90deg)}
+.acc summary:hover{color:var(--blue)}
+.accbody{padding:0 16px 14px}
+.accbody .promptbox{min-height:0;max-height:none;margin-bottom:10px}
+.mode.quiz{color:var(--blue);border-color:rgba(88,196,221,.5)}
+.mode.hunt{color:var(--red);border-color:rgba(252,98,85,.5)}
+.mode.feyn{color:var(--yellow);border-color:rgba(255,211,90,.5)}
+.mode.derive{color:var(--green);border-color:rgba(131,193,103,.5)}
+.mode.exam{color:var(--orange);border-color:rgba(255,159,75,.5)}
+
+/* clinic */
+.pairhead{display:flex;align-items:baseline;gap:12px;margin:18px 0 10px;flex-wrap:wrap}
+.pairhead b{font-size:15px}
+.pairhead span{font-size:13px;color:var(--muted)}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:760px){.pair{grid-template-columns:1fr}}
+.pcard{
+  background:var(--panel2);border:1px solid var(--line);border-radius:12px;
+  padding:13px 15px;cursor:pointer;font-size:13.5px;transition:border-color .15s,background .15s;
+  position:relative;
+}
+.pcard .plabel{font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);
+  margin-bottom:6px}
+.pcard .ptext{font-family:ui-monospace,'Cascadia Code',Consolas,Menlo,monospace;
+  font-size:12.6px;line-height:1.55;color:var(--ink);white-space:pre-wrap}
+.pcard:hover{border-color:var(--blue)}
+.pcard.correct{border-color:var(--green);background:rgba(131,193,103,.08);cursor:default}
+.pcard.wrong{border-color:var(--red);background:rgba(252,98,85,.07);cursor:default}
+.pcard.dim{opacity:.55;cursor:default}
+.pcard .stamp{position:absolute;top:10px;right:12px;font-size:16px;display:none}
+.pcard.correct .stamp,.pcard.wrong .stamp{display:block}
+.verdictline{
+  margin-top:9px;padding:10px 13px;border-radius:9px;font-size:13.5px;display:none;
+  border:1px solid var(--line);background:var(--panel);color:var(--muted);
+}
+.verdictline.show{display:block}
+.verdictline b.ok{color:var(--green)} .verdictline b.no{color:var(--red)}
+.scorebar{
+  margin-top:18px;padding:13px 16px;border-radius:11px;border:1px solid var(--line);
+  background:var(--panel2);font-size:14.5px;display:flex;align-items:center;gap:14px;
+  flex-wrap:wrap;
+}
+.scorebar .num{font-size:20px;font-weight:650;color:var(--blue)}
+.scorebar .final{color:var(--yellow)}
+
+/* checklist */
+.checklist{list-style:none;margin-top:10px}
+.checklist li{
+  display:flex;gap:11px;align-items:flex-start;padding:9px 0;font-size:14px;
+  border-bottom:1px solid var(--line);color:var(--muted);
+}
+.checklist li:last-child{border-bottom:none}
+.checklist .tick{color:var(--green);flex:0 0 auto;font-size:15px;line-height:1.5}
+.checklist b{color:var(--ink);font-weight:600}
+
+/* insights */
+.insights{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px}
+@media(max-width:860px){.insights{grid-template-columns:1fr}}
+.insight{background:var(--panel);border:1px solid var(--line);border-radius:14px;
+  padding:16px 18px;font-size:13.8px;color:var(--muted)}
+.insight h3{font-size:14.5px;margin-bottom:6px;font-weight:650}
+.insight.c1 h3{color:var(--blue)} .insight.c2 h3{color:var(--red)} .insight.c3 h3{color:var(--green)}
+
+footer{color:var(--muted);font-size:13px;margin-top:8px;padding-bottom:30px}
+footer .navrow{display:flex;justify-content:space-between;gap:12px;margin-top:10px;flex-wrap:wrap}
+footer a{color:var(--muted);text-decoration:none}
+footer a:hover{color:var(--blue)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <a class="crumb" href="./index.html">← Linear Algebra for Quantum Computing</a>
+  <h1>Prompt Studio</h1>
+  <span class="paal">PAAL · Progressive AI-Augmented Learning</span>
+  <p class="subtitle">Learn linear algebra <em>with</em> an AI, not from it. Build a tutor-grade prompt below, copy it into Claude, ChatGPT, Le Chat — or send it straight to the Study Buddy page — and practice like the exam is real.</p>
+</header>
+
+<!-- 1 ▸ intro + traffic light -->
+<section class="panel">
+  <h2>Why prompts matter <span class="tag">the PAAL idea</span></h2>
+  <p class="lede">
+    The goal of using an AI in this course is not answers — it is <strong>calibrated practice</strong>: problems pitched just above your level, with your reasoning checked step by step.
+    A good prompt turns the AI into a tutor that asks one question at a time and waits for you to commit; a lazy prompt turns it into a homework printer that quietly does the learning <em>for</em> you.
+    Use the traffic light below to keep yourself honest about which mode you're in.
+  </p>
+  <div class="lights">
+    <div class="light g"><b>🟢 AI as coach</b>
+      Generate practice on <span class="math">⟨u|v⟩</span>, eigenvalues, Kronecker products; have it check your reasoning and probe your understanding. This is where learning happens.</div>
+    <div class="light y"><b>🟡 AI as reference</b>
+      Definitions, decoding notation ("what does <span class="math">Σ|j⟩⟨j| = I</span> mean?"). Fine — but verify every claim against the slides before you trust it.</div>
+    <div class="light r"><b>🔴 Avoid: AI as answer machine</b>
+      Pasting homework verbatim and copying the output = skill atrophy. You will meet the exam alone, and it does not accept screenshots of a chat.</div>
+  </div>
+</section>
+
+<!-- 2 ▸ recipe builder -->
+<section class="panel">
+  <h2>Prompt recipe builder <span class="tag">assembles live as you choose</span></h2>
+  <p class="lede">Pick the ingredients; the studio writes a best-practice prompt — role, task, interaction protocol, difficulty calibration — in the box on the right.</p>
+  <div class="recipe">
+    <div>
+      <div class="field">
+        <label for="selWho">I am a</label>
+        <select id="selWho">
+          <option value="a first-year MSc student">first-year MSc student</option>
+          <option value="an engineering student">engineering student</option>
+          <option value="a self-learner">self-learner</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>studying</label>
+        <div class="fixed">linear algebra for quantum computing <span style="color:var(--muted)">(fixed — this lecture)</span></div>
+      </div>
+      <div class="field">
+        <label for="selTopic">Topic</label>
+        <select id="selTopic">
+          <option value="0">complex numbers &amp; Euler's formula</option>
+          <option value="1">Dirac notation &amp; inner products</option>
+          <option value="2">span, basis &amp; dimension</option>
+          <option value="3">linear operators &amp; Pauli matrices</option>
+          <option value="4" selected>eigenvalues &amp; spectral decomposition</option>
+          <option value="5">tensor / Kronecker products</option>
+          <option value="6">qubits &amp; measurement</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="selMode">I want the AI to</label>
+        <select id="selMode">
+          <option value="quiz" selected>quiz me — wait for my answer before revealing</option>
+          <option value="check">check my worked solution, find the first wrong step</option>
+          <option value="explain">explain it three ways (geometric · algebraic · quantum)</option>
+          <option value="analogy">build an analogy, then show me where it breaks</option>
+          <option value="exam">generate exam-style questions above my level</option>
+        </select>
+      </div>
+      <div class="field" id="nRow">
+        <label for="selN">Number of problems</label>
+        <select id="selN">
+          <option value="3">3</option>
+          <option value="5" selected>5</option>
+          <option value="8">8</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="selLevel">My current level</label>
+        <select id="selLevel">
+          <option value="0" selected>just read the slides</option>
+          <option value="1">can do routine calculations</option>
+          <option value="2">comfortable — want stretch</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="txtFocus">Specifically about… <span style="text-transform:none;letter-spacing:0">(optional)</span></label>
+        <input type="text" id="txtFocus" maxlength="160" placeholder="e.g. why unitary operators preserve the norm">
+      </div>
+    </div>
+    <div>
+      <div class="outhead">
+        <span>Your prompt — copy into any AI</span>
+        <button id="btnCopy">📋 Copy</button>
+      </div>
+      <div class="promptbox" id="promptOut" aria-live="polite"></div>
+      <div class="btnrow">
+        <a class="buddy" id="buddyLink" href="./study-buddy.html">→ open Study Buddy with this prompt</a>
+      </div>
+      <p class="hint">The Study Buddy link stores this prompt locally so the next page starts pre-loaded. Nothing is sent anywhere.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 3 ▸ gallery -->
+<section class="panel">
+  <h2>Gallery — seven expert prompts <span class="tag">one per pillar of the lecture, five different modes</span></h2>
+  <p class="lede">Steal these. Each is tuned to the actual lecture content and shows a different way to make the AI work <em>you</em> harder.</p>
+  <div id="gallery"></div>
+</section>
+
+<!-- 4 ▸ clinic -->
+<section class="panel">
+  <h2>Prompt clinic <span class="tag">weak vs strong — you diagnose</span></h2>
+  <p class="lede">Two prompts walk into a chat. One will teach you something; the other will do your thinking for you or waffle vaguely. Click the <strong>stronger</strong> one in each pair.</p>
+  <div id="clinic"></div>
+  <div class="scorebar" id="scorebar">
+    <span class="num" id="scoreNum">0 / 4</span>
+    <span id="scoreVerdict">Diagnose all four pairs to get your verdict.</span>
+  </div>
+</section>
+
+<!-- 5 ▸ verification habit -->
+<section class="panel">
+  <h2>The verification habit <span class="tag">non-negotiable</span></h2>
+  <ul class="checklist">
+    <li><span class="tick">✓</span><span><b>Re-derive one AI-given fact per session</b> against the slides. If the AI says Hermitian operators have real eigenvalues, find that statement in the lecture and check the 2×2 case yourself.</span></li>
+    <li><span class="tick">✓</span><span><b>Ask the AI to argue the opposite.</b> "Now convince me the eigenvalues of a projector could be 2." Whatever survives the counter-argument is what you actually understand.</span></li>
+    <li><span class="tick">✓</span><span><b>Numbers are checkable — check them.</b> If it hands you a qubit state <span class="math">α|0⟩ + β|1⟩</span>, compute <span class="math">|α|² + |β|²</span> yourself. If it isn't 1, the "state" was fiction, however fluent the paragraph around it.</span></li>
+    <li><span class="tick">✓</span><span><b>Cross-check with the interactives</b> in this set: drag the vectors on the <a href="./eigen.html" style="color:var(--blue)">eigen page</a>, multiply the matrices on the <a href="./transformations.html" style="color:var(--blue)">operators page</a>. Pixels don't hallucinate.</span></li>
+  </ul>
+</section>
+
+<!-- 6 ▸ insights -->
+<section class="insights">
+  <div class="insight c1">
+    <h3>Protocol beats content</h3>
+    <p>Notice how every strong prompt here specifies an <em>interaction protocol</em> — one question at a time, commit before reveal. That single rule is what turns a chat into practice: it forces retrieval, and retrieval is where memory forms.</p>
+  </div>
+  <div class="insight c2">
+    <h3>Fluency ≠ truth</h3>
+    <p>AI explanations are exactly as fluent when they're wrong. A confident paragraph about a "unitary" matrix that doesn't satisfy <span class="math">U†U = I</span> reads just like a correct one. This is why the verification habit exists — and why the interactive pages here are your ground truth.</p>
+  </div>
+  <div class="insight c3">
+    <h3>Raise difficulty, not comfort</h3>
+    <p>The best students use AI to <em>increase</em> difficulty — "make the matrix complex", "add a proof step", "two right in a row means harder" — not to decrease effort. The struggle you're tempted to outsource is the product.</p>
+  </div>
+</section>
+
+<footer>
+  Interactive companion to the lecture <em>Linear Algebra for Quantum Computing</em> · T2
+  <div class="navrow">
+    <a href="./worked-solutions.html">← Worked Solutions</a>
+    <a href="./index.html">All explorations</a>
+    <a href="./study-buddy.html">Study Buddy →</a>
+  </div>
+</footer>
+
+</div>
+<script>
+(function(){
+'use strict';
+
+/* ================= data ================= */
+
+const TOPICS = [
+  { name:"complex numbers & Euler's formula",
+    detail:"complex numbers in Cartesian (a+bi) and polar (r·e^{iθ}) form, conjugates, modulus, Euler's formula and De Moivre's theorem" },
+  { name:"Dirac notation & inner products",
+    detail:"Dirac bra–ket notation, inner products ⟨u|v⟩ in ℂⁿ, norms, orthogonality/orthonormality and the Kronecker delta" },
+  { name:"span, basis & dimension",
+    detail:"spanning sets, linear independence, basis and dimension of complex vector spaces like ℂ²" },
+  { name:"linear operators & Pauli matrices",
+    detail:"linear operators, their matrix representations, composition, and the Pauli matrices X, Y, Z acting on |0⟩ and |1⟩" },
+  { name:"eigenvalues & spectral decomposition",
+    detail:"eigenvalues and eigenvectors via the characteristic polynomial det(A−λI)=0, and spectral decomposition A = Σ λⱼ|j⟩⟨j|" },
+  { name:"tensor / Kronecker products",
+    detail:"tensor products of vectors, the Kronecker product of matrices, dimension counting, and the rule (A⊗B)(|u⟩⊗|v⟩) = A|u⟩ ⊗ B|v⟩" },
+  { name:"qubits & measurement",
+    detail:"qubit states α|0⟩ + β|1⟩ with the normalization |α|² + |β|² = 1, and measurement probabilities in the computational basis" }
+];
+
+const LEVELS = [
+  { line:"I have just read the lecture slides.",
+    cal:"Start at definition level: check that I can state and use the definitions before asking me to compute anything longer than one step." },
+  { line:"I can do routine calculations on this topic.",
+    cal:"Skip the warm-ups. Give me standard computational problems, but make me justify each step, not just produce the number." },
+  { line:"I am comfortable with this topic and want to be stretched.",
+    cal:"Push me: use complex entries, ask for short proofs, and connect every problem to its quantum-computing meaning." }
+];
+
+function protoQuiz(n){ return [
+  "Interaction protocol:",
+  "- Ask exactly ONE problem at a time and STOP. Wait for my answer.",
+  "- Do not reveal the solution, or any hint, until I have committed to an answer.",
+  "- When I answer: first say right/wrong, then show the correct reasoning briefly.",
+  "- If I am wrong, give one hint and let me retry once before revealing.",
+  "- Track my score out of " + n + " and adapt: two right in a row → harder; two wrong → easier."
+].join("\n"); }
+
+const MODES = {
+  quiz: (t,n)=>({
+    task: "Quiz me with " + n + " problems on " + t.name + " — specifically " + t.detail + ".",
+    proto: protoQuiz(n)
+  }),
+  check: (t)=>({
+    task: "I will paste my worked solution to a problem on " + t.name + " (" + t.detail + "). Your job is to find the FIRST step where I go wrong, if any.",
+    proto: [
+      "Interaction protocol:",
+      "- Do NOT rewrite or redo the whole solution.",
+      "- Point at the first incorrect step, explain in one or two sentences WHY it is wrong, and stop.",
+      "- Let me repair the step myself; only confirm or correct after I try.",
+      "- If the whole solution is correct, say so and give me one slightly harder problem of the same type."
+    ].join("\n")
+  }),
+  explain: (t)=>({
+    task: "Explain " + t.name + " (" + t.detail + ") three different ways: (1) geometrically, (2) algebraically/computationally, (3) in the language of quantum computing.",
+    proto: [
+      "Interaction protocol:",
+      "- Keep each explanation under 120 words.",
+      "- After all three, ask me which one clicked and why.",
+      "- Then give me ONE problem that tests whether the explanation actually landed, and wait for my answer before commenting."
+    ].join("\n")
+  }),
+  analogy: (t)=>({
+    task: "Build my intuition for " + t.name + " (" + t.detail + ") using one strong, concrete analogy.",
+    proto: [
+      "Interaction protocol:",
+      "- Give the analogy, then EXPLICITLY show me where it breaks — the property of the real math that the analogy gets wrong.",
+      "- Then quiz me with one question where trusting the analogy would give the WRONG answer, and wait for my attempt.",
+      "- Only after I answer, resolve it and connect back to the exact definition from the course."
+    ].join("\n")
+  }),
+  exam: (t)=>({
+    task: "Generate exam-style questions on " + t.name + " (" + t.detail + "), pitched slightly ABOVE my current level.",
+    proto: [
+      "Interaction protocol:",
+      "- One question at a time; wait for my complete written answer.",
+      "- Grade each answer out of 10 with specific feedback (what earns points, what loses them) before the next question.",
+      "- Mix formats: one computation, one short proof or justification, one 'spot the error', one quantum-computing application.",
+      "- At the end, summarize my weakest sub-topic and set me one targeted follow-up exercise."
+    ].join("\n")
+  })
+};
+
+const NOTATION = "Use the course notation throughout: kets |ψ⟩, bras ⟨φ|, inner products ⟨u|v⟩, adjoint A†, tensor product ⊗, and Pauli matrices X, Y, Z.";
+
+/* ================= recipe builder ================= */
+
+const selWho = document.getElementById('selWho');
+const selTopic = document.getElementById('selTopic');
+const selMode = document.getElementById('selMode');
+const selN = document.getElementById('selN');
+const nRow = document.getElementById('nRow');
+const selLevel = document.getElementById('selLevel');
+const txtFocus = document.getElementById('txtFocus');
+const promptOut = document.getElementById('promptOut');
+const btnCopy = document.getElementById('btnCopy');
+const buddyLink = document.getElementById('buddyLink');
+
+function buildPrompt(){
+  const t = TOPICS[+selTopic.value];
+  const lvl = LEVELS[+selLevel.value];
+  const n = +selN.value;
+  const m = MODES[selMode.value](t, n);
+  const focus = txtFocus.value.trim();
+  const parts = [
+    "You are a patient but rigorous tutor for a university lecture on linear algebra for quantum computing (complex vector spaces ℂⁿ, Dirac notation, operators, eigenvalues, tensor products, qubits).",
+    "",
+    "About me: I am " + selWho.value + " studying linear algebra for quantum computing. " + lvl.line,
+    "",
+    "Task: " + m.task + (focus ? " Focus specifically on: " + focus + "." : ""),
+    "",
+    m.proto,
+    "",
+    "Difficulty calibration: " + lvl.cal,
+    "",
+    NOTATION,
+    "",
+    "Begin now."
+  ];
+  return parts.join("\n");
+}
+
+function refresh(){
+  nRow.classList.toggle('show', selMode.value === 'quiz');
+  promptOut.textContent = buildPrompt();
+}
+[selWho, selTopic, selMode, selN, selLevel].forEach(el => el.addEventListener('change', refresh));
+txtFocus.addEventListener('input', refresh);
+
+/* copy helper (clipboard API + fallback) */
+function copyText(text, btn, okLabel){
+  const done = ()=>{
+    const old = btn.textContent;
+    btn.textContent = okLabel || '✓ Copied';
+    btn.classList.add('good');
+    setTimeout(()=>{ btn.textContent = old; btn.classList.remove('good'); }, 1500);
+  };
+  const fallback = ()=>{
+    try{
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.focus(); ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      done();
+    }catch(e){
+      btn.textContent = 'Select & copy manually';
+    }
+  };
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(done, fallback);
+  } else fallback();
+}
+
+btnCopy.addEventListener('click', ()=> copyText(buildPrompt(), btnCopy));
+
+buddyLink.addEventListener('click', ()=>{
+  try{ localStorage.setItem('qcla-buddy-seed', buildPrompt()); }catch(e){}
+  /* navigation proceeds via href */
+});
+
+refresh();
+
+/* ================= gallery ================= */
+
+const GALLERY = [
+  { title:"Complex numbers & Euler", mode:"Adaptive quiz", cls:"quiz",
+    text:
+`You are a drill coach for complex numbers in a quantum computing course. Quiz me on converting between Cartesian a+bi and polar r·e^{iθ} form, computing conjugates and moduli, and using De Moivre's theorem for powers like (1+i)^8.
+One problem at a time; wait for my answer before revealing anything. Check both the modulus AND the argument — students (me) love to drop a minus sign in the angle.
+Adaptive rule: if I get two in a row right, move to multiplying/dividing in polar form and finding all n-th roots; if I miss two, go back to plotting single numbers. Track my streak and announce it after each answer.` },
+  { title:"Dirac notation & inner products", mode:"Feynman", cls:"feyn",
+    text:
+`We are doing a Feynman-technique session on Dirac notation. I will explain, in my own words: what a ket |ψ⟩ and a bra ⟨φ| are, how ⟨u|v⟩ is computed in ℂ² (including the conjugate on the left slot), and what ⟨u|v⟩ = 0 means.
+Your ONLY job is to poke holes: after each chunk of my explanation, ask exactly one pointed question that exposes a gap or an edge case (e.g. "so is ⟨v|u⟩ the same as ⟨u|v⟩?", "what happens with complex entries?"). Do not lecture. Do not fill the gap for me — make me fill it. If I say something false, don't correct it; ask the question that makes me notice.
+End by rating my explanation 1–5 on precision and telling me the single weakest spot.` },
+  { title:"Span, basis & dimension", mode:"Error hunt", cls:"hunt",
+    text:
+`Present me with a SHORT worked "proof" that a given set of 2 or 3 vectors in ℂ² is a basis — but plant exactly one subtle flaw in it (e.g. checking spanning but silently assuming independence, treating complex scalars as real, or dividing by a component that could be zero).
+Do not tell me where the flaw is. I will reply with the line number of the first wrong step and my reason. Then tell me if I found it, and explain the flaw fully.
+Repeat for 4 rounds, each flaw of a different kind. Keep proofs under 6 lines so the game is about insight, not stamina. Score me out of 4.` },
+  { title:"Linear operators & Pauli matrices", mode:"Derivation walk", cls:"derive",
+    text:
+`Walk me through deriving the matrix representation of a linear operator step by step — using the Pauli matrices as the running example. Protocol: at each step, before you write it, ask ME to predict it. Start with: "X flips the basis: X|0⟩=|1⟩, X|1⟩=|0⟩ — so what goes in the first column of the matrix?"
+Wait for my prediction, confirm or fix it in one sentence, then move on. Cover: columns = images of basis vectors; the action of X, Y, Z on |0⟩ and |1⟩; composition as matrix multiplication (make me compute XZ and ZX and notice they differ); and finish by asking me to verify Z = |0⟩⟨0| − |1⟩⟨1| entry by entry.` },
+  { title:"Eigenvalues & spectral decomposition", mode:"Adaptive quiz", cls:"quiz",
+    text:
+`You are a quizmaster for 2×2 eigenvalue problems in a quantum computing course. Give me one matrix at a time, and wait for my λ's AND eigenvectors before saying anything. Check them (including normalization if I claim unit vectors).
+If I'm right twice in a row, raise the difficulty: make the matrix non-symmetric, then complex (Hermitian like [[2, i],[−i, 2]]), then ask for the full spectral decomposition A = Σ λⱼ|j⟩⟨j| and make me verify it reproduces A. Track my score out of 5.
+When I'm wrong, ask me for my characteristic polynomial first — the bug is usually there — before showing yours.` },
+  { title:"Tensor & Kronecker products", mode:"Error hunt", cls:"hunt",
+    text:
+`Quiz me on Kronecker products with a twist: for each round, show me a COMPLETED calculation — either |u⟩⊗|v⟩ for two vectors in ℂ², or A⊗B for 2×2 matrices — that is either fully correct or contains one classic error (wrong block order i.e. B⊗A, a dropped scalar, or a dimension mismatch presented as if fine).
+I answer "correct" or name the first wrong entry/block. Wait for my verdict before revealing. After each round, one-line takeaway (e.g. "A⊗B ≠ B⊗A in general — order is the outer factor").
+Round 5 (finale): make me verify (A⊗B)(|u⟩⊗|v⟩) = A|u⟩ ⊗ B|v⟩ on a concrete example, computing both sides myself. Score out of 5.` },
+  { title:"Qubits & measurement", mode:"Exam sim", cls:"exam",
+    text:
+`Run a strict 4-question mini-exam on qubit states and measurement, as in a quantum computing course. One question at a time; I answer in full before you grade. Grade each out of 10 with a short rubric (setup / computation / interpretation).
+Question types, in order: (1) decide whether a given α|0⟩+β|1⟩ with complex α, β is normalized, and if not, normalize it; (2) compute measurement probabilities |α|² and |β|² for a state with a phase like e^{iπ/4} and explain why the phase doesn't change them; (3) a state given in a rotated orthonormal basis — convert to the computational basis first; (4) short justification: why must measurement probabilities always sum to 1?
+No hints during the exam. Afterwards: total /40, my weakest question, and one targeted practice problem for it.` }
+];
+
+const galleryEl = document.getElementById('gallery');
+GALLERY.forEach((g, i)=>{
+  const det = document.createElement('details');
+  det.className = 'acc';
+  const sum = document.createElement('summary');
+  sum.innerHTML = '<span class="arrow">▶</span> ' + (i+1) + '. ' + g.title +
+                  ' <span class="mode ' + g.cls + '">' + g.mode + '</span>';
+  const body = document.createElement('div');
+  body.className = 'accbody';
+  const box = document.createElement('div');
+  box.className = 'promptbox';
+  box.textContent = g.text;
+  const btn = document.createElement('button');
+  btn.textContent = '📋 Copy this prompt';
+  btn.addEventListener('click', ()=> copyText(g.text, btn));
+  body.appendChild(box);
+  body.appendChild(btn);
+  det.appendChild(sum);
+  det.appendChild(body);
+  galleryEl.appendChild(det);
+});
+
+/* ================= prompt clinic ================= */
+
+const PAIRS = [
+  {
+    theme:"Getting an explanation",
+    weak:"explain eigenvalues",
+    strong:"I'm a first-year MSc student who just read the slides on eigenvalues for quantum computing. Explain what A|v⟩ = λ|v⟩ means geometrically in under 100 words, then give me ONE 2×2 matrix and wait while I find its eigenvalues myself before you comment.",
+    why:"The strong prompt states who is asking, calibrates the level, bounds the explanation, and ends with a commit-before-reveal exercise. “explain eigenvalues” gets a generic essay pitched at nobody, and you stay passive the whole time."
+  },
+  {
+    theme:"Homework temptation",
+    weak:"Do my homework: find the eigenvalues and eigenvectors of [[2,1],[1,2]] and write out the full solution.",
+    strong:"For [[2,1],[1,2]] I got λ=1 and λ=3, with eigenvectors (1,−1) and (1,1). Check my work; if something is wrong, point at the FIRST wrong step only and let me fix it. Then give me a similar matrix to do completely alone.",
+    why:"Same problem, opposite learning outcome. The strong version makes YOU do the work first and uses the AI for verification plus fresh practice — 🟢 coach mode. The weak one is the homework printer: you submit the answer and keep none of the skill."
+  },
+  {
+    theme:"Asking for practice",
+    weak:"Give me a quiz on quantum computing math.",
+    strong:"Quiz me with 5 problems on inner products ⟨u|v⟩ in ℂ², one at a time. Don't reveal any answer until I commit. If I'm right twice in a row, add complex entries. Track my score.",
+    why:"An interaction protocol is the whole game: one at a time, commit before reveal, adaptive difficulty, scoring. The weak prompt will dump 10 questions AND their answers in one message — your eyes read the solutions before your brain attempts anything."
+  },
+  {
+    theme:"Checking a fact",
+    weak:"Is |ψ⟩ = (1/√2)(|0⟩ + |1⟩) normalized? Just give me a yes or no.",
+    strong:"I claim |ψ⟩ = (1/√2)(|0⟩+|1⟩) is normalized because |α|²+|β|² = ½+½ = 1. First argue AGAINST my reasoning as convincingly as you can, then tell me which of my steps survive. I'll re-check the arithmetic myself either way.",
+    why:"The strong prompt states your own reasoning, demands a counter-argument, and keeps a verification step for yourself — so a fluent-but-wrong reply can't slip through. A bare yes/no gives you a fact you can't defend and wouldn't notice being wrong."
+  }
+];
+
+const clinicEl = document.getElementById('clinic');
+const scoreNum = document.getElementById('scoreNum');
+const scoreVerdict = document.getElementById('scoreVerdict');
+const clinicState = { answered: 0, score: 0 };
+
+function verdictFor(s){
+  switch(s){
+    case 4: return "4/4 — Prompt whisperer. The AI works for you now; go make it sweat.";
+    case 3: return "3/4 — Sharp eye. One trap got you; re-read its feedback and you're exam-ready.";
+    case 2: return "2/4 — Coin-flip territory. Re-read the recipe builder's structure: role, task, protocol, calibration.";
+    default: return s + "/4 — The homework printer thanks you for your loyalty. Scroll back up to the traffic light and try again after a coffee.";
+  }
+}
+
+PAIRS.forEach((p, idx)=>{
+  const head = document.createElement('div');
+  head.className = 'pairhead';
+  head.innerHTML = '<b>Pair ' + (idx+1) + '</b><span>' + p.theme + '</span>';
+  clinicEl.appendChild(head);
+
+  const strongFirst = Math.random() < 0.5;
+  const cards = strongFirst
+    ? [{txt:p.strong, strong:true}, {txt:p.weak, strong:false}]
+    : [{txt:p.weak, strong:false}, {txt:p.strong, strong:true}];
+
+  const row = document.createElement('div');
+  row.className = 'pair';
+  const fb = document.createElement('div');
+  fb.className = 'verdictline';
+  let done = false;
+
+  cards.forEach((c, ci)=>{
+    const card = document.createElement('div');
+    card.className = 'pcard';
+    card.setAttribute('role','button');
+    card.setAttribute('tabindex','0');
+    card.innerHTML = '<div class="plabel">Prompt ' + (ci===0?'A':'B') + '</div>' +
+                     '<div class="ptext"></div><div class="stamp"></div>';
+    card.querySelector('.ptext').textContent = c.txt;
+
+    function pick(){
+      if(done) return;
+      done = true;
+      clinicState.answered++;
+      const other = row.children[1-ci];
+      if(c.strong){
+        clinicState.score++;
+        card.classList.add('correct');
+        card.querySelector('.stamp').textContent = '✓';
+        other.classList.add('dim');
+        fb.innerHTML = '<b class="ok">Correct.</b> ' + escapeHtml(p.why);
+      }else{
+        card.classList.add('wrong');
+        card.querySelector('.stamp').textContent = '✗';
+        other.classList.add('correct');
+        other.querySelector('.stamp').textContent = '✓';
+        fb.innerHTML = '<b class="no">Not this one.</b> ' + escapeHtml(p.why);
+      }
+      fb.classList.add('show');
+      updateScore();
+    }
+    card.addEventListener('click', pick);
+    card.addEventListener('keydown', e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); pick(); } });
+    row.appendChild(card);
+  });
+
+  clinicEl.appendChild(row);
+  clinicEl.appendChild(fb);
+});
+
+function escapeHtml(s){
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function updateScore(){
+  scoreNum.textContent = clinicState.score + ' / 4';
+  if(clinicState.answered === PAIRS.length){
+    scoreVerdict.textContent = verdictFor(clinicState.score);
+    scoreVerdict.className = 'final';
+  } else {
+    scoreVerdict.textContent = (PAIRS.length - clinicState.answered) + ' pair' +
+      (PAIRS.length - clinicState.answered === 1 ? '' : 's') + ' left…';
+  }
+}
+
+})();
+</script>
+</body>
+</html>
