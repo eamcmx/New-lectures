@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Euler's Formula — Linear Algebra for QC</title>
+<style>
+:root{
+  --bg:#0e1117;
+  --panel:#161b26;
+  --panel2:#1c2230;
+  --ink:#e6e9f0;
+  --muted:#8b94a7;
+  --grid:#232b3b;
+  --axis:#4a5568;
+  --blue:#58c4dd;
+  --yellow:#ffd35a;
+  --red:#fc6255;
+  --green:#83c167;
+  --purple:#c688eb;
+  --orange:#ff9f4b;
+  --line:#2a3347;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  background:var(--bg); color:var(--ink);
+  font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
+  line-height:1.55;
+}
+.wrap{max-width:1100px;margin:0 auto;padding:24px}
+header{margin-bottom:22px}
+.crumb{color:var(--muted);text-decoration:none;font-size:14px}
+.crumb:hover{color:var(--blue)}
+h1{font-size:30px;margin:10px 0 8px;font-weight:650}
+.subtitle{color:var(--muted);max-width:760px}
+.math{font-family:Georgia,'Times New Roman',serif;font-style:italic}
+.panel{
+  background:var(--panel); border:1px solid var(--line);
+  border-radius:14px; padding:18px 20px; margin-bottom:20px;
+}
+canvas{display:block;width:100%;border-radius:10px;background:#0b0e14;touch-action:none}
+#mainCanvas{height:520px}
+#powCanvas{height:340px}
+@media (max-width:560px){
+  #mainCanvas{height:460px}
+  #powCanvas{height:300px}
+  h1{font-size:24px}
+}
+.controls{display:flex;flex-wrap:wrap;gap:14px 22px;align-items:center;margin-top:14px}
+.ctl{display:flex;align-items:center;gap:9px;font-size:14px;color:var(--muted)}
+button{
+  background:var(--panel2); border:1px solid var(--line); color:var(--ink);
+  border-radius:9px; padding:8px 14px; cursor:pointer; font-size:14px;
+  font-family:inherit; transition:border-color .15s,color .15s,background .15s;
+}
+button:hover{border-color:var(--blue)}
+button.active{border-color:var(--blue);color:var(--blue);background:rgba(88,196,221,.08)}
+input[type=range]{accent-color:var(--blue);cursor:pointer}
+.chips{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:14px}
+.chips .lbl{color:var(--muted);font-size:14px;margin-right:4px}
+.chip{padding:6px 13px;border-radius:999px}
+.val{min-width:52px;display:inline-block}
+.c-blue{color:var(--blue)} .c-green{color:var(--green)} .c-yellow{color:var(--yellow)}
+.c-purple{color:var(--purple)} .c-red{color:var(--red)}
+.readout{font-size:19px;line-height:1.9}
+.readout .row{display:flex;flex-wrap:wrap;gap:4px 26px;align-items:baseline}
+.readout .theta-line{font-size:15px;color:var(--muted)}
+.mindblow{
+  display:none; font-size:21px; color:var(--yellow);
+  padding:6px 14px; margin-top:6px; border:1px dashed var(--yellow);
+  border-radius:10px; background:rgba(255,211,90,.06);
+}
+.mindblow.show{display:inline-block}
+h2{font-size:21px;margin-bottom:4px;font-weight:600}
+.sectionsub{color:var(--muted);font-size:14.5px;margin-bottom:14px}
+.powcap{font-size:17px;margin-top:12px}
+.insights{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin-bottom:24px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px}
+.card h3{font-size:15px;margin-bottom:7px;font-weight:650}
+.card p{font-size:14.5px;color:var(--muted)}
+.card p .math{color:var(--ink)}
+footer{
+  color:var(--muted); font-size:13.5px; border-top:1px solid var(--line);
+  padding-top:16px; margin-top:8px;
+  display:flex; flex-wrap:wrap; gap:10px 20px; justify-content:space-between; align-items:center;
+}
+footer a{color:var(--muted);text-decoration:none}
+footer a:hover{color:var(--blue)}
+sup{font-size:.68em}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <a class="crumb" href="./index.html">← Linear Algebra for Quantum Computing</a>
+  <h1>Euler's Formula — <span class="math">e<sup>iθ</sup></span> walks the unit circle</h1>
+  <p class="subtitle">Press play and watch the blue point <span class="math c-blue">e<sup>iθ</sup></span> orbit the unit circle while its shadow traces <span class="math c-green">cos θ</span> to the right and <span class="math c-yellow">sin θ</span> below. Drag the blue point (or scrub the θ slider) to steer it yourself.</p>
+</header>
+
+<!-- ============ Main interactive: circle + cos + sin traces ============ -->
+<div class="panel">
+  <canvas id="mainCanvas"></canvas>
+  <div class="controls">
+    <button id="playBtn">⏸ Pause</button>
+    <div class="ctl">
+      <span>speed</span>
+      <input type="range" id="speedSlider" min="0.1" max="3" step="0.05" value="1">
+      <span class="math c-blue val" id="speedVal">1.00</span>
+    </div>
+    <div class="ctl">
+      <span class="math" style="font-style:italic">θ</span>
+      <input type="range" id="thetaSlider" min="0" max="6.28318" step="0.0001" value="0.7853981633974483" style="width:200px">
+      <span class="math c-blue val" id="thetaVal">π/4</span>
+    </div>
+  </div>
+  <div class="chips">
+    <span class="lbl">Presets:</span>
+    <button class="chip math" data-theta="0.5235987755982988">θ = π/6</button>
+    <button class="chip math" data-theta="0.7853981633974483">θ = π/4</button>
+    <button class="chip math" data-theta="1.5707963267948966">θ = π/2</button>
+    <button class="chip math" data-theta="3.141592653589793">θ = π</button>
+  </div>
+</div>
+
+<!-- ============ Live readout ============ -->
+<div class="panel readout">
+  <div class="row">
+    <span class="math">
+      <span class="c-blue">e<sup>i·<span id="rExp">0.785</span></sup></span>
+      = cos θ + i sin θ =
+      <span class="c-green" id="rCos">0.707</span>
+      <span id="rSign">+</span>
+      <span class="c-yellow" id="rSin">0.707</span><span class="c-yellow">·i</span>
+    </span>
+    <span class="theta-line math">θ = <span class="c-blue" id="rPi">π/4</span> = <span id="rRad">0.785</span> rad = <span id="rDeg">45.0°</span></span>
+  </div>
+  <span class="mindblow math" id="mindblow">e<sup>iπ</sup> = −1 &nbsp;🤯&nbsp; <span style="font-style:normal;font-size:14px;color:var(--muted)">— the most famous equation in mathematics</span></span>
+</div>
+
+<!-- ============ De Moivre ============ -->
+<div class="panel">
+  <h2>De Moivre's formula — powers are just repeated rotation</h2>
+  <p class="sectionsub">The blue point is <span class="math c-blue">z = e<sup>iθ</sup></span> (θ comes from the controls above). The green point is <span class="math c-green">z<sup>n</sup></span>. Press <em>Animate power</em> and watch the angle get added <span class="math">n</span> times.</p>
+  <canvas id="powCanvas"></canvas>
+  <div class="controls">
+    <div class="ctl">
+      <span class="math" style="font-style:italic">n</span>
+      <input type="range" id="nSlider" min="1" max="8" step="1" value="4" style="width:160px">
+      <span class="math c-green val" id="nVal">4</span>
+    </div>
+    <button id="powBtn">▶ Animate power</button>
+  </div>
+  <p class="powcap math">
+    (<span class="c-blue">e<sup>i·<span id="pTh">0.785</span></sup></span>)<sup id="pN">4</sup>
+    = <span class="c-green">e<sup>i·<span id="pNTh">3.142</span></sup></span>
+    = cos(<span id="pNTh2">3.142</span>) + i sin(<span id="pNTh3">3.142</span>)
+    = <span class="c-green" id="pRe">−1.000</span> <span id="pSign">+</span> <span class="c-green" id="pIm">0.000</span><span class="c-green">·i</span>
+    &nbsp;<span style="font-style:normal;color:var(--muted);font-size:14px" id="pNote"></span>
+  </p>
+</div>
+
+<!-- ============ Insight cards ============ -->
+<section class="insights">
+  <div class="card">
+    <h3 class="c-blue">Rotation, not explosion</h3>
+    <p>For real inputs, <span class="math">e<sup>x</sup></span> blows up. Feed it an <em>imaginary</em> number and something entirely different happens: <span class="math">e<sup>iθ</sup></span> is a point that <em>rotates</em>. Its velocity <span class="math">i·e<sup>iθ</sup></span> is always perpendicular to its position, so it can never move outward — it's doomed to circle at distance 1 forever. Any complex number is then <span class="math">z = r·e<sup>iθ</sup></span>: a length and a direction.</p>
+  </div>
+  <div class="card">
+    <h3 class="c-green">De Moivre = n rotations of θ each</h3>
+    <p>Notice how each multiplication by <span class="math">z</span> just adds another angle θ — no trig identities needed. That's all <span class="math">(e<sup>iθ</sup>)<sup>n</sup> = e<sup>inθ</sup> = cos nθ + i sin nθ</span> is saying: raising to the <span class="math">n</span>-th power means rotating by θ, <span class="math">n</span> times in a row. Angles add; magnitudes multiply (and 1ⁿ = 1).</p>
+  </div>
+  <div class="card">
+    <h3 class="c-purple">Why quantum phases live on this circle</h3>
+    <p>A qubit amplitude α can be multiplied by a phase <span class="math">e<sup>iθ</sup></span>, and yet <span class="math">|e<sup>iθ</sup>α|² = |α|²</span> — the measurement probability doesn't budge, because <span class="math">e<sup>iθ</sup></span> has length exactly 1. This is why phases in quantum mechanics live on the unit circle: they rotate amplitudes without stretching them, invisible alone but decisive in interference.</p>
+  </div>
+</section>
+
+<footer>
+  <span>Interactive companion to the lecture <em>Linear Algebra for Quantum Computing</em> · T2</span>
+  <span>
+    <a href="./complex-numbers.html">← The Complex Plane</a>
+    &nbsp;·&nbsp;
+    <a href="./span-basis.html">Span, Independence &amp; Basis →</a>
+  </span>
+</footer>
+
+</div>
+
+<script>
+(function(){
+"use strict";
+
+var TAU = Math.PI*2;
+
+var state = {
+  theta: Math.PI/4,     // current angle
+  playing: true,
+  speed: 1,             // rad / s
+  hoverPoint: false,    // main-canvas point hovered
+  dragging: false,      // dragging on main canvas
+  dragPow: false,       // dragging on De Moivre canvas
+  n: 4,                 // De Moivre exponent
+  powP: 4,              // De Moivre progress 0..n (n = fully shown)
+  powRunning: false,
+  lastT: 0
+};
+
+// ---------- DOM ----------
+var $ = function(id){ return document.getElementById(id); };
+var mainCanvas = $('mainCanvas'), powCanvas = $('powCanvas');
+var mctx = mainCanvas.getContext('2d'), pctx = powCanvas.getContext('2d');
+var playBtn = $('playBtn'), speedSlider = $('speedSlider'), speedVal = $('speedVal');
+var thetaSlider = $('thetaSlider'), thetaVal = $('thetaVal');
+var nSlider = $('nSlider'), nVal = $('nVal'), powBtn = $('powBtn');
+var chips = Array.prototype.slice.call(document.querySelectorAll('.chip'));
+
+var css = getComputedStyle(document.documentElement);
+var C = {
+  grid: css.getPropertyValue('--grid').trim(),
+  axis: css.getPropertyValue('--axis').trim(),
+  ink:  css.getPropertyValue('--ink').trim(),
+  muted:css.getPropertyValue('--muted').trim(),
+  blue: css.getPropertyValue('--blue').trim(),
+  yellow:css.getPropertyValue('--yellow').trim(),
+  green:css.getPropertyValue('--green').trim(),
+  red:  css.getPropertyValue('--red').trim(),
+  purple:css.getPropertyValue('--purple').trim()
+};
+
+// ---------- DPR-aware sizing ----------
+function fit(canvas){
+  var dpr = window.devicePixelRatio || 1;
+  var w = canvas.clientWidth, h = canvas.clientHeight;
+  if(w<1||h<1) return;
+  var W = Math.round(w*dpr), H = Math.round(h*dpr);
+  if(canvas.width!==W || canvas.height!==H){ canvas.width=W; canvas.height=H; }
+}
+if(typeof ResizeObserver!=='undefined'){
+  var ro = new ResizeObserver(function(){ fit(mainCanvas); fit(powCanvas); });
+  ro.observe(mainCanvas); ro.observe(powCanvas);
+}
+window.addEventListener('resize', function(){ fit(mainCanvas); fit(powCanvas); });
+fit(mainCanvas); fit(powCanvas);
+
+// ---------- formatting ----------
+function gcd(a,b){ while(b){ var t=a%b; a=b; b=t; } return a; }
+function fmtPi(th){                 // "π/4" if clean multiple of π, else null
+  var f = th/Math.PI;
+  var dens=[1,2,3,4,6,8,12];
+  for(var i=0;i<dens.length;i++){
+    var d=dens[i], num=Math.round(f*d);
+    if(Math.abs(f*d-num) < 0.0015*d){
+      if(num===0) return "0";
+      var g=gcd(Math.abs(num),d), n2=num/g, d2=d/g;
+      var s=(n2<0?"−":"");
+      n2=Math.abs(n2);
+      s += (n2===1? "" : n2)+"π";
+      if(d2>1) s += "/"+d2;
+      return s;
+    }
+  }
+  return null;
+}
+function f3(v){ if(Math.abs(v)<5e-4) v=0; return (v<0?"−":"")+Math.abs(v).toFixed(3); }
+function f2(v){ if(Math.abs(v)<5e-3) v=0; return (v<0?"−":"")+Math.abs(v).toFixed(2); }
+function smoothstep(t){ return t*t*(3-2*t); }
+
+// ---------- readout / labels ----------
+var rExp=$('rExp'), rCos=$('rCos'), rSign=$('rSign'), rSin=$('rSin');
+var rPi=$('rPi'), rRad=$('rRad'), rDeg=$('rDeg'), mindblow=$('mindblow');
+var pTh=$('pTh'), pN=$('pN'), pNTh=$('pNTh'), pNTh2=$('pNTh2'), pNTh3=$('pNTh3');
+var pRe=$('pRe'), pSign=$('pSign'), pIm=$('pIm'), pNote=$('pNote');
+
+function updateReadout(){
+  var th=state.theta, c=Math.cos(th), s=Math.sin(th);
+  rExp.textContent = th.toFixed(3);
+  rCos.textContent = f3(c);
+  rSign.textContent = s<-5e-4 ? "−" : "+";
+  rSin.textContent = Math.abs(s)<5e-4 ? "0.000" : Math.abs(s).toFixed(3);
+  var pi = fmtPi(th);
+  rPi.textContent = pi!==null ? pi : th.toFixed(2)+" rad";
+  rRad.textContent = th.toFixed(3);
+  rDeg.textContent = (th*180/Math.PI).toFixed(1)+"°";
+  mindblow.classList.toggle('show', Math.abs(th-Math.PI)<1e-3);
+
+  // De Moivre caption
+  var n=state.n, nth=n*th;
+  pTh.textContent = th.toFixed(3);
+  pN.textContent = n;
+  pNTh.textContent = nth.toFixed(3);
+  pNTh2.textContent = nth.toFixed(3);
+  pNTh3.textContent = nth.toFixed(3);
+  var re=Math.cos(nth), im=Math.sin(nth);
+  pRe.textContent = f3(re);
+  pSign.textContent = im<-5e-4 ? "−" : "+";
+  pIm.textContent = Math.abs(im)<5e-4 ? "0.000" : Math.abs(im).toFixed(3);
+  var npi = fmtPi(nth % TAU < 0 ? nth%TAU+TAU : nth);
+  pNote.textContent = npi!==null ? "(nθ = "+npi+")" : "";
+
+  thetaVal.textContent = pi!==null ? pi : th.toFixed(2);
+  if(!state.scrubbing) thetaSlider.value = th;
+}
+
+function setTheta(th, keepPlaying){
+  th = ((th % TAU) + TAU) % TAU;
+  state.theta = th;
+  if(!keepPlaying) setPlaying(false);
+  syncChips();
+}
+function syncChips(){
+  chips.forEach(function(ch){
+    ch.classList.toggle('active', Math.abs(parseFloat(ch.dataset.theta)-state.theta)<1e-6);
+  });
+}
+function setPlaying(p){
+  state.playing = p;
+  playBtn.textContent = p ? "⏸ Pause" : "▶ Play";
+}
+
+// ---------- controls ----------
+playBtn.addEventListener('click', function(){ setPlaying(!state.playing); });
+speedSlider.addEventListener('input', function(){
+  state.speed = parseFloat(speedSlider.value);
+  speedVal.textContent = state.speed.toFixed(2);
+});
+thetaSlider.addEventListener('input', function(){
+  state.scrubbing = true;
+  setTheta(parseFloat(thetaSlider.value));
+  state.scrubbing = false;
+});
+chips.forEach(function(ch){
+  ch.addEventListener('click', function(){
+    setTheta(parseFloat(ch.dataset.theta));
+  });
+});
+nSlider.addEventListener('input', function(){
+  state.n = parseInt(nSlider.value,10);
+  nVal.textContent = state.n;
+  state.powRunning = false;
+  state.powP = state.n;           // show final state immediately
+});
+powBtn.addEventListener('click', function(){
+  state.powP = 0;
+  state.powRunning = true;
+});
+
+// ---------- pointer interaction (main canvas) ----------
+function canvasPos(canvas, e){
+  var r = canvas.getBoundingClientRect();
+  return { x: e.clientX - r.left, y: e.clientY - r.top };
+}
+var mainGeo = null;   // filled during draw: {cx,cy,R}
+var powGeo  = null;
+
+function angleFrom(geo, p){ return Math.atan2(geo.cy - p.y, p.x - geo.cx); }
+function nearPoint(geo, p){
+  if(!geo) return false;
+  var px = geo.cx + geo.R*Math.cos(state.theta);
+  var py = geo.cy - geo.R*Math.sin(state.theta);
+  var dx = p.x-px, dy = p.y-py;
+  return dx*dx+dy*dy <= 18*18;
+}
+mainCanvas.addEventListener('pointerdown', function(e){
+  var p = canvasPos(mainCanvas, e);
+  if(!mainGeo) return;
+  var dx=p.x-mainGeo.cx, dy=p.y-mainGeo.cy;
+  if(nearPoint(mainGeo,p) || Math.sqrt(dx*dx+dy*dy) <= mainGeo.R+24){
+    state.dragging = true;
+    mainCanvas.setPointerCapture(e.pointerId);
+    setTheta(angleFrom(mainGeo, p));
+    e.preventDefault();
+  }
+});
+mainCanvas.addEventListener('pointermove', function(e){
+  var p = canvasPos(mainCanvas, e);
+  if(state.dragging){ setTheta(angleFrom(mainGeo, p)); }
+  else {
+    state.hoverPoint = nearPoint(mainGeo, p);
+    mainCanvas.style.cursor = state.hoverPoint ? 'grab' : 'default';
+  }
+});
+function endDrag(){ state.dragging=false; mainCanvas.style.cursor='default'; }
+mainCanvas.addEventListener('pointerup', endDrag);
+mainCanvas.addEventListener('pointercancel', endDrag);
+mainCanvas.addEventListener('pointerdown', function(){ if(state.dragging) mainCanvas.style.cursor='grabbing'; });
+
+powCanvas.addEventListener('pointerdown', function(e){
+  if(!powGeo) return;
+  var p = canvasPos(powCanvas, e);
+  if(nearPoint(powGeo,p)){
+    state.dragPow = true;
+    powCanvas.setPointerCapture(e.pointerId);
+    setTheta(angleFrom(powGeo,p));
+    e.preventDefault();
+  }
+});
+powCanvas.addEventListener('pointermove', function(e){
+  var p = canvasPos(powCanvas, e);
+  if(state.dragPow){ setTheta(angleFrom(powGeo,p)); }
+  else powCanvas.style.cursor = nearPoint(powGeo,p) ? 'grab' : 'default';
+});
+powCanvas.addEventListener('pointerup', function(){ state.dragPow=false; });
+powCanvas.addEventListener('pointercancel', function(){ state.dragPow=false; });
+
+// ---------- drawing helpers ----------
+function line(ctx,x0,y0,x1,y1,color,w,dash){
+  ctx.save();
+  ctx.strokeStyle=color; ctx.lineWidth=w||1;
+  if(dash) ctx.setLineDash(dash);
+  ctx.beginPath(); ctx.moveTo(x0,y0); ctx.lineTo(x1,y1); ctx.stroke();
+  ctx.restore();
+}
+function dot(ctx,x,y,r,color,halo){
+  if(halo){
+    ctx.save(); ctx.globalAlpha=0.25; ctx.fillStyle='#fff';
+    ctx.beginPath(); ctx.arc(x,y,r+6,0,TAU); ctx.fill(); ctx.restore();
+  }
+  ctx.fillStyle=color;
+  ctx.beginPath(); ctx.arc(x,y,r,0,TAU); ctx.fill();
+}
+function arrow(ctx,x0,y0,x1,y1,color,w){
+  var dx=x1-x0, dy=y1-y0, len=Math.sqrt(dx*dx+dy*dy);
+  if(len<1e-6) return;
+  var hl=Math.min(11, len*0.4), ang=Math.atan2(dy,dx);
+  var bx=x1-hl*Math.cos(ang), by=y1-hl*Math.sin(ang);
+  ctx.save();
+  ctx.strokeStyle=color; ctx.fillStyle=color; ctx.lineWidth=w||2.5;
+  ctx.beginPath(); ctx.moveTo(x0,y0); ctx.lineTo(bx,by); ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(x1,y1);
+  ctx.lineTo(x1-hl*Math.cos(ang-0.42), y1-hl*Math.sin(ang-0.42));
+  ctx.lineTo(x1-hl*Math.cos(ang+0.42), y1-hl*Math.sin(ang+0.42));
+  ctx.closePath(); ctx.fill();
+  ctx.restore();
+}
+function gridField(ctx,W,H,cx,cy,step){
+  ctx.strokeStyle=C.grid; ctx.lineWidth=1;
+  ctx.beginPath();
+  var x = cx - Math.ceil(cx/step)*step;
+  for(; x<=W; x+=step){ ctx.moveTo(x,0); ctx.lineTo(x,H); }
+  var y = cy - Math.ceil(cy/step)*step;
+  for(; y<=H; y+=step){ ctx.moveTo(0,y); ctx.lineTo(W,y); }
+  ctx.stroke();
+}
+
+// ---------- main canvas ----------
+function drawMain(){
+  var dpr = window.devicePixelRatio||1;
+  var W = mainCanvas.clientWidth, H = mainCanvas.clientHeight;
+  if(W<1) return;
+  mctx.setTransform(dpr,0,0,dpr,0,0);
+  mctx.clearRect(0,0,W,H);
+
+  var m = 16;
+  var stripH = Math.max(88, Math.min(150, H*0.26));
+  var boxH = H - stripH - m*3;
+  var R = Math.min(boxH, W*0.40)/2 - 16;
+  R = Math.max(R, 42);
+  var cx = m + R + 30;
+  var cy = m + boxH/2;
+  mainGeo = {cx:cx, cy:cy, R:R};
+
+  var th = state.theta, cth = Math.cos(th), sth = Math.sin(th);
+  var px = cx + R*cth, py = cy - R*sth;
+
+  // grid + axes for circle region
+  gridField(mctx, W, H, cx, cy, R/2);
+  line(mctx, 0, cy, W, cy, C.axis, 1.5);              // real axis (shared with cos strip midline)
+  line(mctx, cx, 0, cx, H, C.axis, 1.5);              // imaginary axis (extends into sin strip)
+
+  mctx.font='11px sans-serif'; mctx.fillStyle=C.muted;
+  mctx.fillText('1', cx+R+4, cy+13);
+  mctx.fillText('−1', cx-R-16, cy+13);
+  mctx.fillText('i', cx+6, cy-R-5);
+  mctx.fillText('−i', cx+6, cy+R+13);
+  mctx.font='italic 13px Georgia';
+  mctx.fillText('Re', cx+R*0.5+4, cy+14);
+  mctx.fillText('Im', cx+6, cy-R*0.62);
+
+  // unit circle
+  mctx.strokeStyle=C.axis; mctx.lineWidth=1.5;
+  mctx.beginPath(); mctx.arc(cx,cy,R,0,TAU); mctx.stroke();
+
+  // --- cos strip (right): value vertical, time scrolls right ---
+  var sx0 = cx + R + 46, sx1 = W - m;
+  var stripOK = sx1 - sx0 > 60;
+  var k = stripOK ? (4*Math.PI)/(sx1-sx0) : 0.03;   // rad per pixel
+
+  if(stripOK){
+    line(mctx, sx0, cy-R, sx0, cy+R, C.grid, 1);
+    line(mctx, sx0, cy-R, sx1, cy-R, C.grid, 1);
+    line(mctx, sx0, cy+R, sx1, cy+R, C.grid, 1);
+    mctx.font='11px sans-serif'; mctx.fillStyle=C.muted;
+    mctx.fillText('+1', sx0-20, cy-R+4);
+    mctx.fillText('−1', sx0-20, cy+R+4);
+    mctx.fillText('time →', sx1-42, cy+R+14);
+    mctx.font='italic 14px Georgia'; mctx.fillStyle=C.green;
+    mctx.fillText('cos θ', sx0+8, cy-R-8);
+
+    mctx.strokeStyle=C.green; mctx.lineWidth=2.2;
+    mctx.beginPath();
+    for(var x=0; x<=sx1-sx0; x+=2){
+      var v = Math.cos(th - x*k);
+      var yy = cy - v*R;
+      if(x===0) mctx.moveTo(sx0+x, yy); else mctx.lineTo(sx0+x, yy);
+    }
+    mctx.stroke();
+    var cosHeadY = cy - cth*R;
+    // dashed connector point -> cos trace head
+    line(mctx, px, py, sx0, cosHeadY, 'rgba(131,193,103,0.65)', 1.3, [5,5]);
+    dot(mctx, sx0, cosHeadY, 4.5, C.green);
+  }
+
+  // --- sin strip (below): value vertical, time scrolls right ---
+  var sy = m*2 + boxH + stripH/2;
+  var amp = stripH/2 - 14;
+  var bx0 = cx, bx1 = W - m;
+  line(mctx, m, sy, bx1, sy, C.grid, 1);
+  line(mctx, bx0, sy-amp, bx1, sy-amp, C.grid, 1);
+  line(mctx, bx0, sy+amp, bx1, sy+amp, C.grid, 1);
+  mctx.font='11px sans-serif'; mctx.fillStyle=C.muted;
+  mctx.fillText('+1', bx0-20, sy-amp+4);
+  mctx.fillText('−1', bx0-20, sy+amp+4);
+  mctx.fillText('time →', bx1-42, sy+amp+13);
+  mctx.font='italic 14px Georgia'; mctx.fillStyle=C.yellow;
+  mctx.fillText('sin θ', m+4, sy-amp-6);
+
+  mctx.strokeStyle=C.yellow; mctx.lineWidth=2.2;
+  mctx.beginPath();
+  for(var x2=0; x2<=bx1-bx0; x2+=2){
+    var v2 = Math.sin(th - x2*k);
+    var yy2 = sy - v2*amp;
+    if(x2===0) mctx.moveTo(bx0+x2, yy2); else mctx.lineTo(bx0+x2, yy2);
+  }
+  mctx.stroke();
+  var sinHeadY = sy - sth*amp;
+  line(mctx, px, py, bx0, sinHeadY, 'rgba(255,211,90,0.6)', 1.3, [5,5]);
+  dot(mctx, bx0, sinHeadY, 4.5, C.yellow);
+
+  // --- projections inside the circle ---
+  line(mctx, px, py, px, cy, 'rgba(131,193,103,0.75)', 1.3, [4,4]);   // drop to Re axis (cos)
+  line(mctx, px, py, cx, py, 'rgba(255,211,90,0.75)', 1.3, [4,4]);    // to Im axis (sin)
+  dot(mctx, px, cy, 3.5, C.green);
+  dot(mctx, cx, py, 3.5, C.yellow);
+
+  // θ angle arc
+  mctx.save();
+  mctx.strokeStyle=C.blue; mctx.lineWidth=1.6; mctx.globalAlpha=0.9;
+  mctx.beginPath(); mctx.arc(cx, cy, 22, 0, -th, true); mctx.stroke();
+  mctx.restore();
+  if(th>0.18){
+    var la = th/2;
+    mctx.font='italic 14px Georgia'; mctx.fillStyle=C.blue;
+    mctx.fillText('θ', cx + 32*Math.cos(la) - 4, cy - 32*Math.sin(la) + 5);
+  }
+
+  // radius arrow + moving point
+  arrow(mctx, cx, cy, px, py, C.blue, 2.6);
+  dot(mctx, px, py, 7, C.blue, state.hoverPoint || state.dragging);
+  mctx.font='italic 15px Georgia'; mctx.fillStyle=C.blue;
+  var lx = px + 14*cth - (cth<0? 34:0);
+  var ly = py - 14*sth + (sth<0? 14:-6);
+  mctx.fillText('e', lx, ly);
+  mctx.font='italic 11px Georgia';
+  mctx.fillText('iθ', lx+8, ly-6);
+}
+
+// ---------- De Moivre canvas ----------
+var SUP = ['⁰','¹','²','³','⁴','⁵','⁶','⁷','⁸'];
+function drawPow(){
+  var dpr = window.devicePixelRatio||1;
+  var W = powCanvas.clientWidth, H = powCanvas.clientHeight;
+  if(W<1) return;
+  pctx.setTransform(dpr,0,0,dpr,0,0);
+  pctx.clearRect(0,0,W,H);
+
+  var cx = W/2, cy = H/2;
+  var R = Math.min(W,H)/2 - 56;
+  R = Math.max(R, 50);
+  powGeo = {cx:cx, cy:cy, R:R};
+
+  var th = state.theta, n = state.n;
+  var p = Math.min(state.powP, n);
+
+  gridField(pctx, W, H, cx, cy, R/2);
+  line(pctx, 0, cy, W, cy, C.axis, 1.5);
+  line(pctx, cx, 0, cx, H, C.axis, 1.5);
+  pctx.font='11px sans-serif'; pctx.fillStyle=C.muted;
+  pctx.fillText('1', cx+R+4, cy+13);
+  pctx.fillText('−1', cx-R-16, cy+13);
+  pctx.fillText('i', cx+6, cy-R-5);
+
+  pctx.strokeStyle=C.axis; pctx.lineWidth=1.5;
+  pctx.beginPath(); pctx.arc(cx,cy,R,0,TAU); pctx.stroke();
+
+  function pt(a,r){ return [cx + r*Math.cos(a), cy - r*Math.sin(a)]; }
+
+  // arcs for each completed (or partial) rotation step
+  for(var kk=1; kk<=n; kk++){
+    var a0 = (kk-1)*th;
+    var a1 = Math.min(kk, p)*th;
+    if(a1<=a0) break;
+    var rr = R + 8 + (kk-1)*3.5;
+    pctx.save();
+    pctx.strokeStyle=C.blue;
+    pctx.globalAlpha = 0.22 + 0.16*(kk/n);
+    pctx.lineWidth = 1.6;
+    pctx.beginPath(); pctx.arc(cx, cy, rr, -a0, -a1, true); pctx.stroke();
+    pctx.restore();
+  }
+
+  // ghost dots at completed intermediate powers
+  var done = Math.floor(p + 1e-9);
+  for(var g=1; g<=done; g++){
+    if(g===n) continue;                 // final gets full treatment
+    var gp = pt(g*th, R);
+    var alpha = 0.18 + 0.4*(g/n);
+    pctx.save(); pctx.globalAlpha = alpha;
+    dot(pctx, gp[0], gp[1], 5, g===1 ? C.blue : '#9fb4c9');
+    pctx.font='italic 12px Georgia'; pctx.fillStyle='#9fb4c9';
+    var lp = pt(g*th, R+22+(g-1)*3.5);
+    pctx.fillText('z'+(SUP[g]||('^'+g)), lp[0]-7, lp[1]+4);
+    pctx.restore();
+  }
+
+  // z (blue) — always visible
+  var zp = pt(th, R);
+  arrow(pctx, cx, cy, zp[0], zp[1], C.blue, 2.4);
+  dot(pctx, zp[0], zp[1], 6.5, C.blue, false);
+  pctx.font='italic 15px Georgia'; pctx.fillStyle=C.blue;
+  var zl = pt(th, R+28);
+  pctx.fillText('z', zl[0]-4, zl[1]+5);
+
+  if(state.powRunning && p<n){
+    // moving green dot sweeping through the powers
+    var mp = pt(p*th, R);
+    pctx.save(); pctx.globalAlpha=0.35;
+    dot(pctx, mp[0], mp[1], 10, C.green);
+    pctx.restore();
+    dot(pctx, mp[0], mp[1], 6, C.green);
+    arrow(pctx, cx, cy, mp[0], mp[1], 'rgba(131,193,103,0.55)', 2);
+  } else {
+    // final z^n (green)
+    var fp = pt(n*th, R);
+    arrow(pctx, cx, cy, fp[0], fp[1], C.green, 2.6);
+    dot(pctx, fp[0], fp[1], 7, C.green, false);
+    pctx.font='italic 15px Georgia'; pctx.fillStyle=C.green;
+    var fl = pt(n*th, R+30);
+    pctx.fillText('z'+(SUP[n]||('^'+n)), fl[0]-8, fl[1]+5);
+  }
+}
+
+// ---------- single rAF loop ----------
+function frame(t){
+  var dt = state.lastT ? Math.min((t-state.lastT)/1000, 0.05) : 0;
+  state.lastT = t;
+
+  if(state.playing && !state.dragging && !state.dragPow){
+    state.theta = (state.theta + state.speed*dt) % TAU;
+    syncChips();
+  }
+  if(state.powRunning){
+    state.powP += dt / 0.5;                 // 0.5 s per power step
+    if(state.powP >= state.n){ state.powP = state.n; state.powRunning = false; }
+  }
+
+  fit(mainCanvas); fit(powCanvas);
+  updateReadout();
+  drawMain();
+  drawPow();
+  requestAnimationFrame(frame);
+}
+syncChips();
+requestAnimationFrame(frame);
+
+})();
+</script>
+</body>
+</html>
