@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Linear Operators — Linear Algebra for QC</title>
+<style>
+:root{
+  --bg:#0e1117;
+  --panel:#161b26;
+  --panel2:#1c2230;
+  --ink:#e6e9f0;
+  --muted:#8b94a7;
+  --grid:#232b3b;
+  --axis:#4a5568;
+  --blue:#58c4dd;
+  --yellow:#ffd35a;
+  --red:#fc6255;
+  --green:#83c167;
+  --purple:#c688eb;
+  --orange:#ff9f4b;
+  --line:#2a3347;
+}
+*{box-sizing:border-box;}
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--ink);
+  font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
+  line-height:1.55;
+}
+.math{font-family:Georgia,'Times New Roman',serif;font-style:italic;}
+.wrap{max-width:1100px;margin:0 auto;padding:24px;}
+header{margin:8px 0 22px;}
+.crumb{color:var(--muted);text-decoration:none;font-size:14px;}
+.crumb:hover{color:var(--blue);}
+h1{margin:10px 0 6px;font-size:30px;letter-spacing:.2px;}
+.subtitle{color:var(--muted);margin:0;max-width:70ch;}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin-bottom:20px;}
+canvas{display:block;width:100%;height:min(520px,62vh);border-radius:10px;background:#0b0e14;cursor:default;}
+.controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:14px;}
+button,.chip{
+  background:var(--panel2);border:1px solid var(--line);color:var(--ink);
+  border-radius:9px;padding:8px 14px;cursor:pointer;font-size:14px;font-family:inherit;
+  transition:border-color .15s,color .15s,background .15s;
+}
+button:hover,.chip:hover{border-color:var(--blue);}
+button.active,.chip.active{border-color:var(--blue);color:var(--blue);background:rgba(88,196,221,.08);}
+button.primary{border-color:var(--blue);color:var(--blue);font-weight:600;}
+button.primary:hover{background:rgba(88,196,221,.12);}
+.toggle .dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--muted);margin-right:7px;vertical-align:1px;transition:background .15s;}
+.toggle.active .dot{background:var(--green);}
+.note{
+  margin-top:12px;color:var(--green);font-size:14px;min-height:1.4em;
+}
+.note.warn{color:var(--red);}
+.two-col{display:grid;grid-template-columns:auto 1fr;gap:20px;align-items:start;}
+@media (max-width:760px){.two-col{grid-template-columns:1fr;}}
+h2{font-size:17px;margin:0 0 12px;color:var(--ink);}
+h2 .hint{color:var(--muted);font-weight:normal;font-size:13px;margin-left:8px;}
+/* matrix with big CSS brackets */
+.matrix{
+  display:inline-grid;grid-template-columns:auto auto;gap:8px 12px;
+  padding:10px 18px;position:relative;align-items:center;justify-items:center;
+}
+.matrix::before,.matrix::after{content:"";position:absolute;top:0;bottom:0;width:10px;border:2.5px solid var(--ink);}
+.matrix::before{left:0;border-right:none;border-radius:6px 0 0 6px;}
+.matrix::after{right:0;border-left:none;border-radius:0 6px 6px 0;}
+.matrix input{
+  width:70px;background:var(--panel2);border:1px solid var(--line);border-radius:7px;
+  padding:7px 4px 7px 10px;font-size:16px;font-family:Georgia,'Times New Roman',serif;font-style:italic;
+  outline:none;
+}
+.matrix input:focus{border-color:var(--blue);}
+.matrix input.col1{color:var(--blue);}
+.matrix input.col2{color:var(--yellow);}
+.matrix .cell{font-size:17px;min-width:56px;text-align:center;}
+.matrix .c1{color:var(--blue);}
+.matrix .c2{color:var(--yellow);}
+.col-labels{display:grid;grid-template-columns:auto auto;gap:8px 12px;padding:0 18px;margin-bottom:2px;justify-items:center;font-size:13px;}
+.col-labels span:first-child{color:var(--blue);}
+.col-labels span:last-child{color:var(--yellow);}
+.det-line{margin-top:12px;font-size:15px;}
+.det-line .cap{color:var(--muted);font-size:13px;}
+.det-line.flat{color:var(--red);}
+.det-line.flat .cap{color:var(--red);}
+.badge{
+  display:inline-block;margin-left:8px;padding:2px 9px;border-radius:20px;font-size:12px;
+  border:1px solid var(--green);color:var(--green);background:rgba(131,193,103,.08);vertical-align:2px;
+}
+.flip-note{color:var(--orange);font-size:13px;margin-top:4px;}
+.readout{font-size:15px;}
+.readout .rmatrix{display:inline-grid;grid-template-columns:auto auto;gap:4px 16px;padding:6px 16px;position:relative;vertical-align:middle;margin:0 6px;}
+.readout .rmatrix::before,.readout .rmatrix::after{content:"";position:absolute;top:0;bottom:0;width:8px;border:2px solid var(--ink);}
+.readout .rmatrix::before{left:0;border-right:none;border-radius:5px 0 0 5px;}
+.readout .rmatrix::after{right:0;border-left:none;border-radius:0 5px 5px 0;}
+.chips{display:flex;flex-wrap:wrap;gap:9px;align-items:center;margin-top:6px;}
+.chip{font-size:13px;padding:7px 12px;}
+.theta-box{display:flex;align-items:center;gap:8px;background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:5px 12px;}
+.theta-box input[type=range]{accent-color:var(--blue);width:110px;}
+.theta-box .math{color:var(--blue);font-size:14px;min-width:56px;}
+.aside-y{border-left:3px solid var(--purple);}
+.aside-y h2{color:var(--purple);}
+.ymatrix{display:inline-grid;grid-template-columns:auto auto;gap:6px 22px;padding:8px 18px;position:relative;font-size:19px;margin-right:18px;vertical-align:middle;}
+.ymatrix::before,.ymatrix::after{content:"";position:absolute;top:0;bottom:0;width:9px;border:2.5px solid var(--ink);}
+.ymatrix::before{left:0;border-right:none;border-radius:6px 0 0 6px;}
+.ymatrix::after{right:0;border-left:none;border-radius:0 6px 6px 0;}
+.ymatrix .i{color:var(--purple);}
+.aside-flex{display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+.aside-flex p{margin:0;color:var(--muted);font-size:14.5px;max-width:56ch;}
+.insights{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin-bottom:26px;}
+.insights .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 20px;}
+.insights h3{margin:0 0 8px;font-size:15px;}
+.insights p{margin:0;color:var(--muted);font-size:14px;}
+.insights .t-blue{color:var(--blue);}
+.insights .t-red{color:var(--red);}
+.insights .t-green{color:var(--green);}
+footer{color:var(--muted);font-size:13px;border-top:1px solid var(--line);padding-top:18px;margin-top:10px;}
+footer .nav{display:flex;justify-content:space-between;gap:12px;margin-top:10px;flex-wrap:wrap;}
+footer a{color:var(--muted);text-decoration:none;}
+footer a:hover{color:var(--blue);}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <a class="crumb" href="./index.html">← Linear Algebra for Quantum Computing</a>
+  <h1>Linear Operators — matrices move space</h1>
+  <p class="subtitle">Type a 2×2 matrix (or pick a preset chip), then press <b>Apply</b> and watch the whole grid morph.
+  The <span style="color:var(--blue)">blue</span> and <span style="color:var(--yellow)">yellow</span> arrows are the basis vectors
+  <span class="math">î</span> and <span class="math">ĵ</span> — the matrix's columns tell you exactly where they land.
+  Turn on <b>compose</b> to stack transformations one on top of another.</p>
+</header>
+
+<div class="panel">
+  <canvas id="cv"></canvas>
+  <div class="controls">
+    <button id="applyBtn" class="primary">▶ Apply</button>
+    <button id="resetBtn">Reset</button>
+    <button id="composeBtn" class="toggle"><span class="dot"></span>compose: off</button>
+    <span id="animState" style="color:var(--muted);font-size:13px;"></span>
+  </div>
+  <div class="note" id="note"></div>
+</div>
+
+<div class="panel">
+  <div class="two-col">
+    <div>
+      <h2>The matrix <span class="math">A</span><span class="hint">columns = where î and ĵ land</span></h2>
+      <div class="col-labels"><span class="math">A î</span><span class="math">A ĵ</span></div>
+      <div class="matrix">
+        <input type="number" id="m00" class="col1" min="-2" max="2" step="0.1" value="0">
+        <input type="number" id="m01" class="col2" min="-2" max="2" step="0.1" value="-1">
+        <input type="number" id="m10" class="col1" min="-2" max="2" step="0.1" value="1">
+        <input type="number" id="m11" class="col2" min="-2" max="2" step="0.1" value="0">
+      </div>
+      <div class="det-line" id="detLine">
+        <span class="math">det(A)</span> = <b id="detVal">1</b>
+        <span class="cap" id="detCap">— area scale factor</span>
+        <span id="unitaryBadge" class="badge" style="display:none;">unitary ✓ preserves lengths</span>
+        <div class="flip-note" id="flipNote" style="display:none;">det &lt; 0: orientation flips — the plane is turned over like a page.</div>
+      </div>
+      <div class="chips" id="chips" style="margin-top:16px;">
+        <button class="chip" data-preset="identity">Identity</button>
+        <button class="chip" data-preset="rot90">Rotation 90°</button>
+        <span class="theta-box">
+          <button class="chip" data-preset="rotTheta" style="border:none;background:none;padding:2px 4px;">Rotation θ</button>
+          <input type="range" id="thetaSlider" min="0" max="360" step="5" value="45">
+          <span class="math" id="thetaVal">θ = 45°</span>
+        </span>
+        <button class="chip" data-preset="shear">Shear</button>
+        <button class="chip" data-preset="scale2">Scale ×2</button>
+        <button class="chip" data-preset="pauliX">Reflection (Pauli X)</button>
+        <button class="chip" data-preset="pauliZ">Pauli Z</button>
+        <button class="chip" data-preset="hadamard">Hadamard H</button>
+        <button class="chip" data-preset="projector">Projector |0⟩⟨0|</button>
+        <button class="chip" data-preset="squish">Squish (det 0)</button>
+      </div>
+    </div>
+    <div class="readout">
+      <h2>On screen now</h2>
+      <div id="chainLine" style="color:var(--muted);font-size:14px;margin-bottom:6px;">current = <span class="math">I</span> (identity — nothing applied yet)</div>
+      <div>
+        <span class="math">current</span> =
+        <span class="rmatrix" id="curMatrix">
+          <span class="c1 math">1</span><span class="c2 math">0</span>
+          <span class="c1 math">0</span><span class="c2 math">1</span>
+        </span>
+      </div>
+      <div style="margin-top:12px;font-size:14px;color:var(--muted);" id="curDetLine">
+        <span class="math">det</span> = <b id="curDet" style="color:var(--ink);">1</b>
+        <span id="curCap">— areas unchanged so far</span>
+        <span id="curUnitary" class="badge" style="display:none;">unitary ✓ preserves lengths</span>
+      </div>
+      <p style="color:var(--muted);font-size:13.5px;margin-top:14px;">
+        With <b>compose on</b>, pressing Apply multiplies the new matrix onto whatever is already on screen:
+        the readout accumulates <span class="math">B·A</span> — first <span class="math">A</span>, then <span class="math">B</span>.
+        Order matters!
+      </p>
+    </div>
+  </div>
+</div>
+
+<div class="panel aside-y">
+  <h2>Aside: Pauli-Y lives in the complex part</h2>
+  <div class="aside-flex">
+    <span class="ymatrix math">
+      <span>0</span><span class="i">−i</span>
+      <span class="i">i</span><span>0</span>
+    </span>
+    <p>The entries of <span class="math">Y</span> are imaginary, so it rotates through the
+    <span style="color:var(--purple)">complex parts</span> of the amplitudes — invisible in this real-plane
+    picture, but fully visible as a rotation about the y-axis on the Bloch sphere.</p>
+  </div>
+</div>
+
+<section class="insights">
+  <div class="card">
+    <h3 class="t-blue">Columns = landing spots</h3>
+    <p>Notice how the <span style="color:var(--blue)">blue</span> column of the matrix is exactly where
+    <span class="math">î</span> lands, and the <span style="color:var(--yellow)">yellow</span> column is where
+    <span class="math">ĵ</span> lands. A linear operator is fully determined by what it does to a basis —
+    so you can read any matrix by asking "where do î and ĵ go?"</p>
+  </div>
+  <div class="card">
+    <h3 class="t-red">Order matters: BA ≠ AB</h3>
+    <p>Turn compose on and try Rotation 90° then Shear, then Reset and do Shear then Rotation 90°.
+    The grids end up in different places! <span class="math">BA</span> means "apply <span class="math">A</span> first,
+    then <span class="math">B</span>" — matrix products read right-to-left, and swapping them usually changes the answer.</p>
+  </div>
+  <div class="card">
+    <h3 class="t-green">Quantum gates are unitary</h3>
+    <p>Apply Pauli X, Z, or Hadamard and watch: the grid turns or flips but never stretches — every vector keeps
+    its length. This is why quantum gates must be unitary operators: they rotate state space without stretching it,
+    so the probabilities |α|² + |β|² keep summing to 1.</p>
+  </div>
+</section>
+
+<footer>
+  <div>Interactive companion to the lecture <i>Linear Algebra for Quantum Computing</i> · T2</div>
+  <div class="nav">
+    <a href="./span-basis.html">← Span, Independence &amp; Basis</a>
+    <a href="./eigen.html">Eigenvectors &amp; Eigenvalues →</a>
+  </div>
+</footer>
+
+</div>
+<script>
+(function(){
+"use strict";
+// ---------- state ----------
+const I = [1,0,0,1]; // [a,b,c,d] = [[a,b],[c,d]]
+const state = {
+  cur: I.slice(),      // settled on-screen transform
+  from: I.slice(),     // animation start
+  to: I.slice(),       // animation target
+  t: 1,                // animation progress 0..1
+  animStart: 0,
+  animating: false,
+  compose: false,
+  chain: [],           // labels of applied ops, in application order
+  curName: "R₉₀"       // name of matrix currently in the inputs (inputs start as Rotation 90°)
+};
+const DUR = 1400; // ms
+
+// ---------- matrix helpers ----------
+function mul(B,A){ // B·A
+  return [
+    B[0]*A[0]+B[1]*A[2], B[0]*A[1]+B[1]*A[3],
+    B[2]*A[0]+B[3]*A[2], B[2]*A[1]+B[3]*A[3]
+  ];
+}
+function det(M){ return M[0]*M[3]-M[1]*M[2]; }
+function applyM(M,p){ return [M[0]*p[0]+M[1]*p[1], M[2]*p[0]+M[3]*p[1]]; }
+function lerpM(A,B,t){ return [0,1,2,3].map(i=>A[i]+(B[i]-A[i])*t); }
+function ease(t){ return t*t*(3-2*t); }
+function isUnitary(M){
+  const e=0.02;
+  const c1=M[0]*M[0]+M[2]*M[2], c2=M[1]*M[1]+M[3]*M[3], dot=M[0]*M[1]+M[2]*M[3];
+  return Math.abs(c1-1)<e && Math.abs(c2-1)<e && Math.abs(dot)<e;
+}
+function fmt(x){
+  const v = Math.round(x*100)/100;
+  return (Object.is(v,-0)?0:v).toString();
+}
+
+// ---------- DOM ----------
+const $ = id => document.getElementById(id);
+const cv=$("cv"), ctx=cv.getContext("2d");
+const inputs=[$("m00"),$("m01"),$("m10"),$("m11")];
+const noteEl=$("note");
+
+function readA(){ return inputs.map(el=>{const v=parseFloat(el.value); return isFinite(v)?v:0;}); }
+function setA(M,name){
+  inputs.forEach((el,i)=>{ el.value = (Math.round(M[i]*1000)/1000).toString(); });
+  state.curName = name || "A";
+  updateDetReadout();
+}
+
+// ---------- det readout for input matrix ----------
+function updateDetReadout(){
+  const A=readA(), d=det(A);
+  $("detVal").textContent = fmt(d);
+  const line=$("detLine");
+  if(Math.abs(d)<0.05){
+    line.classList.add("flat");
+    $("detCap").textContent = "— space is squished flat!";
+  }else{
+    line.classList.remove("flat");
+    $("detCap").textContent = "— area scale factor";
+  }
+  $("flipNote").style.display = (d < -0.05) ? "block" : "none";
+  $("unitaryBadge").style.display = isUnitary(A) ? "inline-block" : "none";
+}
+
+// ---------- composition readout ----------
+function updateCurReadout(){
+  const M=state.to;
+  const cells=$("curMatrix").children;
+  cells[0].textContent=fmt(M[0]); cells[1].textContent=fmt(M[1]);
+  cells[2].textContent=fmt(M[2]); cells[3].textContent=fmt(M[3]);
+  const d=det(M);
+  $("curDet").textContent=fmt(d);
+  $("curDet").style.color = Math.abs(d)<0.05 ? "var(--red)" : "var(--ink)";
+  $("curCap").textContent = Math.abs(d)<0.05 ? "— space is squished flat" :
+    (d<0 ? "— area ×"+fmt(Math.abs(d))+", orientation flipped" : "— area ×"+fmt(d));
+  $("curUnitary").style.display = isUnitary(M) ? "inline-block" : "none";
+  const chainEl=$("chainLine");
+  if(state.chain.length===0){
+    chainEl.innerHTML = 'current = <span class="math">I</span> (identity — nothing applied yet)';
+  }else{
+    const prod = state.chain.slice().reverse().join("·");
+    chainEl.innerHTML = 'current = <span class="math" style="color:var(--green)">'+prod+'</span>' +
+      (state.chain.length>1 ? ' <span style="font-size:12.5px;">(right-to-left: first applied is rightmost)</span>' : '');
+  }
+}
+
+// ---------- presets ----------
+const PRESETS = {
+  identity:  {M:[1,0,0,1],  name:"I"},
+  rot90:     {M:[0,-1,1,0], name:"R₉₀"},
+  shear:     {M:[1,1,0,1],  name:"S"},
+  scale2:    {M:[2,0,0,2],  name:"2I"},
+  pauliX:    {M:[0,1,1,0],  name:"X"},
+  pauliZ:    {M:[1,0,0,-1], name:"Z"},
+  hadamard:  {M:[0.707,0.707,0.707,-0.707], name:"H"},
+  projector: {M:[1,0,0,0],  name:"P"},
+  squish:    {M:[1,0.5,2,1],name:"Sq"}
+};
+const chipEls = Array.from(document.querySelectorAll(".chip"));
+function clearActive(){ chipEls.forEach(c=>c.classList.remove("active")); }
+function setNote(msg,warn){
+  noteEl.textContent = msg||"";
+  noteEl.classList.toggle("warn",!!warn);
+}
+chipEls.forEach(chip=>{
+  chip.addEventListener("click",()=>{
+    const key=chip.dataset.preset;
+    clearActive(); chip.classList.add("active");
+    if(key==="rotTheta"){
+      setRotTheta();
+    }else{
+      const p=PRESETS[key];
+      setA(p.M,p.name);
+      if(key==="projector"){
+        setNote("P² = P — a projector applied twice changes nothing: turn compose on and try Apply twice!");
+      }else if(key==="squish"){
+        setNote("det = 0: this matrix collapses the whole plane onto a single line.",true);
+      }else{
+        setNote("");
+      }
+    }
+  });
+});
+function setRotTheta(){
+  const th = parseFloat($("thetaSlider").value)*Math.PI/180;
+  const c=Math.cos(th), s=Math.sin(th);
+  setA([c,-s,s,c],"R("+$("thetaSlider").value+"°)");
+  $("thetaVal").textContent = "θ = "+$("thetaSlider").value+"°";
+  setNote("");
+}
+$("thetaSlider").addEventListener("input",()=>{
+  clearActive();
+  document.querySelector('[data-preset="rotTheta"]').classList.add("active");
+  setRotTheta();
+});
+inputs.forEach(el=>el.addEventListener("input",()=>{
+  clearActive();
+  state.curName="A";
+  setNote("");
+  updateDetReadout();
+}));
+
+// ---------- apply / reset / compose ----------
+function displayed(){ // matrix currently drawn (mid-animation aware)
+  return state.animating ? lerpM(state.from,state.to,ease(state.t)) : state.to.slice();
+}
+function startAnim(target){
+  state.from = displayed();
+  state.to = target.slice();
+  state.animStart = performance.now();
+  state.t = 0;
+  state.animating = true;
+  updateCurReadout();
+}
+$("applyBtn").addEventListener("click",()=>{
+  const A=readA();
+  if(state.compose){
+    startAnim(mul(A,state.to));   // new op on top of current
+    state.chain.push(state.curName);
+  }else{
+    startAnim(A);
+    state.chain=[state.curName];
+  }
+  updateCurReadout();
+});
+$("resetBtn").addEventListener("click",()=>{
+  startAnim(I);
+  state.chain=[];
+  updateCurReadout();
+});
+$("composeBtn").addEventListener("click",()=>{
+  state.compose=!state.compose;
+  const b=$("composeBtn");
+  b.classList.toggle("active",state.compose);
+  b.innerHTML='<span class="dot"></span>compose: '+(state.compose?"on":"off");
+});
+
+// ---------- canvas ----------
+let W=0,H=0,unit=70;
+function resize(){
+  const dpr=window.devicePixelRatio||1;
+  const r=cv.getBoundingClientRect();
+  W=r.width; H=r.height;
+  cv.width=Math.round(W*dpr); cv.height=Math.round(H*dpr);
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  unit=Math.max(42,Math.min(W,H)/6.4);
+}
+if(window.ResizeObserver){ new ResizeObserver(resize).observe(cv); } else { window.addEventListener("resize",resize); }
+resize();
+
+function S(p){ return [W/2+p[0]*unit, H/2-p[1]*unit]; }
+
+function line(p1,p2,color,w){
+  const a=S(p1), b=S(p2);
+  ctx.strokeStyle=color; ctx.lineWidth=w;
+  ctx.beginPath(); ctx.moveTo(a[0],a[1]); ctx.lineTo(b[0],b[1]); ctx.stroke();
+}
+function arrow(vec,color,w,label){
+  const o=S([0,0]), t=S(vec);
+  const dx=t[0]-o[0], dy=t[1]-o[1], len=Math.hypot(dx,dy);
+  if(len<2) { // still draw a dot at origin-ish
+    ctx.fillStyle=color; ctx.beginPath(); ctx.arc(t[0],t[1],4,0,7); ctx.fill();
+    return;
+  }
+  const hl=Math.min(13,len*0.4), ang=Math.atan2(dy,dx);
+  const bx=t[0]-hl*Math.cos(ang), by=t[1]-hl*Math.sin(ang);
+  ctx.strokeStyle=color; ctx.lineWidth=w; ctx.lineCap="round";
+  ctx.beginPath(); ctx.moveTo(o[0],o[1]); ctx.lineTo(bx,by); ctx.stroke();
+  ctx.fillStyle=color;
+  ctx.beginPath();
+  ctx.moveTo(t[0],t[1]);
+  ctx.lineTo(t[0]-hl*Math.cos(ang-0.42), t[1]-hl*Math.sin(ang-0.42));
+  ctx.lineTo(t[0]-hl*Math.cos(ang+0.42), t[1]-hl*Math.sin(ang+0.42));
+  ctx.closePath(); ctx.fill();
+  if(label){
+    ctx.font="italic 16px Georgia,'Times New Roman',serif";
+    ctx.fillStyle=color;
+    const ox = dx>=0? 10 : -18, oy = dy>=0? 18 : -10;
+    ctx.fillText(label, t[0]+ox, t[1]+oy);
+  }
+}
+
+const N=14; // grid half-extent in units
+const samplePts=[[-1,1.5],[2,-0.5]];
+const sampleVec=[1.5,1];
+
+function draw(now){
+  // advance animation
+  if(state.animating){
+    state.t=Math.min(1,(now-state.animStart)/DUR);
+    if(state.t>=1){ state.animating=false; state.t=1; }
+    $("animState").textContent = state.animating ? "morphing…" : "";
+  }
+  const M=displayed();
+
+  ctx.clearRect(0,0,W,H);
+
+  // --- static ghost grid (original space, faint) ---
+  ctx.save();
+  ctx.globalAlpha=0.85;
+  const cGrid="#232b3b", cAxis="#4a5568";
+  for(let i=-N;i<=N;i++){
+    if(i===0) continue;
+    line([i,-N],[i,N],cGrid,1);
+    line([-N,i],[N,i],cGrid,1);
+  }
+  line([0,-N],[0,N],cAxis,1.5);
+  line([-N,0],[N,0],cAxis,1.5);
+  // tick labels on static axes
+  ctx.fillStyle="#8b94a7"; ctx.font="11px 'Segoe UI',sans-serif";
+  const maxTick=Math.ceil(Math.max(W,H)/(2*unit));
+  for(let i=-maxTick;i<=maxTick;i++){
+    if(i===0) continue;
+    const px=S([i,0]), py=S([0,i]);
+    ctx.fillText(i,px[0]-4,px[1]+15);
+    ctx.fillText(i,py[0]+7,py[1]+4);
+  }
+  ctx.restore();
+
+  // --- unit parallelogram (image of unit square) ---
+  const c1=applyM(M,[1,0]), c2=applyM(M,[0,1]);
+  const q=[S([0,0]),S(c1),S([c1[0]+c2[0],c1[1]+c2[1]]),S(c2)];
+  ctx.fillStyle="rgba(88,196,221,0.10)";
+  ctx.beginPath();
+  ctx.moveTo(q[0][0],q[0][1]);
+  for(let k=1;k<4;k++) ctx.lineTo(q[k][0],q[k][1]);
+  ctx.closePath(); ctx.fill();
+  ctx.strokeStyle="rgba(88,196,221,0.25)"; ctx.lineWidth=1; ctx.stroke();
+
+  // --- moving grid (transformed) ---
+  for(let i=-N;i<=N;i++){
+    const bright = (i===0);
+    const col = bright ? "rgba(88,196,221,0.75)" : "rgba(88,196,221,0.22)";
+    const w = bright ? 1.8 : 1;
+    line(applyM(M,[i,-N]),applyM(M,[i,N]),col,w);
+    line(applyM(M,[-N,i]),applyM(M,[N,i]),col,w);
+  }
+
+  // --- sample points (green) carried along ---
+  ctx.fillStyle="#83c167";
+  samplePts.forEach(p=>{
+    const q1=S(applyM(M,p));
+    ctx.beginPath(); ctx.arc(q1[0],q1[1],5,0,7); ctx.fill();
+    // faint ghost of original position
+    const g1=S(p);
+    ctx.save(); ctx.globalAlpha=0.25;
+    ctx.beginPath(); ctx.arc(g1[0],g1[1],5,0,7); ctx.fill();
+    ctx.restore();
+  });
+
+  // ghost of original sample vector + basis
+  ctx.save(); ctx.globalAlpha=0.20;
+  arrow(sampleVec,"#83c167",2.5,null);
+  arrow([1,0],"#58c4dd",2.5,null);
+  arrow([0,1],"#ffd35a",2.5,null);
+  ctx.restore();
+
+  // --- vectors ---
+  arrow(applyM(M,sampleVec),"#83c167",2.7,"v");
+  arrow(c1,"#58c4dd",3,"î");
+  arrow(c2,"#ffd35a",3,"ĵ");
+
+  requestAnimationFrame(draw);
+}
+
+updateDetReadout();
+updateCurReadout();
+requestAnimationFrame(draw);
+})();
+</script>
+</body>
+</html>
