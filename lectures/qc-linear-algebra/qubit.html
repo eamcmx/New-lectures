@@ -485,8 +485,8 @@ function drawStage(now){
   ctx.font='italic 15px Georgia, serif';
   ctx.fillStyle=C.blue; ctx.textAlign='center'; ctx.textBaseline='bottom';
   ctx.fillText('α = '+aD.toFixed(2), X(aD/2), cy-8);
-  ctx.fillStyle=C.yellow; ctx.textAlign='right'; ctx.textBaseline='middle';
-  ctx.fillText('β = '+bD.toFixed(2)+' ', cx-8, Y(bD/2)-((Math.abs(bD)<0.15)?14:0));
+  ctx.fillStyle=C.yellow; ctx.textAlign='left'; ctx.textBaseline='middle';
+  ctx.fillText(' β = '+bD.toFixed(2), cx+8, Y(bD/2)-((Math.abs(bD)<0.15)?14:0));
 
   /* --- state arrow |ψ⟩ --- */
   ctx.globalAlpha = alphaMul;
