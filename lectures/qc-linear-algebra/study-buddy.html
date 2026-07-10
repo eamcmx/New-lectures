@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Study Buddy — Linear Algebra for QC</title>
+<style>
+:root{
+  --bg:#0e1117;
+  --panel:#161b26;
+  --panel2:#1c2230;
+  --ink:#e6e9f0;
+  --muted:#8b94a7;
+  --grid:#232b3b;
+  --axis:#4a5568;
+  --blue:#58c4dd;
+  --yellow:#ffd35a;
+  --red:#fc6255;
+  --green:#83c167;
+  --purple:#c688eb;
+  --orange:#ff9f4b;
+  --line:#2a3347;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:var(--bg); color:var(--ink);
+  font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
+  line-height:1.55;
+}
+.wrap{max-width:1100px;margin:0 auto;padding:24px;}
+a{color:var(--muted);text-decoration:none;transition:color .15s;}
+a:hover{color:var(--blue);}
+header{margin-bottom:22px;}
+.crumb{font-size:14px;}
+h1{margin:10px 0 6px;font-size:34px;letter-spacing:.3px;}
+.paal{
+  display:inline-block;font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--purple);border:1px solid var(--purple);border-radius:999px;
+  padding:3px 10px;opacity:.85;margin:2px 0 10px;
+}
+.sub{color:var(--muted);margin:0;max-width:70ch;}
+.math{font-family:Georgia,'Times New Roman',serif;font-style:italic;}
+.panel{
+  background:var(--panel);border:1px solid var(--line);
+  border-radius:14px;padding:18px 20px;margin:18px 0;
+}
+h2{margin:0 0 6px;font-size:22px;}
+button,.chip{
+  background:var(--panel2);border:1px solid var(--line);color:var(--ink);
+  border-radius:9px;padding:8px 14px;cursor:pointer;font-size:14px;
+  font-family:inherit;transition:border-color .15s,color .15s,background .15s;
+}
+button:hover,.chip:hover{border-color:var(--blue);}
+button:disabled{opacity:.45;cursor:default;}
+button:disabled:hover{border-color:var(--line);}
+button.primary{border-color:var(--blue);color:var(--blue);background:rgba(88,196,221,.08);}
+button.danger:hover{border-color:var(--red);color:var(--red);}
+
+/* ---- setup panel ---- */
+#setupPanel p{color:var(--muted);max-width:75ch;}
+#setupPanel ol{color:var(--muted);max-width:75ch;padding-left:22px;margin:8px 0 14px;}
+#setupPanel li{margin:4px 0;}
+#setupPanel code{
+  font-family:Consolas,Menlo,monospace;font-size:.9em;color:var(--yellow);
+  background:var(--panel2);border:1px solid var(--line);border-radius:5px;padding:1px 5px;
+}
+.keyrow{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:12px 0 6px;}
+.keyfield{position:relative;flex:1;min-width:240px;display:flex;}
+#keyInput{
+  flex:1;background:var(--panel2);border:1px solid var(--line);color:var(--ink);
+  border-radius:9px;padding:9px 46px 9px 12px;font-size:14px;font-family:Consolas,Menlo,monospace;
+  outline:none;
+}
+#keyInput:focus{border-color:var(--blue);}
+#keyEye{
+  position:absolute;right:5px;top:50%;transform:translateY(-50%);
+  background:none;border:none;padding:4px 8px;font-size:15px;color:var(--muted);
+}
+#keyEye:hover{color:var(--blue);}
+.privacy{
+  border-left:3px solid var(--green);background:rgba(131,193,103,.06);
+  border-radius:0 9px 9px 0;padding:10px 14px;margin-top:14px;
+  font-size:13.5px;color:var(--muted);max-width:75ch;
+}
+.privacy strong{color:var(--green);}
+#keyError{color:var(--red);font-size:13px;margin:6px 0 0;min-height:1.2em;}
+
+/* ---- chat ---- */
+#chatPanel{display:none;padding:0;overflow:hidden;}
+.chatTop{
+  display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;
+  padding:12px 18px;border-bottom:1px solid var(--line);background:var(--panel);
+}
+.chatTop .who{font-size:15px;}
+.chatTop .who .dot{color:var(--green);font-size:11px;vertical-align:2px;margin-right:6px;}
+.chatTop .tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+.chatTop .tools button{padding:5px 11px;font-size:13px;}
+#msgCount{color:var(--muted);font-size:12.5px;margin-right:4px;}
+#msgList{
+  height:440px;overflow-y:auto;padding:18px;display:flex;flex-direction:column;gap:12px;
+  scroll-behavior:smooth;background:var(--bg);
+}
+.msg{max-width:82%;border-radius:14px;padding:10px 14px;font-size:14.5px;word-wrap:break-word;}
+.msg.user{
+  align-self:flex-end;background:rgba(88,196,221,.12);
+  border:1px solid rgba(88,196,221,.35);border-bottom-right-radius:4px;white-space:pre-wrap;
+}
+.msg.buddy{
+  align-self:flex-start;background:var(--panel2);
+  border:1px solid var(--line);border-bottom-left-radius:4px;
+}
+.msg.buddy p{margin:0 0 8px;}
+.msg.buddy p:last-child{margin-bottom:0;}
+.msg.buddy ul,.msg.buddy ol{margin:4px 0 8px;padding-left:22px;}
+.msg.buddy li{margin:2px 0;}
+.msg.buddy code{
+  font-family:Consolas,Menlo,monospace;font-size:.88em;color:var(--yellow);
+  background:rgba(0,0,0,.28);border-radius:4px;padding:1px 5px;
+}
+.msg.note{
+  align-self:center;max-width:92%;text-align:center;background:none;border:1px dashed var(--line);
+  color:var(--muted);font-size:13px;
+}
+.msg.error{
+  align-self:center;max-width:92%;background:rgba(252,98,85,.07);
+  border:1px solid rgba(252,98,85,.4);color:var(--ink);font-size:13.5px;
+}
+.msg.error .etitle{color:var(--red);font-weight:600;margin-bottom:2px;}
+.msg.error a{color:var(--blue);text-decoration:underline;}
+.typing{align-self:flex-start;display:flex;gap:5px;padding:14px 16px;background:var(--panel2);
+  border:1px solid var(--line);border-radius:14px;border-bottom-left-radius:4px;}
+.typing i{
+  width:8px;height:8px;border-radius:50%;background:var(--muted);display:block;
+  animation:pulse 1.2s infinite ease-in-out;
+}
+.typing i:nth-child(2){animation-delay:.2s;}
+.typing i:nth-child(3){animation-delay:.4s;}
+@keyframes pulse{0%,60%,100%{opacity:.25;transform:translateY(0);}30%{opacity:1;transform:translateY(-3px);}}
+
+.chips{display:flex;flex-wrap:wrap;gap:8px;padding:12px 18px 0;border-top:1px solid var(--line);background:var(--panel);}
+.chips .chip{font-size:13px;padding:6px 12px;border-radius:999px;}
+.inputRow{display:flex;gap:10px;align-items:flex-end;padding:12px 18px 16px;background:var(--panel);}
+#chatInput{
+  flex:1;background:var(--panel2);border:1px solid var(--line);color:var(--ink);
+  border-radius:11px;padding:10px 12px;font-size:14.5px;font-family:inherit;line-height:1.45;
+  resize:none;min-height:44px;max-height:160px;outline:none;
+}
+#chatInput:focus{border-color:var(--blue);}
+#sendBtn{border-color:var(--blue);color:var(--blue);background:rgba(88,196,221,.08);padding:10px 18px;}
+#sendBtn:hover{background:rgba(88,196,221,.16);}
+#abortBtn{display:none;border-color:var(--red);color:var(--red);background:rgba(252,98,85,.07);padding:10px 14px;}
+#seedTag{
+  display:none;margin:10px 18px 0;font-size:12px;color:var(--purple);
+  border:1px solid var(--purple);border-radius:999px;padding:2px 10px;width:fit-content;opacity:.85;
+}
+.hintline{color:var(--muted);font-size:12px;padding:0 18px 12px;background:var(--panel);margin:0;}
+
+/* ---- insights ---- */
+.insights{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;margin:26px 0;}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px;}
+.card h3{margin:0 0 6px;font-size:15px;letter-spacing:.3px;}
+.card p{margin:0;color:var(--muted);font-size:14px;}
+.c-blue h3{color:var(--blue);}
+.c-green h3{color:var(--green);}
+
+footer{color:var(--muted);font-size:13.5px;margin-top:34px;border-top:1px solid var(--line);padding-top:16px;}
+.navlinks{display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-top:8px;}
+@media (max-width:640px){
+  h1{font-size:27px;}
+  #msgList{height:380px;}
+  .msg{max-width:92%;}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <a class="crumb" href="./index.html">← Linear Algebra for Quantum Computing</a>
+  <h1>Study Buddy — a tutor in the page</h1>
+  <span class="paal">PAAL · Progressive AI-Augmented Learning</span>
+  <p class="sub">A Socratic tutor that lives inside this page and knows the whole lecture.
+  It runs on <em>your own</em> free Mistral API key — stored only in this browser, sent only to Mistral.
+  Ask it anything about complex numbers, kets, operators, eigen-stuff… it will answer with hints, not spoilers.</p>
+</header>
+
+<!-- ======================= SETUP PANEL ======================= -->
+<section class="panel" id="setupPanel">
+  <h2>One-minute setup</h2>
+  <p>This page has no server — the tutor talks straight from your browser to Mistral's API,
+  so it needs a key of your own. The free tier is more than enough for study sessions.</p>
+  <ol>
+    <li>Create a free account at <a href="https://console.mistral.ai" target="_blank" rel="noopener">console.mistral.ai</a> (choose the free “Experiment” tier).</li>
+    <li>In the console, open <em>API Keys</em> → <em>Create new key</em>.</li>
+    <li>Paste the key below and hit <strong>Save key</strong>.</li>
+  </ol>
+  <div class="keyrow">
+    <div class="keyfield">
+      <input id="keyInput" type="password" autocomplete="off" spellcheck="false"
+             placeholder="Paste your Mistral API key…" aria-label="Mistral API key">
+      <button id="keyEye" type="button" title="Show / hide key" aria-label="Show or hide key">👁</button>
+    </div>
+    <button id="saveKeyBtn" class="primary" type="button">Save key</button>
+  </div>
+  <p id="keyError"></p>
+  <div class="privacy">
+    <strong>Where does the key go?</strong> It is stored <em>only</em> in this browser
+    (localStorage key <code>qcla-mistral-key</code>) and sent <em>only</em> to
+    <code>api.mistral.ai</code> when you chat. It never touches any other server — this page doesn't have one.
+    You can make it forget the key at any time with the “Forget key” button.
+    One honest caveat: <strong>avoid saving it on shared or public computers</strong> — anyone using
+    this browser profile could read it.
+  </div>
+</section>
+
+<!-- ======================= CHAT PANEL ======================= -->
+<section class="panel" id="chatPanel" aria-live="polite">
+  <div class="chatTop">
+    <div class="who"><span class="dot">●</span><strong>Study Buddy</strong> <span style="color:var(--muted);font-size:13px;">· mistral-small · Socratic mode</span></div>
+    <div class="tools">
+      <span id="msgCount"></span>
+      <button id="clearBtn" type="button" title="Wipe the conversation (kept in memory only)">Clear chat</button>
+      <button id="forgetBtn" class="danger" type="button" title="Remove the API key from this browser">Forget key</button>
+    </div>
+  </div>
+
+  <div id="msgList" role="log" aria-label="Conversation"></div>
+
+  <div class="chips" id="chipRow">
+    <button class="chip" type="button" data-q="Quiz me on complex numbers">Quiz me on complex numbers</button>
+    <button class="chip" type="button" data-q="Why must gates be unitary?">Why must gates be unitary?</button>
+    <button class="chip" type="button" data-q="Check my reasoning: " data-draft="1">Check my reasoning: …</button>
+    <button class="chip" type="button" data-q="Explain ⟨u|v⟩ vs |u⟩⟨v|">Explain ⟨u|v⟩ vs |u⟩⟨v|</button>
+    <button class="chip" type="button" data-q="I don't get eigenvectors">I don't get eigenvectors</button>
+  </div>
+
+  <span id="seedTag">✦ from Prompt Studio</span>
+
+  <div class="inputRow">
+    <textarea id="chatInput" rows="1" placeholder="Ask about the lecture… (Enter to send, Shift+Enter for a new line)"
+      aria-label="Message to the study buddy"></textarea>
+    <button id="abortBtn" type="button" title="Stop waiting for the reply">■ Stop</button>
+    <button id="sendBtn" type="button">Send ↑</button>
+  </div>
+  <p class="hintline">Conversation lives in memory only — refreshing the page clears it (by design). Nothing is logged anywhere.</p>
+</section>
+
+<!-- ======================= INSIGHTS ======================= -->
+<section class="insights">
+  <div class="card c-blue">
+    <h3>Why won't it just tell me the answer?</h3>
+    <p>The buddy is deliberately Socratic — it answers questions with guiding questions and gives the
+    <em>next hint</em>, never the full solution to an exercise. If you want straight answers, any chatbot
+    will happily oblige. But the struggle-with-a-hint is exactly where the skill grows: retrieval plus a
+    nudge beats a copied answer every time.</p>
+  </div>
+  <div class="card c-green">
+    <h3>Your key = your usage</h3>
+    <p>Because the key is yours, the traffic is yours: this page never sees anyone else's conversations,
+    and nobody sees yours. The free tier is plenty for study sessions — a whole evening of tutoring costs
+    a tiny slice of the free quota. If it ever rate-limits you, wait a few seconds and carry on.</p>
+  </div>
+</section>
+
+<footer>
+  <div>Interactive companion to the lecture <em>Linear Algebra for Quantum Computing</em> · T2</div>
+  <div class="navlinks">
+    <a href="./prompt-studio.html">← Prompt Studio</a>
+    <a href="./index.html">All explorations</a>
+    <a href="./flashcards.html">Flashcards →</a>
+  </div>
+</footer>
+
+</div>
+
+<script>
+"use strict";
+/* ============================================================
+   Study Buddy — in-page Socratic tutor on the student's own
+   Mistral API key. One external endpoint: api.mistral.ai.
+   ============================================================ */
+
+const KEY_STORE  = "qcla-mistral-key";
+const SEED_STORE = "qcla-buddy-seed";
+const API_URL    = "https://api.mistral.ai/v1/chat/completions";
+const MODEL      = "mistral-small-latest";
+const HISTORY_CAP = 16;   // last N messages sent to the API
+const WARN_AT     = 30;   // suggest a fresh chat after this many messages
+
+const SYSTEM_PROMPT = `You are "Study Buddy", a Socratic tutor embedded in an interactive web page for ONE specific lecture: "Linear Algebra for Quantum Computing" (T2, quantum computing course). The lecture covers: complex numbers (rectangular & polar forms, conjugate, modulus, arithmetic), Euler's formula and De Moivre, complex vector spaces ℂⁿ, Dirac bra-ket notation, inner product ⟨u|v⟩, norm and orthogonality/orthonormality, Kronecker delta, outer product |u⟩⟨v|, Hilbert space, spanning sets, linear independence, basis and dimension, computational basis, qubits α|0⟩+β|1⟩ with |α|²+|β|²=1 and measurement probabilities, linear operators and matrix representations, composition, Pauli matrices X, Y, Z, completeness relation Σ|j⟩⟨j| = I, eigenvectors and eigenvalues, characteristic polynomial, spectral decomposition A = Σ λⱼ|j⟩⟨j|, tensor and Kronecker products, adjoint A†, and normal / unitary / Hermitian / projector / positive operators (unitary preserve norm, Hermitian have real eigenvalues, projectors satisfy P² = P with eigenvalues 0 and 1), and functions of operators via eigenvalues.
+
+Your teaching rules — follow ALL of them:
+1. Ask before telling. If the student asks a question without showing an attempt, reply with ONE short guiding question that points them at the key idea, plus at most one small orienting fact.
+2. NEVER solve a numbered exercise or homework problem outright. Give only the single next hint, then wait. If pressed for the full answer, explain kindly that hints are the deal, and give a slightly bigger hint.
+3. Keep replies under ~150 words, unless a step-by-step derivation is genuinely needed.
+4. Write math in plain unicode: α, β, θ, λ, |ψ⟩, ⟨u|v⟩, |u⟩⟨v|, A†, ⊗, √2, ², ℂ. No LaTeX, no dollar signs, no backslash commands.
+5. When the student gets something right, say so briefly and raise the difficulty one notch with a follow-up question.
+6. If asked something outside this lecture, answer in one or two sentences, then steer back to the lecture material.
+7. When a picture would help, point the student to the matching interactive page from this set, by name: "The Complex Plane", "Euler's Formula", "Span, Independence & Basis", "Linear Operators", "Eigenvectors & Eigenvalues", "Inner Product & Orthogonality", "The Qubit", "Tensor & Kronecker Product", "The Operator Zoo", "Spectral Decomposition", "Formative Quiz", "Worked Solutions", "Prompt Studio", "Flashcards".
+8. Tone: warm, curious, encouraging — like a good study partner, not a lecturer. Light markdown only (bold, *italics*, \`code\`, simple lists).`;
+
+/* ---------------- state ---------------- */
+const state = {
+  key: null,
+  history: [],      // {role:"user"|"assistant", content:string}
+  pending: false,
+  controller: null,
+};
+
+/* ---------------- element refs ---------------- */
+const $ = id => document.getElementById(id);
+const setupPanel = $("setupPanel"), chatPanel = $("chatPanel");
+const keyInput = $("keyInput"), keyEye = $("keyEye"), saveKeyBtn = $("saveKeyBtn"), keyError = $("keyError");
+const msgList = $("msgList"), chatInput = $("chatInput");
+const sendBtn = $("sendBtn"), abortBtn = $("abortBtn");
+const clearBtn = $("clearBtn"), forgetBtn = $("forgetBtn"), msgCount = $("msgCount");
+const chipRow = $("chipRow"), seedTag = $("seedTag");
+
+/* ---------------- tiny safe markdown renderer ----------------
+   1. escape ALL html first
+   2. re-introduce a small whitelist: **bold** *italic* `code`,
+      simple - / * / 1. lists, paragraphs & line breaks.
+   No raw model output ever reaches innerHTML unescaped.       */
+function escapeHtml(s){
+  return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+          .replace(/"/g,"&quot;").replace(/'/g,"&#39;");
+}
+function inlineMd(s){
+  return s
+    .replace(/`([^`\n]+)`/g, "<code>$1</code>")
+    .replace(/\*\*([^*\n]+)\*\*/g, "<strong>$1</strong>")
+    .replace(/\*([^*\n]+)\*/g, "<em>$1</em>");
+}
+function renderMarkdown(raw){
+  const lines = escapeHtml(raw).split(/\r?\n/);
+  let html = "", para = [], list = null; // list: {type:"ul"|"ol", items:[]}
+  const flushPara = () => {
+    if (para.length){ html += "<p>" + para.map(inlineMd).join("<br>") + "</p>"; para = []; }
+  };
+  const flushList = () => {
+    if (list){
+      html += "<" + list.type + ">" + list.items.map(it => "<li>" + inlineMd(it) + "</li>").join("") + "</" + list.type + ">";
+      list = null;
+    }
+  };
+  for (const line of lines){
+    const ul = line.match(/^\s*[-*]\s+(.*)$/);
+    const ol = line.match(/^\s*\d+[.)]\s+(.*)$/);
+    if (ul || ol){
+      flushPara();
+      const type = ul ? "ul" : "ol";
+      if (!list || list.type !== type){ flushList(); list = {type, items:[]}; }
+      list.items.push((ul || ol)[1]);
+    } else if (line.trim() === ""){
+      flushPara(); flushList();
+    } else {
+      flushList();
+      para.push(line);
+    }
+  }
+  flushPara(); flushList();
+  return html || "<p></p>";
+}
+
+/* ---------------- chat rendering ---------------- */
+function addBubble(cls, htmlOrText, isHtml){
+  const div = document.createElement("div");
+  div.className = "msg " + cls;
+  if (isHtml) div.innerHTML = htmlOrText;           // built ONLY from escaped pieces
+  else div.textContent = htmlOrText;
+  msgList.appendChild(div);
+  msgList.scrollTop = msgList.scrollHeight;
+  return div;
+}
+function addUser(text){ addBubble("user", text, false); }
+function addBuddy(text){ addBubble("buddy", renderMarkdown(text), true); }
+function addNote(text){ addBubble("note", text, false); }
+function addError(title, bodyHtml){
+  addBubble("error", '<div class="etitle">' + escapeHtml(title) + "</div>" + bodyHtml, true);
+}
+let typingEl = null;
+function showTyping(){
+  hideTyping();
+  typingEl = document.createElement("div");
+  typingEl.className = "typing";
+  typingEl.innerHTML = "<i></i><i></i><i></i>";
+  msgList.appendChild(typingEl);
+  msgList.scrollTop = msgList.scrollHeight;
+}
+function hideTyping(){ if (typingEl){ typingEl.remove(); typingEl = null; } }
+
+function updateCount(){
+  const n = state.history.length;
+  msgCount.textContent = n ? n + " message" + (n === 1 ? "" : "s") : "";
+}
+
+/* ---------------- key handling ---------------- */
+function loadKey(){
+  try { return localStorage.getItem(KEY_STORE); } catch(e){ return null; }
+}
+function showChat(){
+  setupPanel.style.display = "none";
+  chatPanel.style.display = "block";
+  if (!msgList.children.length){
+    addBuddy("Hi! I'm your study buddy for **Linear Algebra for Quantum Computing**. " +
+      "Ask me anything from the lecture — complex numbers, |ψ⟩ and bra-kets, operators, eigenvalues, tensor products… " +
+      "Fair warning: I teach with *hints and questions*, not ready-made answers. What are you working on?");
+  }
+  loadSeed();
+  chatInput.focus();
+}
+function showSetup(){
+  chatPanel.style.display = "none";
+  setupPanel.style.display = "block";
+}
+
+saveKeyBtn.addEventListener("click", () => {
+  const k = keyInput.value.trim();
+  if (!k){ keyError.textContent = "That looks empty — paste the key from console.mistral.ai first."; return; }
+  if (k.length < 10){ keyError.textContent = "That looks too short to be an API key — double-check the paste."; return; }
+  keyError.textContent = "";
+  try { localStorage.setItem(KEY_STORE, k); } catch(e){ /* private mode: keep in memory only */ }
+  state.key = k;
+  keyInput.value = "";
+  showChat();
+});
+keyInput.addEventListener("keydown", e => { if (e.key === "Enter") saveKeyBtn.click(); });
+keyEye.addEventListener("click", () => {
+  keyInput.type = keyInput.type === "password" ? "text" : "password";
+  keyEye.textContent = keyInput.type === "password" ? "👁" : "🙈";
+});
+forgetBtn.addEventListener("click", () => {
+  try { localStorage.removeItem(KEY_STORE); } catch(e){}
+  state.key = null;
+  addNote("Key forgotten — it is gone from this browser.");
+  setTimeout(showSetup, 600);
+});
+
+/* ---------------- seed from Prompt Studio ---------------- */
+function loadSeed(){
+  let seed = null;
+  try { seed = localStorage.getItem(SEED_STORE); } catch(e){}
+  if (seed){
+    chatInput.value = seed;
+    autosize();
+    seedTag.style.display = "inline-block";
+    try { localStorage.removeItem(SEED_STORE); } catch(e){}
+  }
+}
+chatInput.addEventListener("input", () => { seedTag.style.display = "none"; autosize(); });
+
+/* ---------------- textarea niceties ---------------- */
+function autosize(){
+  chatInput.style.height = "auto";
+  chatInput.style.height = Math.min(chatInput.scrollHeight, 160) + "px";
+}
+chatInput.addEventListener("keydown", e => {
+  if (e.key === "Enter" && !e.shiftKey){ e.preventDefault(); send(); }
+});
+
+/* ---------------- starter chips ---------------- */
+chipRow.addEventListener("click", e => {
+  const chip = e.target.closest(".chip");
+  if (!chip || state.pending) return;
+  if (chip.dataset.draft){                 // "Check my reasoning: …" → draft, don't send
+    chatInput.value = chip.dataset.q;
+    seedTag.style.display = "none";
+    autosize();
+    chatInput.focus();
+    chatInput.setSelectionRange(chatInput.value.length, chatInput.value.length);
+  } else {
+    chatInput.value = chip.dataset.q;
+    send();
+  }
+});
+
+/* ---------------- sending ---------------- */
+function setPending(on){
+  state.pending = on;
+  sendBtn.disabled = on;
+  abortBtn.style.display = on ? "inline-block" : "none";
+  if (on) showTyping(); else hideTyping();
+}
+abortBtn.addEventListener("click", () => {
+  if (state.controller) state.controller.abort();
+});
+clearBtn.addEventListener("click", () => {
+  state.history = [];
+  msgList.innerHTML = "";
+  updateCount();
+  addBuddy("Fresh page, fresh mind. What shall we dig into?");
+});
+
+async function send(){
+  const text = chatInput.value.trim();
+  if (!text || state.pending) return;
+  seedTag.style.display = "none";
+  chatInput.value = "";
+  autosize();
+
+  addUser(text);
+  state.history.push({role:"user", content:text});
+  updateCount();
+  if (state.history.length === WARN_AT){
+    addNote("This chat is getting long (" + WARN_AT + " messages). Long chats cost more tokens and the buddy " +
+      "starts forgetting the beginning — consider “Clear chat” and a fresh start.");
+  }
+
+  setPending(true);
+  state.controller = new AbortController();
+  const payload = {
+    model: MODEL,
+    temperature: 0.7,
+    max_tokens: 700,
+    messages: [{role:"system", content: SYSTEM_PROMPT}, ...state.history.slice(-HISTORY_CAP)],
+  };
+
+  try {
+    const res = await fetch(API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + state.key,
+      },
+      body: JSON.stringify(payload),
+      signal: state.controller.signal,
+    });
+
+    if (res.status === 401){
+      setPending(false);
+      addError("Key rejected (401)",
+        "<p>Mistral didn't accept the key. It may have a typo or have been revoked — " +
+        "hit <strong>Forget key</strong> and re-paste a fresh one from " +
+        '<a href="https://console.mistral.ai" target="_blank" rel="noopener">console.mistral.ai</a>.</p>');
+      return;
+    }
+    if (res.status === 429){
+      setPending(false);
+      addError("Free tier is catching its breath (429)",
+        "<p>Too many requests in a short burst. Wait a few seconds and send again — your message is still above, " +
+        "just re-type or copy it.</p>");
+      return;
+    }
+    if (!res.ok){
+      setPending(false);
+      addError("API error (" + res.status + ")",
+        "<p>Something unexpected came back from the API. Wait a moment and try again.</p>");
+      return;
+    }
+
+    const data = await res.json();
+    const reply = data && data.choices && data.choices[0] && data.choices[0].message
+      ? String(data.choices[0].message.content || "") : "";
+    setPending(false);
+    if (!reply){
+      addError("Empty reply", "<p>The model returned nothing — try rephrasing or sending again.</p>");
+      return;
+    }
+    state.history.push({role:"assistant", content: reply});
+    addBuddy(reply);
+    updateCount();
+
+  } catch(err){
+    setPending(false);
+    if (err && err.name === "AbortError"){
+      addNote("Reply cancelled.");
+    } else {
+      addError("Can't reach api.mistral.ai",
+        "<p>Looks like a network problem (offline, firewall, or a blocked connection). No worries — " +
+        "the tutoring still works the manual way: open the <a href=\"./prompt-studio.html\">Prompt Studio</a>, " +
+        "build a tutor prompt there, and paste it into any AI chat you can reach. Same pedagogy, more copy-pasting.</p>");
+    }
+  } finally {
+    state.controller = null;
+  }
+}
+sendBtn.addEventListener("click", send);
+
+/* ---------------- boot ---------------- */
+state.key = loadKey();
+if (state.key) showChat(); else showSetup();
+</script>
+</body>
+</html>

@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Worked Solutions — Linear Algebra for QC</title>
+<style>
+:root{
+  --bg:#0e1117;
+  --panel:#161b26;
+  --panel2:#1c2230;
+  --ink:#e6e9f0;
+  --muted:#8b94a7;
+  --grid:#232b3b;
+  --axis:#4a5568;
+  --blue:#58c4dd;
+  --yellow:#ffd35a;
+  --red:#fc6255;
+  --green:#83c167;
+  --purple:#c688eb;
+  --orange:#ff9f4b;
+  --line:#2a3347;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--bg); color:var(--ink);
+  font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
+  line-height:1.55;
+}
+.wrap{max-width:1100px;margin:0 auto;padding:24px}
+a{color:var(--blue)}
+header a.crumb{color:var(--muted);text-decoration:none;font-size:.9rem}
+header a.crumb:hover{color:var(--blue)}
+h1{margin:.35em 0 .15em;font-size:clamp(1.5rem,3.4vw,2.15rem);letter-spacing:.01em}
+.subtitle{color:var(--muted);margin:0 0 22px;max-width:66ch}
+.paal{
+  display:inline-block;font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--purple);border:1px solid var(--purple);border-radius:999px;
+  padding:3px 10px;opacity:.85;margin:2px 0 10px;
+}
+.math{font-family:Georgia,'Times New Roman',serif;font-style:italic}
+.panel{
+  background:var(--panel);border:1px solid var(--line);
+  border-radius:14px;padding:18px 20px;margin-bottom:22px;
+}
+.panel h2{margin:0 0 10px;font-size:1.05rem;letter-spacing:.02em}
+.panel h2 .math{font-size:1.05em}
+button{
+  background:var(--panel2);border:1px solid var(--line);color:var(--ink);
+  border-radius:9px;padding:8px 14px;cursor:pointer;font:inherit;font-size:.9rem;
+  transition:border-color .15s,color .15s,background .15s,opacity .15s;
+}
+button:hover{border-color:var(--blue)}
+button.on{border-color:var(--blue);color:var(--blue);background:rgba(88,196,221,.08)}
+button:disabled{opacity:.55;cursor:default}
+button:disabled:hover{border-color:var(--line)}
+
+/* ---------- gate ---------- */
+#gate{
+  background:var(--panel);border:1px solid var(--line);border-radius:14px;
+  padding:52px 28px;text-align:center;margin-bottom:22px;
+  overflow:hidden;
+  transition:opacity .55s ease, transform .55s ease, max-height .6s ease,
+             padding .6s ease, margin .6s ease, border-width .6s ease;
+  max-height:640px;
+}
+#gate.closing{
+  opacity:0;transform:translateY(-22px) scale(.985);
+  max-height:0;padding-top:0;padding-bottom:0;margin-bottom:0;border-width:0;
+  pointer-events:none;
+}
+#gate .lock{
+  font-size:3rem;line-height:1;display:block;margin-bottom:14px;
+  filter:grayscale(.25);opacity:.9;
+}
+#gate h2{margin:0 0 8px;font-size:1.3rem}
+#gate p{color:var(--muted);max-width:52ch;margin:8px auto}
+#gate .best{
+  display:inline-block;margin:10px 0 4px;padding:7px 16px;border-radius:999px;
+  border:1px solid var(--line);background:var(--panel2);font-size:.92rem;
+}
+#gate .best .math{font-style:normal}
+#gate .best b{color:var(--yellow);font-weight:600}
+#gate a.gobtn{
+  display:inline-block;margin-top:16px;text-decoration:none;
+  background:rgba(88,196,221,.08);border:1px solid var(--blue);color:var(--blue);
+  border-radius:9px;padding:10px 20px;font-size:.95rem;
+  transition:background .15s;
+}
+#gate a.gobtn:hover{background:rgba(88,196,221,.16)}
+#gate .instructor{margin-top:26px}
+#gate .instructor a{
+  color:var(--muted);font-size:.78rem;text-decoration:none;
+  border-bottom:1px dotted var(--line);opacity:.7;cursor:pointer;
+}
+#gate .instructor a:hover{color:var(--blue);opacity:1}
+
+/* ---------- unlocked content ---------- */
+#content{display:none}
+#content.show{display:block;animation:contentIn .7s ease both}
+@keyframes contentIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+
+.topbar{
+  display:flex;flex-wrap:wrap;gap:10px;align-items:center;
+  margin-bottom:18px;
+}
+.topbar .note{color:var(--muted);font-size:.88rem;flex:1 1 280px;min-width:220px}
+.topbar .note b{color:var(--green);font-weight:600}
+
+/* exercise panels */
+.ex h2{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.ex h2 .tag{
+  font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;font-weight:600;
+  color:var(--blue);border:1px solid rgba(88,196,221,.5);border-radius:999px;padding:2px 9px;
+}
+.ex .task{margin:4px 0 10px}
+.ex .task .math{font-size:1.04em}
+.tryfirst{
+  color:var(--muted);font-size:.86rem;margin:0 0 12px;
+  border-left:3px solid var(--yellow);padding:4px 12px;background:rgba(255,211,90,.05);
+  border-radius:0 8px 8px 0;
+}
+.tryfirst b{color:var(--yellow);font-weight:600}
+
+.step{display:none;margin:0 0 2px}
+.step.in{display:block;animation:stepIn .45s ease both}
+@keyframes stepIn{
+  from{opacity:0;transform:translateY(-10px);}
+  to{opacity:1;transform:none;}
+}
+.step .inner{
+  border-left:3px solid var(--line);padding:8px 14px;margin:8px 0;
+  border-radius:0 8px 8px 0;background:rgba(28,34,48,.5);
+}
+.step .snum{
+  font-size:.7rem;letter-spacing:.07em;text-transform:uppercase;color:var(--blue);
+  font-weight:600;display:block;margin-bottom:2px;
+}
+.step .do{font-size:.98rem}
+.step .do .math{font-size:1.05em}
+.step .why{color:var(--muted);font-size:.85rem;margin-top:4px}
+.step .why::before{content:"why · ";color:var(--purple);font-size:.72rem;letter-spacing:.06em;text-transform:uppercase}
+
+.answer{display:none;margin-top:12px}
+.answer.in{display:block;animation:stepIn .5s ease both}
+.answer .box{
+  border:1.5px solid var(--green);border-radius:10px;padding:12px 16px;
+  background:rgba(131,193,103,.07);
+}
+.answer .box .alabel{
+  font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--green);
+  font-weight:600;display:block;margin-bottom:4px;
+}
+.answer .box .math{font-size:1.06em}
+
+.stepbtn{margin-top:12px}
+.stepbtn.done{border-color:var(--green);color:var(--green);background:rgba(131,193,103,.07)}
+
+/* connects-to chips */
+.connects{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:14px;
+  padding-top:12px;border-top:1px dashed var(--line)}
+.connects .clabel{color:var(--muted);font-size:.78rem;letter-spacing:.04em;text-transform:uppercase}
+.connects a{
+  text-decoration:none;font-size:.82rem;color:var(--ink);
+  background:var(--panel2);border:1px solid var(--line);border-radius:999px;padding:4px 12px;
+  transition:border-color .15s,color .15s;
+}
+.connects a:hover{border-color:var(--blue);color:var(--blue)}
+
+/* matrices & column vectors */
+.mat{
+  display:inline-grid;gap:1px 14px;padding:3px 9px;margin:0 3px;
+  border-left:1.5px solid var(--axis);border-right:1.5px solid var(--axis);
+  border-radius:7px;vertical-align:middle;text-align:center;
+  font-family:Georgia,'Times New Roman',serif;font-style:italic;line-height:1.35;
+}
+.mat.c2{grid-template-columns:repeat(2,auto)}
+.mat.c4{grid-template-columns:repeat(4,auto)}
+.mat.c1{grid-template-columns:auto}
+sup,sub{line-height:0}
+
+/* insights */
+.insights{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin-bottom:26px}
+.insights .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px}
+.insights .card h3{margin:0 0 6px;font-size:.95rem}
+.insights .card p{margin:0;color:var(--muted);font-size:.9rem}
+.insights .yellow h3{color:var(--yellow)}
+.insights .blue h3{color:var(--blue)}
+
+footer{color:var(--muted);font-size:.85rem;border-top:1px solid var(--line);padding-top:16px;margin-top:8px}
+footer .nav{display:flex;justify-content:space-between;gap:12px;margin-top:8px;flex-wrap:wrap}
+footer a{color:var(--muted);text-decoration:none}
+footer a:hover{color:var(--blue)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <a class="crumb" href="./index.html">&larr; Linear Algebra for Quantum Computing</a>
+  <h1>Worked Solutions</h1>
+  <span class="paal">PAAL &middot; Progressive AI-Augmented Learning</span>
+  <p class="subtitle">Five exam-style exercises, solved one honest step at a time. Each step is a single logical move with a note on <em>why</em> it is allowed &mdash; and each solution stays hidden until you ask for the next line.</p>
+</header>
+
+<!-- ================= GATE (locked view) ================= -->
+<div id="gate">
+  <span class="lock">&#128274;</span>
+  <h2>Earn the answer key</h2>
+  <p>These worked solutions unlock once you score <b style="color:var(--green)">&ge;&nbsp;80%</b> on the Formative Quiz. Reading solutions <em>after</em> wrestling with the problems is where the learning happens &mdash; that&rsquo;s the whole point of the gate.</p>
+  <div class="best">Your current best: <b id="bestScore">no attempt yet</b></div>
+  <br>
+  <a class="gobtn" href="./quiz.html">Take the Formative Quiz &rarr;</a>
+  <p style="font-size:.85rem">Pass it in another tab and this page unlocks by itself &mdash; no reload needed.</p>
+  <div class="instructor"><a id="overrideLink">instructor?</a></div>
+</div>
+
+<!-- ================= UNLOCKED CONTENT ================= -->
+<div id="content">
+
+  <div class="topbar">
+    <div class="note"><b>Unlocked.</b> These five exercises mirror the exam style &mdash; same topics, same depth, same notation. Try each on paper before revealing steps.</div>
+    <button id="revealAll">Reveal all</button>
+    <button id="collapseAll">Collapse all</button>
+  </div>
+
+  <!-- ============ E1 ============ -->
+  <section class="panel ex" data-ex="1">
+    <h2><span class="tag">E1</span> Complex arithmetic</h2>
+    <p class="task">For <span class="math">z = 1 + 2i</span> and <span class="math">w = 3 &minus; i</span>, compute <span class="math">z + w</span>, &nbsp;<span class="math">zw</span>, &nbsp;<span class="math">z / w</span> and <span class="math">|z|</span>.</p>
+    <p class="tryfirst"><b>Try first:</b> all four are one-line moves from the definitions &mdash; do them on paper, then check yourself step by step.</p>
+
+    <div class="steps">
+      <div class="step"><div class="inner">
+        <span class="snum">Step 1</span>
+        <div class="do"><span class="math">z + w = (1 + 3) + (2 &minus; 1)i = 4 + i</span></div>
+        <div class="why">Addition is componentwise: real parts add, imaginary parts add &mdash; exactly like a 2-D vector sum.</div>
+      </div></div>
+      <div class="step"><div class="inner">
+        <span class="snum">Step 2</span>
+        <div class="do"><span class="math">zw = (1 + 2i)(3 &minus; i) = 3 &minus; i + 6i &minus; 2i&sup2; = 3 + 5i + 2 = 5 + 5i</span></div>
+        <div class="why">Expand like any product of binomials, then use the one new rule: <span class="math">i&sup2; = &minus;1</span>, so <span class="math">&minus;2i&sup2; = +2</span>.</div>
+      </div></div>
+      <div class="step"><div class="inner">
+        <span class="snum">Step 3</span>
+        <div class="do"><span class="math">z / w = (1 + 2i)/(3 &minus; i) &middot; (3 + i)/(3 + i)</span> &mdash; multiply top and bottom by the conjugate <span class="math">w&#772; = 3 + i</span>.</div>
+        <div class="why">Multiplying by <span class="math">w&#772;/w&#772;</span> changes nothing (it&rsquo;s 1) but makes the denominator real: <span class="math">ww&#772; = |w|&sup2;</span>.</div>
+      </div></div>
+      <div class="step"><div class="inner">
+        <span class="snum">Step 4</span>
+        <div class="do">Numerator: <span class="math">(1 + 2i)(3 + i) = 3 + i + 6i + 2i&sup2; = 1 + 7i</span>. &nbsp;Denominator: <span class="math">(3 &minus; i)(3 + i) = 9 + 1 = 10</span>. So <span class="math">z / w = (1 + 7i)/10 = 0.1 + 0.7i</span>.</div>
+        <div class="why">The denominator is <span class="math">3&sup2; + 1&sup2;</span> &mdash; a difference of squares with <span class="math">i&sup2; = &minus;1</span> always yields <span class="math">a&sup2; + b&sup2;</span>, a real number.</div>
+      </div></div>
+      <div class="step"><div class="inner">
+        <span class="snum">Step 5</span>
+        <div class="do"><span class="math">|z| = &radic;(1&sup2; + 2&sup2;) = &radic;5</span></div>
+        <div class="why">The modulus is the distance from the origin in the complex plane &mdash; Pythagoras on the real and imaginary parts.</div>
+      </div></div>
+    </div>
+
+    <div class="answer"><div class="box">
+      <span class="alabel">Final answer</span>
+      <span class="math">z + w = 4 + i, &nbsp;&nbsp; zw = 5 + 5i, &nbsp;&nbsp; z / w = 0.1 + 0.7i, &nbsp;&nbsp; |z| = &radic;5</span>
+    </div></div>
+
+    <button class="stepbtn">Show next step (0/5)</button>
+
+    <div class="connects">
+      <span class="clabel">connects to</span>
+      <a href="./complex-numbers.html">The Complex Plane</a>
+    </div>
+  </section>
+
+  <!-- ============ E2 ============ -->
+  <section class="panel ex" data-ex="2">
+    <h2><span class="tag">E2</span> Polar form &amp; De Moivre</h2>
+    <p class="task">Write <span class="math">z = 1 + i&radic;3</span> in polar and exponential form, then compute <span class="math">z&#8310;</span> via De Moivre.</p>
+    <p class="tryfirst"><b>Try first:</b> sketch the point <span class="math">(1, &radic;3)</span> in the plane &mdash; the angle should be a famous one.</p>
+
+    <div class="steps">
+      <div class="step"><div class="inner">
+        <span class="snum">Step 1</span>
+        <div class="do"><span class="math">r = |z| = &radic;(1&sup2; + (&radic;3)&sup2;) = &radic;(1 + 3) = &radic;4 = 2</span></div>
+        <div class="why">The modulus is always the first ingredient of polar form &mdash; the length of the arrow.</div>
+      </div></div>
+      <div class="step"><div class="inner">
+        <span class="snum">Step 2</span>
+        <div class="do"><span class="math">&theta; = arctan(&radic;3 / 1) = &pi;/3</span> &nbsp;(the point sits in the first quadrant, so no correction needed).</div>
+        <div class="why">tan&nbsp;&theta; = (imaginary part)/(real part); &radic;3 is the tangent of 60&deg; = &pi;/3. Always check the quadrant before trusting arctan.</div>
+      </div></div>
+      <div class="step"><div class="inner">
+        <span class="snum">Step 3</span>
+        <div class="do"><span class="math">z = 2(cos &pi;/3 + i sin &pi;/3) = 2e<sup>i&pi;/3</sup></span></div>
+        <div class="why">Euler&rsquo;s formula <span class="math">e<sup>i&theta;</sup> = cos &theta; + i sin &theta;</span> compresses polar form into a single exponential.</div>
+      </div></div>
+      <div class="step"><div class="inner">
+        <span class="snum">Step 4</span>
+        <div class="do"><span class="math">z&#8310; = (2e<sup>i&pi;/3</sup>)&#8310; = 2&#8310; e<sup>i&middot;6&middot;&pi;/3</sup> = 64 e<sup>i2&pi;</sup></span></div>
+        <div class="why">De Moivre: raising to a power raises the modulus to that power and <em>multiplies</em> the angle. Six sixty-degree turns.</div>
+      </div></div>
+      <div class="step"><div class="inner">
+        <span class="snum">Step 5</span>
+        <div class="do"><span class="math">e<sup>i2&pi;</sup> = 1</span>, so <span class="math">z&#8310; = 64</span> &mdash; a real, positive number.</div>
+        <div class="why">A full turn of 2&pi; lands back on the positive real axis. Six copies of &pi;/3 make exactly one revolution.</div>
+      </div></div>
+    </div>
+
+    <div class="answer"><div class="box">
+      <span class="alabel">Final answer</span>
+      <span class="math">z = 2(cos &pi;/3 + i sin &pi;/3) = 2e<sup>i&pi;/3</sup>, &nbsp;&nbsp; z&#8310; = 64</span>
+    </div></div>
+
+    <button class="stepbtn">Show next step (0/5)</button>
+
+    <div class="connects">
+      <span class="clabel">connects to</span>
+      <a href="./euler.html">Euler&rsquo;s Formula</a>
+      <a href="./complex-numbers.html">The Complex Plane</a>
+    </div>
+  </section>
+
+  <!-- ============ E3 ============ -->
+  <section class="panel ex" data-ex="3">
+    <h2><span class="tag">E3</span> Normalize &amp; check orthogonality</h2>
+    <p class="task">For <span class="math">|u&#10217; = (1, 1)&#7488;</span> and <span class="math">|v&#10217; = (1, &minus;1)&#7488;</span>: normalize both, compute <span class="math">&#10216;u|v&#10217;</span>, and conclude they form an orthonormal basis.</p>
+    <p class="tryfirst"><b>Try first:</b> compute the two norms and the inner product on paper &mdash; three tiny calculations.</p>
+
+    <div class="steps">
+      <div class="step"><div class="inner">
+        <span class="snum">Step 1</span>
+        <div class="do"><span class="math">&#8214;u&#8214; = &radic;&#10216;u|u&#10217; = &radic;(1&sup2; + 1&sup2;) = &radic;2</span>, &nbsp;and likewise <span class="math">&#8214;v&#8214; = &radic;(1&sup2; + (&minus;1)&sup2;) = &radic;2</span>.</div>
+        <div class="why">The norm comes from the inner product of a vector with itself &mdash; the same &radic;(sum of squares) as ordinary length.</div>
+      </div></div>
+      <div class="step"><div class="inner">
+        <span class="snum">Step 2</span>
+        <div class="do"><span class="math">&ucirc; = (1/&radic;2)(1, 1)&#7488;</span>, &nbsp;<span class="math">v&#770; = (1/&radic;2)(1, &minus;1)&#7488;</span></div>
+        <div class="why">Dividing a vector by its own norm always produces a unit vector &mdash; direction kept, length rescaled to 1.</div>
+      </div></div>
+      <div class="step"><div class="inner">
+        <span class="snum">Step 3</span>
+        <div class="do"><span class="math">&#10216;u|v&#10217; = 1&middot;1 + 1&middot;(&minus;1) = 0</span> &nbsp;&rarr; orthogonal. (Entries are real, so conjugating the bra changes nothing.)</div>
+        <div class="why">Inner product zero is <em>the</em> definition of orthogonality &mdash; the two directions carry no shadow of each other.</div>
+      </div></div>
+      <div class="step"><div class="inner">
+        <span class="snum">Step 4</span>
+        <div class="do">Two orthonormal vectors in a 2-dimensional space are automatically linearly independent, so they form an orthonormal basis of <span class="math">&#8477;&sup2;</span>. In quantum notation these are exactly <span class="math">|+&#10217; = (|0&#10217; + |1&#10217;)/&radic;2</span> and <span class="math">|&minus;&#10217; = (|0&#10217; &minus; |1&#10217;)/&radic;2</span>.</div>
+        <div class="why">Orthogonality forces independence, and <span class="math">n</span> independent vectors in an <span class="math">n</span>-dimensional space always span it. The <span class="math">|&plusmn;&#10217;</span> pair is the measurement basis of the Pauli <span class="math">X</span>.</div>
+      </div></div>
+    </div>
+
+    <div class="answer"><div class="box">
+      <span class="alabel">Final answer</span>
+      <span class="math">&ucirc; = (1/&radic;2)(1, 1)&#7488;, &nbsp; v&#770; = (1/&radic;2)(1, &minus;1)&#7488;, &nbsp; &#10216;u|v&#10217; = 0</span> &nbsp;&mdash; an orthonormal basis: the states <span class="math">|+&#10217;</span> and <span class="math">|&minus;&#10217;</span>.
+    </div></div>
+
+    <button class="stepbtn">Show next step (0/4)</button>
+
+    <div class="connects">
+      <span class="clabel">connects to</span>
+      <a href="./inner-product.html">Inner Product &amp; Orthogonality</a>
+      <a href="./qubit.html">The Qubit</a>
+    </div>
+  </section>
+
+  <!-- ============ E4 ============ -->
+  <section class="panel ex" data-ex="4">
+    <h2><span class="tag">E4</span> Eigen-everything</h2>
+    <p class="task">For <span class="math">A =</span> <span class="mat c2"><span>3</span><span>1</span><span>1</span><span>3</span></span>: find the eigenvalues and eigenvectors, then write the spectral decomposition.</p>
+    <p class="tryfirst"><b>Try first:</b> set up det(<span class="math">A &minus; &lambda;I</span>) = 0 yourself &mdash; the quadratic factors nicely.</p>
+
+    <div class="steps">
+      <div class="step"><div class="inner">
+        <span class="snum">Step 1</span>
+        <div class="do"><span class="math">det(A &minus; &lambda;I) = (3 &minus; &lambda;)(3 &minus; &lambda;) &minus; 1&middot;1 = (3 &minus; &lambda;)&sup2; &minus; 1</span></div>
+        <div class="why">Eigenvalues are exactly the &lambda; that make <span class="math">A &minus; &lambda;I</span> singular &mdash; determinant zero.</div>
+      </div></div>
+      <div class="step"><div class="inner">
+        <span class="snum">Step 2</span>
+        <div class="do"><span class="math">&lambda;&sup2; &minus; 6&lambda; + 8 = 0 &nbsp;&rArr;&nbsp; (&lambda; &minus; 4)(&lambda; &minus; 2) = 0 &nbsp;&rArr;&nbsp; &lambda;&#8321; = 4, &nbsp;&lambda;&#8322; = 2</span></div>
+        <div class="why">Expand and factor the characteristic polynomial. Both roots are real &mdash; no surprise, since <span class="math">A</span> is Hermitian (real symmetric).</div>
+      </div></div>
+      <div class="step"><div class="inner">
+        <span class="snum">Step 3</span>
+        <div class="do">For <span class="math">&lambda;&#8321; = 4</span>: <span class="math">(A &minus; 4I)v = 0</span> with <span class="math">A &minus; 4I =</span> <span class="mat c2"><span>&minus;1</span><span>1</span><span>1</span><span>&minus;1</span></span>, i.e. <span class="math">&minus;v&#8321; + v&#8322; = 0 &rArr; v&#8322; = v&#8321;</span>. Normalized: <span class="math">|v&#8321;&#10217; = (1/&radic;2)(1, 1)&#7488;</span>.</div>
+        <div class="why">An eigenvector is any nonzero solution of <span class="math">(A &minus; &lambda;I)v = 0</span>; we normalize because the spectral decomposition wants unit vectors.</div>
+      </div></div>
+      <div class="step"><div class="inner">
+        <span class="snum">Step 4</span>
+        <div class="do">For <span class="math">&lambda;&#8322; = 2</span>: <span class="math">A &minus; 2I =</span> <span class="mat c2"><span>1</span><span>1</span><span>1</span><span>1</span></span>, i.e. <span class="math">v&#8321; + v&#8322; = 0 &rArr; v&#8322; = &minus;v&#8321;</span>. Normalized: <span class="math">|v&#8322;&#10217; = (1/&radic;2)(1, &minus;1)&#7488;</span>.</div>
+        <div class="why">Notice <span class="math">&#10216;v&#8321;|v&#8322;&#10217; = 0</span> &mdash; eigenvectors of a Hermitian matrix for distinct eigenvalues are always orthogonal. (They&rsquo;re E3&rsquo;s <span class="math">|+&#10217;, |&minus;&#10217;</span>!)</div>
+      </div></div>
+      <div class="step"><div class="inner">
+        <span class="snum">Step 5</span>
+        <div class="do">Outer products: <span class="math">4|v&#8321;&#10217;&#10216;v&#8321;| = 4 &middot; &frac12;</span> <span class="mat c2"><span>1</span><span>1</span><span>1</span><span>1</span></span> <span class="math">=</span> <span class="mat c2"><span>2</span><span>2</span><span>2</span><span>2</span></span>, &nbsp; <span class="math">2|v&#8322;&#10217;&#10216;v&#8322;| = 2 &middot; &frac12;</span> <span class="mat c2"><span>1</span><span>&minus;1</span><span>&minus;1</span><span>1</span></span> <span class="math">=</span> <span class="mat c2"><span>1</span><span>&minus;1</span><span>&minus;1</span><span>1</span></span></div>
+        <div class="why">The outer product <span class="math">|v&#10217;&#10216;v|</span> of a unit vector is the projector onto its line; each eigenvalue weights its own projector.</div>
+      </div></div>
+      <div class="step"><div class="inner">
+        <span class="snum">Step 6</span>
+        <div class="do">Sum: <span class="mat c2"><span>2</span><span>2</span><span>2</span><span>2</span></span> <span class="math">+</span> <span class="mat c2"><span>1</span><span>&minus;1</span><span>&minus;1</span><span>1</span></span> <span class="math">=</span> <span class="mat c2"><span>3</span><span>1</span><span>1</span><span>3</span></span> <span class="math">= A</span> &nbsp;&#10003;</div>
+        <div class="why">The check <em>is</em> the theorem: every Hermitian operator equals the eigenvalue-weighted sum of its eigen-projectors, <span class="math">A = &Sigma; &lambda;&#11388; |j&#10217;&#10216;j|</span>.</div>
+      </div></div>
+    </div>
+
+    <div class="answer"><div class="box">
+      <span class="alabel">Final answer</span>
+      <span class="math">&lambda;&#8321; = 4, |v&#8321;&#10217; = (1/&radic;2)(1, 1)&#7488;; &nbsp; &lambda;&#8322; = 2, |v&#8322;&#10217; = (1/&radic;2)(1, &minus;1)&#7488;; &nbsp;&nbsp; A = 4|v&#8321;&#10217;&#10216;v&#8321;| + 2|v&#8322;&#10217;&#10216;v&#8322;|</span>
+    </div></div>
+
+    <button class="stepbtn">Show next step (0/6)</button>
+
+    <div class="connects">
+      <span class="clabel">connects to</span>
+      <a href="./eigen.html">Eigenvectors &amp; Eigenvalues</a>
+      <a href="./spectral.html">Spectral Decomposition</a>
+    </div>
+  </section>
+
+  <!-- ============ E5 ============ -->
+  <section class="panel ex" data-ex="5">
+    <h2><span class="tag">E5</span> Kronecker product &amp; a 2-qubit state</h2>
+    <p class="task">Compute <span class="math">X &otimes; Z</span> for the Paulis <span class="math">X =</span> <span class="mat c2"><span>0</span><span>1</span><span>1</span><span>0</span></span>, <span class="math">Z =</span> <span class="mat c2"><span>1</span><span>0</span><span>0</span><span>&minus;1</span></span>, then apply it to <span class="math">|01&#10217; = (0, 1, 0, 0)&#7488;</span>.</p>
+    <p class="tryfirst"><b>Try first:</b> before any 4&times;4 arithmetic, predict the outcome qubit-by-qubit: what do <span class="math">X</span> and <span class="math">Z</span> each do to their own qubit?</p>
+
+    <div class="steps">
+      <div class="step"><div class="inner">
+        <span class="snum">Step 1</span>
+        <div class="do">Kronecker rule: each entry of <span class="math">X</span> multiplies a full copy of <span class="math">Z</span>: <span class="math">X &otimes; Z =</span> <span class="mat c2"><span>0&middot;Z</span><span>1&middot;Z</span><span>1&middot;Z</span><span>0&middot;Z</span></span> &nbsp;(a 2&times;2 grid of 2&times;2 blocks).</div>
+        <div class="why">That is the definition of the Kronecker product: the left matrix sets the block layout, the right matrix fills each block.</div>
+      </div></div>
+      <div class="step"><div class="inner">
+        <span class="snum">Step 2</span>
+        <div class="do"><span class="math">X &otimes; Z =</span> <span class="mat c4"><span>0</span><span>0</span><span>1</span><span>0</span><span>0</span><span>0</span><span>0</span><span>&minus;1</span><span>1</span><span>0</span><span>0</span><span>0</span><span>0</span><span>&minus;1</span><span>0</span><span>0</span></span></div>
+        <div class="why">Top-left and bottom-right blocks are <span class="math">0&middot;Z</span> = zeros; top-right and bottom-left are copies of <span class="math">Z</span>.</div>
+      </div></div>
+      <div class="step"><div class="inner">
+        <span class="snum">Step 3</span>
+        <div class="do"><span class="math">|01&#10217; = |0&#10217; &otimes; |1&#10217; = (1, 0)&#7488; &otimes; (0, 1)&#7488; = (0, 1, 0, 0)&#7488;</span> &mdash; the second basis vector of <span class="math">&#8450;&#8308;</span>.</div>
+        <div class="why">Two-qubit basis states are Kronecker products of single-qubit ones; <span class="math">|01&#10217;</span> lives in slot 2 (binary 01 = index 1, counting from 0).</div>
+      </div></div>
+      <div class="step"><div class="inner">
+        <span class="snum">Step 4</span>
+        <div class="do">Multiplying a matrix by a basis vector just selects a column &mdash; here column 2: <span class="math">(X &otimes; Z)|01&#10217; = (0, 0, 0, &minus;1)&#7488; = &minus;|11&#10217;</span>.</div>
+        <div class="why">A standard basis vector with a 1 in slot <span class="math">k</span> picks out column <span class="math">k</span> of any matrix &mdash; no full multiplication needed.</div>
+      </div></div>
+      <div class="step"><div class="inner">
+        <span class="snum">Step 5</span>
+        <div class="do">Sanity check the sign, qubit by qubit: <span class="math">(X &otimes; Z)(|0&#10217; &otimes; |1&#10217;) = X|0&#10217; &otimes; Z|1&#10217; = |1&#10217; &otimes; (&minus;|1&#10217;) = &minus;|11&#10217;</span> &nbsp;&#10003;</div>
+        <div class="why"><span class="math">(A &otimes; B)(|u&#10217; &otimes; |v&#10217;) = A|u&#10217; &otimes; B|v&#10217;</span> &mdash; tensored operators act on their own factors. <span class="math">X</span> flips <span class="math">|0&#10217; &rarr; |1&#10217;</span>; <span class="math">Z</span> tags <span class="math">|1&#10217;</span> with &minus;1.</div>
+      </div></div>
+    </div>
+
+    <div class="answer"><div class="box">
+      <span class="alabel">Final answer</span>
+      <span class="math">X &otimes; Z =</span> <span class="mat c4"><span>0</span><span>0</span><span>1</span><span>0</span><span>0</span><span>0</span><span>0</span><span>&minus;1</span><span>1</span><span>0</span><span>0</span><span>0</span><span>0</span><span>&minus;1</span><span>0</span><span>0</span></span><span class="math">, &nbsp;&nbsp; (X &otimes; Z)|01&#10217; = (0, 0, 0, &minus;1)&#7488; = &minus;|11&#10217;</span>
+    </div></div>
+
+    <button class="stepbtn">Show next step (0/5)</button>
+
+    <div class="connects">
+      <span class="clabel">connects to</span>
+      <a href="./tensor-product.html">Tensor &amp; Kronecker Product</a>
+      <a href="./operator-zoo.html">The Operator Zoo</a>
+    </div>
+  </section>
+
+  <!-- ============ insights ============ -->
+  <section class="insights">
+    <div class="card yellow">
+      <h3>Reading a solution &ne; owning it</h3>
+      <p>Notice how obvious every step feels <em>after</em> you see it &mdash; that feeling is a trap. The real test: redo each exercise on blank paper tomorrow, no peeking. If a step doesn&rsquo;t come back, that&rsquo;s the one to drill.</p>
+    </div>
+    <div class="card blue">
+      <h3>Every step is one definition, applied once</h3>
+      <p>Nothing here is clever. Conjugate to divide, det(<span class="math">A &minus; &lambda;I</span>) = 0 for eigenvalues, blocks for Kronecker &mdash; each line is a single lecture definition used exactly once. If a step surprises you, the linked page below the exercise is precisely the gap to go close.</p>
+    </div>
+  </section>
+
+</div><!-- /content -->
+
+<footer>
+  Interactive companion to the lecture <em>Linear Algebra for Quantum Computing</em> &middot; T2
+  <div class="nav">
+    <a href="./quiz.html">&larr; Formative Quiz</a>
+    <a href="./index.html">All explorations</a>
+    <a href="./prompt-studio.html">Prompt Studio &rarr;</a>
+  </div>
+</footer>
+
+</div><!-- /wrap -->
+
+<script>
+(function(){
+"use strict";
+
+const state = {
+  unlocked: false,
+  gateGone: false
+};
+
+const gate = document.getElementById('gate');
+const content = document.getElementById('content');
+const bestEl = document.getElementById('bestScore');
+
+/* ---------------- gate logic ---------------- */
+
+function bestScore(){
+  const v = parseInt(localStorage.getItem('qcla-quiz-best'), 10);
+  return (isNaN(v) ? null : Math.max(0, Math.min(100, v)));
+}
+function hasOverride(){
+  return localStorage.getItem('qcla-solutions-override') === '1';
+}
+function isUnlocked(){
+  const b = bestScore();
+  return (b !== null && b >= 80) || hasOverride();
+}
+
+function renderBest(){
+  const b = bestScore();
+  bestEl.textContent = (b === null) ? 'no attempt yet' : (b + '%');
+}
+
+function unlock(animate){
+  if (state.gateGone) return;
+  state.unlocked = true;
+  state.gateGone = true;
+  if (animate){
+    gate.classList.add('closing');
+    setTimeout(function(){
+      gate.style.display = 'none';
+      content.classList.add('show');
+    }, 600);
+  } else {
+    gate.style.display = 'none';
+    content.classList.add('show');
+  }
+}
+
+function check(animate){
+  renderBest();
+  if (isUnlocked()) unlock(animate);
+}
+
+/* live unlock: quiz passed in another tab, or refocusing this one */
+window.addEventListener('storage', function(e){
+  if (!e.key || e.key === 'qcla-quiz-best' || e.key === 'qcla-solutions-override') check(true);
+});
+window.addEventListener('focus', function(){ check(true); });
+
+/* instructor override — kept subtle */
+document.getElementById('overrideLink').addEventListener('click', function(){
+  const code = prompt('Instructor code:');
+  if (code === null) return;
+  if (code.trim() === 'TSI-T2'){
+    localStorage.setItem('qcla-solutions-override', '1');
+    check(true);
+  } else if (code.trim() !== ''){
+    alert('That code is not recognized.');
+  }
+});
+
+/* initial state (no animation on first paint) */
+check(false);
+
+/* ---------------- progressive step reveal ---------------- */
+
+const exercises = Array.prototype.slice.call(document.querySelectorAll('.ex'));
+
+function exParts(ex){
+  return {
+    steps: Array.prototype.slice.call(ex.querySelectorAll('.step')),
+    answer: ex.querySelector('.answer'),
+    btn: ex.querySelector('.stepbtn')
+  };
+}
+
+function shownCount(steps){
+  return steps.filter(function(s){ return s.classList.contains('in'); }).length;
+}
+
+function updateBtn(ex){
+  const p = exParts(ex);
+  const n = shownCount(p.steps), total = p.steps.length;
+  if (n >= total){
+    p.btn.textContent = 'All steps shown ✓';
+    p.btn.classList.add('done');
+    p.btn.disabled = true;
+  } else {
+    p.btn.textContent = 'Show next step (' + n + '/' + total + ')';
+    p.btn.classList.remove('done');
+    p.btn.disabled = false;
+  }
+}
+
+function revealNext(ex, instant){
+  const p = exParts(ex);
+  const n = shownCount(p.steps);
+  if (n < p.steps.length){
+    const s = p.steps[n];
+    if (instant) s.style.animation = 'none';
+    s.classList.add('in');
+    if (n + 1 === p.steps.length){
+      if (instant) p.answer.style.animation = 'none';
+      p.answer.classList.add('in');
+    }
+    updateBtn(ex);
+    if (!instant && n + 1 < p.steps.length + 1){
+      // gently bring the new step into view if it is off-screen
+      const r = s.getBoundingClientRect();
+      if (r.bottom > window.innerHeight - 20) s.scrollIntoView({behavior:'smooth', block:'nearest'});
+    }
+  }
+}
+
+function collapse(ex){
+  const p = exParts(ex);
+  p.steps.forEach(function(s){ s.classList.remove('in'); s.style.animation = ''; });
+  p.answer.classList.remove('in');
+  p.answer.style.animation = '';
+  updateBtn(ex);
+}
+
+exercises.forEach(function(ex){
+  const p = exParts(ex);
+  p.btn.addEventListener('click', function(){ revealNext(ex, false); });
+  updateBtn(ex);
+});
+
+document.getElementById('revealAll').addEventListener('click', function(){
+  exercises.forEach(function(ex){
+    const p = exParts(ex);
+    while (shownCount(p.steps) < p.steps.length) revealNext(ex, true);
+  });
+});
+
+document.getElementById('collapseAll').addEventListener('click', function(){
+  exercises.forEach(collapse);
+  window.scrollTo({top: 0, behavior: 'smooth'});
+});
+
+})();
+</script>
+</body>
+</html>
