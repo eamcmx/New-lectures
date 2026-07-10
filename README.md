@@ -54,6 +54,21 @@ Seven interactive, 3Blue1Brown-style explorations built as a companion to the *L
 | ↳ | 6 · Inner Product, Orthogonality & Dirac Notation | [Open](https://eamcmx.github.io/New-lectures/lectures/qc-linear-algebra/inner-product.html) |
 | ↳ | 7 · The Qubit (amplitudes, phase, measurement collapse) | [Open](https://eamcmx.github.io/New-lectures/lectures/qc-linear-algebra/qubit.html) |
 
+### Part II — deeper concepts & the PAAL learning layer
+
+Three more concept widgets plus the CourseForge **PAAL** (Progressive AI-Augmented Learning) toolkit: gated quiz → worked solutions, guided-prompt studio, in-page AI study buddy, and spaced-repetition flashcards.
+
+| Folder | Page | Published page |
+|--------|------|----------------|
+| ↳ | 8 · Tensor & Kronecker Product (block builder, 2-qubit kets, entanglement lab) | [Open](https://eamcmx.github.io/New-lectures/lectures/qc-linear-algebra/tensor-product.html) |
+| ↳ | 9 · The Operator Zoo (adjoint machine, Hermitian/unitary/projector classifier) | [Open](https://eamcmx.github.io/New-lectures/lectures/qc-linear-algebra/operator-zoo.html) |
+| ↳ | 10 · Spectral Decomposition (term-by-term assembly, functions of operators) | [Open](https://eamcmx.github.io/New-lectures/lectures/qc-linear-algebra/spectral.html) |
+| ↳ | 11 · Formative Quiz (12 questions, 80% gate) | [Open](https://eamcmx.github.io/New-lectures/lectures/qc-linear-algebra/quiz.html) |
+| ↳ | 12 · Worked Solutions (5 exercises, step-by-step, unlocked by the quiz) | [Open](https://eamcmx.github.io/New-lectures/lectures/qc-linear-algebra/worked-solutions.html) |
+| ↳ | 13 · Prompt Studio (PAAL guided AI prompts + prompt clinic) | [Open](https://eamcmx.github.io/New-lectures/lectures/qc-linear-algebra/prompt-studio.html) |
+| ↳ | 14 · Study Buddy (Socratic in-page tutor, bring-your-own Mistral key) | [Open](https://eamcmx.github.io/New-lectures/lectures/qc-linear-algebra/study-buddy.html) |
+| ↳ | 15 · Flashcards (24 definitions, Leitner boxes, local progress) | [Open](https://eamcmx.github.io/New-lectures/lectures/qc-linear-algebra/flashcards.html) |
+
 ---
 
 *Pages are served from the `main` branch via GitHub Pages. To add a new lecture, drop an `index.html` into a new folder under `lectures/` and add a row to the table above.*
