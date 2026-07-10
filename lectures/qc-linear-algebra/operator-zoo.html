@@ -435,7 +435,7 @@ const state = {
   preset: 'X',
   theta: 36 * Math.PI/180,
   cls: null,
-  dag: { busy:false, canAgain:false, showing:null }, // showing: 'adj' when stage holds A†
+  dag: { busy:false, canAgain:false, showing:null, run:0 }, // showing: 'adj' when stage holds A†
   circ: { t:0, target:0, animStart:0, animFrom:0, animating:false, applied:false }
 };
 
@@ -462,10 +462,8 @@ const PRESETS = [
   { id:'shear', label:'[[1,1],[0,1]] shear', note:'<b>Shear</b> — AA† ≠ A†A, so it is <b>not normal</b>: not diagonalizable, not in the zoo. Nothing lights up.',
     M: () => [[C(1),C(1)],[C(0),C(1)]] },
   { id:'iI', label:'iI', note:'<b>iI</b> — unitary, since |i| = 1: (iI)(iI)† = (iI)(−iI) = I. Normal too. But (iI)† = −iI ≠ iI, so <b>not</b> Hermitian (it is anti-Hermitian).',
-    M: () => [[C(0,1),C(0)],[C(0,0)!==0?C(0):C(0),C(0,1)]] }
+    M: () => [[C(0,1),C(0)],[C(0),C(0,1)]] }
 ];
-/* fix the accidental expression above with a clean literal */
-PRESETS[PRESETS.length-1].M = () => [[C(0,1),C(0)],[C(0),C(0,1)]];
 
 /* ================= DOM refs ================= */
 const $ = id => document.getElementById(id);
@@ -527,6 +525,7 @@ function fillStage(M){
     work[i*2+j].innerHTML = fmtC(M[i][j]);
 }
 function resetStage(){
+  state.dag.run++;  // invalidate any in-flight animation timeouts
   state.dag.busy = false; state.dag.canAgain = false; state.dag.showing = null;
   fillStage(state.M);
   stageEq.style.visibility = 'hidden';
@@ -538,6 +537,8 @@ function resetStage(){
 function runDagger(src, isAgain){
   if(state.dag.busy) return;
   state.dag.busy = true;
+  const myRun = ++state.dag.run;
+  const alive = () => state.dag.run === myRun;
   daggerBtn.disabled = true; againBtn.disabled = true;
   adjCaption.innerHTML = '';
   stageEq.style.visibility = 'hidden';
@@ -547,9 +548,10 @@ function runDagger(src, isAgain){
   /* step 1: conjugate */
   stepLabel.innerHTML = '<span class="on">Step 1 — conjugate:</span> every imaginary part flips sign.';
   work.forEach(d => { d.classList.remove('conj-pulse'); void d.offsetWidth; d.classList.add('conj-pulse'); });
-  setTimeout(() => fillStage(conj), 330);
+  setTimeout(() => { if(alive()) fillStage(conj); }, 330);
   /* step 2: transpose (slide the off-diagonal cells) */
   setTimeout(() => {
+    if(!alive()) return;
     work.forEach(d => d.classList.remove('conj-pulse'));
     stepLabel.innerHTML = '<span class="on">Step 2 — transpose:</span> the off-diagonal entries slide across the diagonal.';
     const b = work[1], c = work[2];
@@ -560,6 +562,7 @@ function runDagger(src, isAgain){
       c.style.transform = 'translate('+(rb.left-rc.left)+'px,'+(rb.top-rc.top)+'px)';
     });
     setTimeout(() => {
+      if(!alive()) return;
       b.classList.remove('sliding'); c.classList.remove('sliding');
       b.style.transform = ''; c.style.transform = '';
       fillStage(result);
@@ -769,7 +772,7 @@ function drawCanvas(){
   const sc = (Math.min(cw,ch)/2 - 12) / worldR;
   const X = x => cx + x*sc, Y = y => cy - y*sc;
   /* grid */
-  ctx.lineWidth = 1; ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--grid');
+  ctx.lineWidth = 1; ctx.strokeStyle = '#232b3b';
   const step = worldR > 2.4 ? 1 : 0.5;
   for(let g = step; g <= worldR + 1e-9; g += step){
     for(const s of [g, -g]){
@@ -804,7 +807,7 @@ function drawCanvas(){
     const phi = k*Math.PI/6;
     arrow(cx, cy, X(Math.cos(phi)), Y(Math.sin(phi)), '#8b94a7', 1.4, 0.22);
     const [px,py] = mapPoint(phi, t);
-    arrow(cx, cy, X(px), Y(py), k===0 ? '#ffd35a' : '#ffd35a', 2.4, 0.85);
+    arrow(cx, cy, X(px), Y(py), '#ffd35a', 2.4, 0.85);
   }
   /* small mode label */
   ctx.fillStyle = '#8b94a7'; ctx.font = 'italic 13px Georgia,serif'; ctx.globalAlpha = 0.9;
