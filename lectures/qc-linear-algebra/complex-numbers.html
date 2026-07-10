@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Complex Plane — Linear Algebra for QC</title>
+<style>
+:root{
+  --bg:#0e1117;
+  --panel:#161b26;
+  --panel2:#1c2230;
+  --ink:#e6e9f0;
+  --muted:#8b94a7;
+  --grid:#232b3b;
+  --axis:#4a5568;
+  --blue:#58c4dd;
+  --yellow:#ffd35a;
+  --red:#fc6255;
+  --green:#83c167;
+  --purple:#c688eb;
+  --orange:#ff9f4b;
+  --line:#2a3347;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:var(--bg); color:var(--ink);
+  font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
+  line-height:1.55;
+}
+.wrap{max-width:1100px;margin:0 auto;padding:24px;}
+a{color:var(--muted);text-decoration:none;transition:color .15s;}
+a:hover{color:var(--blue);}
+header{margin-bottom:22px;}
+.crumb{font-size:14px;}
+h1{margin:10px 0 6px;font-size:34px;letter-spacing:.3px;}
+h2{margin:0 0 6px;font-size:24px;}
+.sub{color:var(--muted);margin:0;max-width:70ch;}
+.math{font-family:Georgia,'Times New Roman',serif;font-style:italic;}
+.panel{
+  background:var(--panel);border:1px solid var(--line);
+  border-radius:14px;padding:18px 20px;margin:18px 0;
+}
+canvas{display:block;width:100%;border-radius:10px;touch-action:none;cursor:grab;}
+canvas.grabbing{cursor:grabbing;}
+#plane{height:520px;}
+#multPlane{height:400px;}
+@media (max-width:640px){
+  #plane{height:400px;}
+  #multPlane{height:340px;}
+  h1{font-size:27px;}
+}
+.controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:14px;}
+button,.chip{
+  background:var(--panel2);border:1px solid var(--line);color:var(--ink);
+  border-radius:9px;padding:8px 14px;cursor:pointer;font-size:14px;
+  font-family:inherit;transition:border-color .15s,color .15s,background .15s;
+}
+button:hover,.chip:hover{border-color:var(--blue);}
+.chip.on{border-color:var(--blue);color:var(--blue);background:rgba(88,196,221,.08);}
+.chip.on.orange{border-color:var(--orange);color:var(--orange);background:rgba(255,159,75,.08);}
+button:disabled{opacity:.55;cursor:default;}
+button:disabled:hover{border-color:var(--line);}
+.hint{color:var(--muted);font-size:13px;}
+/* readout grid */
+.readouts{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;margin-top:6px;}
+.readout{
+  background:var(--panel2);border:1px solid var(--line);border-radius:10px;
+  padding:12px 14px;min-height:86px;
+}
+.readout .tag{font-size:11px;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);margin-bottom:8px;}
+.readout .val{font-size:18px;}
+.cA{color:var(--green);font-style:normal;font-weight:600;}
+.cB{color:var(--red);font-style:normal;font-weight:600;}
+.cR{color:var(--yellow);font-style:normal;font-weight:600;}
+.cT{color:var(--purple);font-style:normal;font-weight:600;}
+.cZ{color:var(--blue);}
+.cW{color:var(--yellow);}
+.cP{color:var(--green);}
+.cC{color:var(--orange);}
+/* CSS matrix brackets */
+.mat{
+  display:inline-grid;grid-template-columns:auto auto;gap:3px 18px;
+  padding:5px 12px;vertical-align:middle;text-align:center;
+  border-left:2px solid var(--ink);border-right:2px solid var(--ink);
+  position:relative;
+}
+.mat::before,.mat::after{
+  content:"";position:absolute;top:0;bottom:0;width:6px;pointer-events:none;
+  border-top:2px solid var(--ink);border-bottom:2px solid var(--ink);
+}
+.mat::before{left:0;}
+.mat::after{right:0;}
+.conjline{margin-top:12px;font-size:16px;display:none;}
+.conjline.show{display:block;}
+.multRead{margin-top:14px;font-size:17px;line-height:1.9;}
+/* insight cards */
+.insights{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin:26px 0;}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 20px;}
+.card h3{margin:0 0 8px;font-size:15px;letter-spacing:.4px;}
+.card p{margin:0;color:var(--muted);font-size:14.5px;}
+.card.b h3{color:var(--blue);} .card.o h3{color:var(--orange);} .card.g h3{color:var(--green);}
+footer{
+  margin:34px 0 10px;color:var(--muted);font-size:13.5px;
+  display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;align-items:center;
+  border-top:1px solid var(--line);padding-top:18px;
+}
+footer .navlinks{display:flex;gap:18px;}
+section.block{margin-top:34px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <a class="crumb" href="./index.html">← Linear Algebra for Quantum Computing</a>
+  <h1>The Complex Plane — one number, four costumes</h1>
+  <p class="sub">Drag the blue dot to move <span class="math">z</span> around the plane, and watch the very same
+  number dress up in four equivalent notations below. Then scroll down to see why multiplying complex numbers
+  is really a rotate-and-scale.</p>
+</header>
+
+<!-- ============ Section 1: the plane ============ -->
+<div class="panel">
+  <canvas id="plane"></canvas>
+  <div class="controls">
+    <button id="conjChip" class="chip">show conjugate <span class="math">z*</span></button>
+    <span class="hint">Drag the blue point. <span class="math">a</span> = real part,
+      <span class="math">b</span> = imaginary part, <span class="math">r</span> = |<span class="math">z</span>|,
+      <span class="math">θ</span> = angle from the real axis.</span>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="readouts">
+    <div class="readout">
+      <div class="tag">Algebraic</div>
+      <div class="val math cZ">z = <span class="cA" id="algA">0</span> <span id="algSign">+</span> <span class="cB" id="algB">0</span>i</div>
+    </div>
+    <div class="readout">
+      <div class="tag">Polar</div>
+      <div class="val math cZ">z = <span class="cR" id="polR">0</span>(cos <span class="cT" id="polT1">0</span> + i·sin <span class="cT" id="polT2">0</span>)</div>
+    </div>
+    <div class="readout">
+      <div class="tag">Exponential</div>
+      <div class="val math cZ">z = <span class="cR" id="expR">0</span>·e<sup>i·<span class="cT" id="expT">0</span></sup>
+        <span class="hint" style="font-style:normal;">&nbsp;(<span id="degT">0</span>°)</span></div>
+    </div>
+    <div class="readout">
+      <div class="tag">Matrix</div>
+      <div class="val math cZ">z ↔ <span class="mat">
+        <span class="cA" id="m00">0</span><span id="m01">0</span>
+        <span class="cB" id="m10">0</span><span class="cA" id="m11">0</span>
+      </span></div>
+    </div>
+  </div>
+  <div class="conjline math" id="conjLine">
+    <span class="cC">z* = <span id="conjA">0</span> <span id="conjSign">−</span> <span id="conjB">0</span>i</span>
+    &nbsp;&nbsp;and&nbsp;&nbsp; z·z* = a² + b² = <span class="cR" id="modSq">0</span> = |z|²
+    &nbsp;<span class="hint" style="font-style:normal;">— purely real, the imaginary parts cancel.</span>
+  </div>
+</div>
+
+<!-- ============ Section 2: multiplication ============ -->
+<section class="block">
+  <h2>Multiplication = rotate &amp; scale</h2>
+  <p class="sub">Drag the yellow point <span class="math">w</span> (the blue <span class="math">z</span> is the
+  same one from above — go back up and change it if you like). Press Multiply and watch
+  <span class="math">w</span> get rotated by <span class="math">θ<sub>z</sub></span> and stretched by
+  |<span class="math">z</span>| into the green product <span class="math">zw</span>.</p>
+
+  <div class="panel">
+    <canvas id="multPlane"></canvas>
+    <div class="controls">
+      <button id="multBtn">Multiply ▶</button>
+      <span class="hint">Moduli multiply, angles add.</span>
+    </div>
+    <div class="multRead math">
+      <div>zw = (ax − by) + (ay + bx)i = <span class="cP" id="prodAlg">…</span></div>
+      <div>|zw| = |z|·|w| = <span class="cZ" id="rz">0</span> × <span class="cW" id="rw">0</span> = <span class="cP" id="rzw">0</span></div>
+      <div>arg(zw) = θ<sub>z</sub> + θ<sub>w</sub> = <span class="cZ" id="tz">0</span> + <span class="cW" id="tw">0</span> = <span class="cP" id="tzw">0</span> rad</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ Insights ============ -->
+<section class="insights">
+  <div class="card b">
+    <h3>Why four costumes?</h3>
+    <p>Each notation makes a different job easy. Algebraic <span class="math">a + bi</span> shines for adding;
+    polar and exponential <span class="math">r·e<sup>iθ</sup></span> shine for multiplying (multiply the
+    <span class="math">r</span>'s, add the <span class="math">θ</span>'s); and the 2×2 matrix form reveals the secret:
+    a complex number literally <em>is</em> a rotation-plus-scaling of the plane.</p>
+  </div>
+  <div class="card o">
+    <h3>Conjugation flips the phase</h3>
+    <p>Notice how <span class="math">z*</span> is just <span class="math">z</span> mirrored across the real axis —
+    same modulus, opposite angle: <span class="math">r·e<sup>−iθ</sup></span>. So in the product
+    <span class="math">z·z*</span> the phases cancel (<span class="math">θ − θ = 0</span>) and you're left with the
+    purely real number <span class="math">r² = |z|²</span>. This is why measurement probabilities
+    |<span class="math">α</span>|² in quantum mechanics are always real and non-negative.</p>
+  </div>
+  <div class="card g">
+    <h3>Rotation is the heartbeat of quantum gates</h3>
+    <p>Multiplying by a unit complex number <span class="math">e<sup>iθ</sup></span> rotates without stretching —
+    and that is exactly what quantum gates do to amplitudes. Phase gates like
+    <span class="math">S</span> and <span class="math">T</span> multiply the amplitude of
+    <span class="math">|1⟩</span> by <span class="math">e<sup>iθ</sup></span>, quietly rotating it in this very
+    plane. Interference — the whole magic of quantum algorithms — is these rotated arrows adding up or cancelling.</p>
+  </div>
+</section>
+
+<footer>
+  <div>Interactive companion to the lecture <em>Linear Algebra for Quantum Computing</em> · T2</div>
+  <div class="navlinks">
+    <a href="./qubit.html">← The Qubit</a>
+    <a href="./euler.html">Euler's Formula →</a>
+  </div>
+</footer>
+
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* ---------- state ---------- */
+const state = {
+  z: {a: 1.6, b: 1.2},           // the blue number (shared by both canvases)
+  w: {a: 1.3, b: -0.6},          // the yellow number
+  conjOn: false,
+  conjAnim: {active:false, t0:0}, // mirror sweep
+  mult: {active:false, t0:0, done:false},
+  ghosts: [],                    // trail during multiply animation
+  drag: null                     // 'z' | 'w' | null
+};
+const CONJ_MS = 800, MULT_MS = 1200;
+
+/* ---------- helpers ---------- */
+const smooth = t => t*t*(3-2*t);
+const clamp = (v,lo,hi) => Math.min(hi, Math.max(lo, v));
+const f2 = v => (Math.abs(v) < 0.005 ? 0 : v).toFixed(2);
+const mod = c => Math.hypot(c.a, c.b);
+const arg = c => (c.a===0 && c.b===0) ? 0 : Math.atan2(c.b, c.a);
+
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const C = {
+  grid: css('--grid'), axis: css('--axis'), muted: css('--muted'),
+  blue: css('--blue'), yellow: css('--yellow'), green: css('--green'),
+  red: css('--red'), purple: css('--purple'), orange: css('--orange'),
+  ink: css('--ink')
+};
+
+/* ---------- canvas plumbing ---------- */
+function makeView(canvas, range){
+  const v = {canvas, ctx: canvas.getContext('2d'), range, w:0, h:0, s:1, cx:0, cy:0};
+  v.fit = function(){
+    const dpr = window.devicePixelRatio || 1;
+    const r = canvas.getBoundingClientRect();
+    v.w = r.width; v.h = r.height;
+    canvas.width  = Math.round(r.width * dpr);
+    canvas.height = Math.round(r.height * dpr);
+    v.ctx.setTransform(dpr,0,0,dpr,0,0);
+    v.cx = v.w/2; v.cy = v.h/2;
+    v.s = Math.min(v.w, v.h) / (2*v.range);   // px per unit
+  };
+  v.px = (x,y) => [v.cx + x*v.s, v.cy - y*v.s];
+  v.un = (px,py) => [(px - v.cx)/v.s, (v.cy - py)/v.s];
+  return v;
+}
+const V1 = makeView(document.getElementById('plane'), 3.2);
+const V2 = makeView(document.getElementById('multPlane'), 4.4);
+
+const ro = new ResizeObserver(()=>{ V1.fit(); V2.fit(); });
+ro.observe(V1.canvas); ro.observe(V2.canvas);
+V1.fit(); V2.fit();
+
+/* ---------- drawing primitives ---------- */
+function drawGrid(v){
+  const {ctx} = v;
+  ctx.clearRect(0,0,v.w,v.h);
+  const xm = Math.ceil(v.cx / v.s), ym = Math.ceil(v.cy / v.s);
+  ctx.lineWidth = 1; ctx.strokeStyle = C.grid;
+  ctx.beginPath();
+  for(let i=-xm;i<=xm;i++){ const [x] = v.px(i,0); ctx.moveTo(x,0); ctx.lineTo(x,v.h); }
+  for(let j=-ym;j<=ym;j++){ const [,y] = v.px(0,j); ctx.moveTo(0,y); ctx.lineTo(v.w,y); }
+  ctx.stroke();
+  // axes
+  ctx.lineWidth = 1.5; ctx.strokeStyle = C.axis;
+  ctx.beginPath();
+  ctx.moveTo(0, v.cy); ctx.lineTo(v.w, v.cy);
+  ctx.moveTo(v.cx, 0); ctx.lineTo(v.cx, v.h);
+  ctx.stroke();
+  // tick labels
+  ctx.fillStyle = C.muted; ctx.font = '11px sans-serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  for(let i=-xm;i<=xm;i++){
+    if(i===0) continue;
+    const [x,y] = v.px(i,0);
+    if(x>12 && x<v.w-12) ctx.fillText(String(i), x, y+4);
+  }
+  ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+  for(let j=-ym;j<=ym;j++){
+    if(j===0) continue;
+    const [x,y] = v.px(0,j);
+    if(y>10 && y<v.h-10) ctx.fillText(j+'i', x+5, y);
+  }
+  // axis names
+  ctx.fillStyle = C.muted; ctx.font = '13px sans-serif';
+  ctx.textAlign='right'; ctx.textBaseline='bottom';
+  ctx.fillText('Re', v.w-8, v.cy-6);
+  ctx.textAlign='left'; ctx.textBaseline='top';
+  ctx.fillText('Im', v.cx+8, 6);
+}
+
+function arrow(v, x, y, color, lw, alpha, headSize){
+  const {ctx} = v;
+  const [px,py] = v.px(x,y);
+  const dx = px - v.cx, dy = py - v.cy;
+  const len = Math.hypot(dx,dy);
+  if(len < 2) return;
+  const hs = headSize || 11;
+  const ux = dx/len, uy = dy/len;
+  const bx = px - ux*hs, by = py - uy*hs;
+  ctx.save();
+  ctx.globalAlpha = alpha == null ? 1 : alpha;
+  ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = lw || 2.8;
+  ctx.beginPath(); ctx.moveTo(v.cx, v.cy); ctx.lineTo(bx, by); ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(px, py);
+  ctx.lineTo(bx - uy*hs*0.42, by + ux*hs*0.42);
+  ctx.lineTo(bx + uy*hs*0.42, by - ux*hs*0.42);
+  ctx.closePath(); ctx.fill();
+  ctx.restore();
+}
+
+function handle(v, x, y, color, hot){
+  const {ctx} = v;
+  const [px,py] = v.px(x,y);
+  ctx.save();
+  if(hot){
+    ctx.beginPath(); ctx.arc(px,py,11,0,Math.PI*2);
+    ctx.fillStyle = 'rgba(255,255,255,.22)'; ctx.fill();
+  }
+  ctx.beginPath(); ctx.arc(px,py,7,0,Math.PI*2);
+  ctx.fillStyle = color; ctx.fill();
+  ctx.lineWidth = 1.5; ctx.strokeStyle = 'rgba(255,255,255,.55)'; ctx.stroke();
+  ctx.restore();
+}
+
+function mathLabel(v, text, px, py, color, size){
+  const {ctx} = v;
+  ctx.save();
+  ctx.font = 'italic ' + (size||15) + 'px Georgia, serif';
+  ctx.fillStyle = color; ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText(text, px, py);
+  ctx.restore();
+}
+
+/* ---------- main plane ---------- */
+function drawMain(now){
+  const v = V1, ctx = v.ctx, z = state.z;
+  drawGrid(v);
+  const r = mod(z), th = arg(z);
+  const [zx,zy] = v.px(z.a, z.b);
+
+  // dashed drop-lines to both axes
+  ctx.save();
+  ctx.setLineDash([5,5]); ctx.lineWidth = 1.4;
+  ctx.strokeStyle = C.green;
+  ctx.beginPath(); ctx.moveTo(zx,zy); ctx.lineTo(zx, v.cy); ctx.stroke();   // to Re axis (vertical line, labels a on axis)
+  ctx.strokeStyle = C.red;
+  ctx.beginPath(); ctx.moveTo(zx,zy); ctx.lineTo(v.cx, zy); ctx.stroke();   // to Im axis
+  ctx.restore();
+  // a and b labels
+  const aoff = z.b >= 0 ? 16 : -16;
+  mathLabel(v, 'a = '+f2(z.a), zx, v.cy + aoff, C.green, 14);
+  ctx.save();
+  ctx.font = 'italic 14px Georgia, serif'; ctx.fillStyle = C.red;
+  ctx.textAlign = z.a >= 0 ? 'right' : 'left'; ctx.textBaseline = 'middle';
+  ctx.fillText('b = '+f2(z.b), v.cx + (z.a >= 0 ? -8 : 8), zy - 12);
+  ctx.restore();
+
+  // θ arc at origin
+  if(r > 0.15){
+    ctx.save();
+    ctx.strokeStyle = C.purple; ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(v.cx, v.cy, 30, 0, -th, th > 0);
+    ctx.stroke();
+    ctx.restore();
+    const mid = th/2;
+    mathLabel(v, 'θ', v.cx + 46*Math.cos(mid), v.cy - 46*Math.sin(mid), C.purple, 15);
+  }
+
+  // conjugate (with mirror sweep)
+  if(state.conjOn || state.conjAnim.active){
+    let p = 1;
+    if(state.conjAnim.active){
+      p = clamp((now - state.conjAnim.t0)/CONJ_MS, 0, 1);
+      if(p >= 1) state.conjAnim.active = false;
+    }
+    const e = smooth(p);
+    const sweepTh = th + (-2*th)*e;         // sweeps from θ down through the real axis to −θ
+    const cx2 = r*Math.cos(sweepTh), cy2 = r*Math.sin(sweepTh);
+    // faint mirror trace
+    ctx.save();
+    ctx.setLineDash([4,6]); ctx.strokeStyle = C.orange; ctx.globalAlpha = 0.35; ctx.lineWidth = 1.2;
+    const [tx,ty] = v.px(z.a, z.b), [bx2,by2] = v.px(cx2, cy2);
+    ctx.beginPath(); ctx.moveTo(tx,ty); ctx.lineTo(bx2,by2); ctx.stroke();
+    ctx.restore();
+    arrow(v, cx2, cy2, C.orange, 2.6, 0.35 + 0.65*e);
+    handle(v, cx2, cy2, C.orange, false);
+    const [lpx,lpy] = v.px(cx2, cy2);
+    mathLabel(v, 'z*', lpx + 16, lpy + 14, C.orange, 17);
+  }
+
+  // z arrow + r label
+  arrow(v, z.a, z.b, C.blue, 3);
+  const mxp = v.cx + (zx - v.cx)*0.55, myp = v.cy + (zy - v.cy)*0.55;
+  const nlen = Math.max(1, Math.hypot(zx - v.cx, zy - v.cy));
+  const nx = -(zy - v.cy)/nlen, ny = (zx - v.cx)/nlen;
+  mathLabel(v, 'r = '+f2(r), mxp + nx*20, myp + ny*20, C.yellow, 14);
+
+  handle(v, z.a, z.b, C.blue, state.drag === 'z');
+  mathLabel(v, 'z', zx + 15, zy - 14, C.blue, 18);
+}
+
+/* ---------- multiplication plane ---------- */
+function product(){
+  const {z, w} = state;
+  return {a: z.a*w.a - z.b*w.b, b: z.a*w.b + z.b*w.a};
+}
+
+function drawMult(now){
+  const v = V2, ctx = v.ctx, z = state.z, w = state.w;
+  drawGrid(v);
+  const rz = mod(z), tz = arg(z), rw = mod(w), tw = arg(w);
+  const p = product();
+
+  // ghost trail
+  for(const g of state.ghosts) arrow(v, g.x, g.y, C.yellow, 2, 0.16, 8);
+
+  // blue z (synced from above, not draggable here)
+  arrow(v, z.a, z.b, C.blue, 2.4, 0.85);
+  const [zpx,zpy] = v.px(z.a, z.b);
+  mathLabel(v, 'z', zpx + 13, zpy - 12, C.blue, 16);
+
+  // animated / final product
+  if(state.mult.active){
+    let t = clamp((now - state.mult.t0)/MULT_MS, 0, 1);
+    const e = smooth(t);
+    const rr = rw * (1 + (rz - 1)*e);
+    const tt = tw + tz*e;
+    const gx = rr*Math.cos(tt), gy = rr*Math.sin(tt);
+    if(state.ghosts.length === 0 || (now - state.ghosts[state.ghosts.length-1].t) > 45)
+      state.ghosts.push({x:gx, y:gy, t:now});
+    arrow(v, gx, gy, C.green, 2.8);
+    handle(v, gx, gy, C.green, false);
+    if(t >= 1){ state.mult.active = false; state.mult.done = true; multBtn.disabled = false; multBtn.textContent = 'Multiply ▶'; }
+  } else if(state.mult.done){
+    arrow(v, p.a, p.b, C.green, 2.8);
+    handle(v, p.a, p.b, C.green, false);
+    const [ppx,ppy] = v.px(p.a, p.b);
+    mathLabel(v, 'zw', ppx + 17, ppy - 14, C.green, 17);
+  }
+
+  // yellow w on top
+  arrow(v, w.a, w.b, C.yellow, 3);
+  handle(v, w.a, w.b, C.yellow, state.drag === 'w');
+  const [wpx,wpy] = v.px(w.a, w.b);
+  mathLabel(v, 'w', wpx + 14, wpy + 15, C.yellow, 17);
+}
+
+/* ---------- readouts ---------- */
+const $ = id => document.getElementById(id);
+const els = {
+  algA:$('algA'), algSign:$('algSign'), algB:$('algB'),
+  polR:$('polR'), polT1:$('polT1'), polT2:$('polT2'),
+  expR:$('expR'), expT:$('expT'), degT:$('degT'),
+  m00:$('m00'), m01:$('m01'), m10:$('m10'), m11:$('m11'),
+  conjLine:$('conjLine'), conjA:$('conjA'), conjSign:$('conjSign'), conjB:$('conjB'), modSq:$('modSq'),
+  prodAlg:$('prodAlg'), rz:$('rz'), rw:$('rw'), rzw:$('rzw'), tz:$('tz'), tw:$('tw'), tzw:$('tzw')
+};
+const multBtn = $('multBtn'), conjChip = $('conjChip');
+
+function updateReadouts(){
+  const z = state.z, w = state.w;
+  const r = mod(z), th = arg(z);
+  els.algA.textContent = f2(z.a);
+  els.algSign.textContent = z.b < 0 ? '−' : '+';
+  els.algB.textContent = f2(Math.abs(z.b));
+  els.polR.textContent = f2(r);
+  els.polT1.textContent = f2(th); els.polT2.textContent = f2(th);
+  els.expR.textContent = f2(r);
+  els.expT.textContent = f2(th);
+  els.degT.textContent = (th*180/Math.PI).toFixed(1);
+  els.m00.textContent = f2(z.a); els.m01.textContent = f2(-z.b);
+  els.m10.textContent = f2(z.b); els.m11.textContent = f2(z.a);
+  // conjugate line
+  els.conjLine.classList.toggle('show', state.conjOn);
+  if(state.conjOn){
+    els.conjA.textContent = f2(z.a);
+    els.conjSign.textContent = z.b < 0 ? '+' : '−';
+    els.conjB.textContent = f2(Math.abs(z.b));
+    els.modSq.textContent = f2(z.a*z.a + z.b*z.b);
+  }
+  // multiplication readout
+  const p = product();
+  const rw = mod(w), tw = arg(w);
+  els.prodAlg.textContent = f2(p.a) + (p.b < 0 ? ' − ' : ' + ') + f2(Math.abs(p.b)) + 'i';
+  els.rz.textContent = f2(r); els.rw.textContent = f2(rw); els.rzw.textContent = f2(r*rw);
+  els.tz.textContent = f2(th); els.tw.textContent = f2(tw); els.tzw.textContent = f2(th+tw);
+}
+
+/* ---------- interaction ---------- */
+function attachDrag(view, key){
+  const cv = view.canvas;
+  function pointFor(ev){
+    const r = cv.getBoundingClientRect();
+    return [ev.clientX - r.left, ev.clientY - r.top];
+  }
+  cv.addEventListener('pointerdown', ev => {
+    const [px,py] = pointFor(ev);
+    const c = state[key];
+    const [hx,hy] = view.px(c.a, c.b);
+    if(Math.hypot(px-hx, py-hy) <= 16){
+      state.drag = key;
+      cv.setPointerCapture(ev.pointerId);
+      cv.classList.add('grabbing');
+      ev.preventDefault();
+    }
+  });
+  cv.addEventListener('pointermove', ev => {
+    if(state.drag !== key) return;
+    const [px,py] = pointFor(ev);
+    let [x,y] = view.un(clamp(px, 8, view.w-8), clamp(py, 8, view.h-8));
+    const lim = view.range * 1.4;
+    state[key].a = clamp(x, -lim, lim);
+    state[key].b = clamp(y, -lim, lim);
+    state.ghosts = [];                 // stale trail
+    ev.preventDefault();
+  });
+  function end(ev){
+    if(state.drag === key){ state.drag = null; cv.classList.remove('grabbing'); }
+  }
+  cv.addEventListener('pointerup', end);
+  cv.addEventListener('pointercancel', end);
+}
+attachDrag(V1, 'z');
+attachDrag(V2, 'w');
+
+conjChip.addEventListener('click', () => {
+  state.conjOn = !state.conjOn;
+  conjChip.classList.toggle('on', state.conjOn);
+  conjChip.classList.toggle('orange', state.conjOn);
+  if(state.conjOn){ state.conjAnim.active = true; state.conjAnim.t0 = performance.now(); }
+});
+
+multBtn.addEventListener('click', () => {
+  if(state.mult.active) return;
+  state.ghosts = [];
+  state.mult.done = false;
+  state.mult.active = true;
+  state.mult.t0 = performance.now();
+  multBtn.disabled = true;
+  multBtn.textContent = 'Multiplying…';
+});
+
+/* ---------- the single rAF loop ---------- */
+function frame(now){
+  drawMain(now);
+  drawMult(now);
+  updateReadouts();
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+})();
+</script>
+</body>
+</html>

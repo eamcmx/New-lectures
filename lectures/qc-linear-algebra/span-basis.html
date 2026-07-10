@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Span, Independence &amp; Basis — Linear Algebra for QC</title>
+<style>
+:root{
+  --bg:#0e1117;          /* page background, near-black navy */
+  --panel:#161b26;       /* card/panel background */
+  --panel2:#1c2230;      /* slightly lighter panel (controls) */
+  --ink:#e6e9f0;         /* main text */
+  --muted:#8b94a7;       /* secondary text */
+  --grid:#232b3b;        /* canvas grid lines */
+  --axis:#4a5568;        /* canvas axes */
+  --blue:#58c4dd;        /* 3b1b blue  — primary vector color */
+  --yellow:#ffd35a;      /* 3b1b yellow — secondary vector / highlight */
+  --red:#fc6255;         /* 3b1b red   — warnings, second operand */
+  --green:#83c167;       /* 3b1b green — results, success */
+  --purple:#c688eb;      /* extra series */
+  --orange:#ff9f4b;      /* extra series */
+  --line:#2a3347;        /* borders */
+}
+*{box-sizing:border-box; margin:0; padding:0;}
+body{
+  background:var(--bg); color:var(--ink);
+  font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
+  line-height:1.55;
+}
+.math{font-family:Georgia,'Times New Roman',serif; font-style:italic;}
+.wrap{max-width:1100px; margin:0 auto; padding:24px;}
+header{margin:10px 0 22px;}
+header a.crumb{color:var(--muted); text-decoration:none; font-size:14px;}
+header a.crumb:hover{color:var(--blue);}
+h1{font-size:30px; margin:10px 0 8px; font-weight:600;}
+.subtitle{color:var(--muted); max-width:760px; font-size:15.5px;}
+.panel{
+  background:var(--panel); border:1px solid var(--line);
+  border-radius:14px; padding:18px 20px; margin-bottom:20px;
+}
+.canvas-holder{position:relative;}
+canvas{width:100%; height:520px; display:block; border-radius:10px; background:#0b0e14; touch-action:none;}
+@media (max-width:600px){ canvas{height:400px;} }
+#depBanner{
+  position:absolute; top:12px; left:50%; transform:translateX(-50%) translateY(-8px);
+  background:rgba(252,98,85,.14); border:1px solid var(--red); color:var(--red);
+  padding:6px 16px; border-radius:9px; font-size:13.5px; white-space:nowrap;
+  opacity:0; pointer-events:none; transition:opacity .35s, transform .35s;
+  max-width:95%; text-overflow:ellipsis; overflow:hidden;
+}
+#depBanner.show{opacity:1; transform:translateX(-50%) translateY(0);}
+.controls{display:flex; flex-wrap:wrap; gap:16px 26px; margin-top:16px; align-items:center;}
+.ctl{display:flex; align-items:center; gap:10px; min-width:230px; flex:1;}
+.ctl label{font-size:14px; white-space:nowrap;}
+.ctl input[type=range]{accent-color:var(--blue); flex:1; min-width:110px;}
+.ctl .val{font-size:15px; min-width:52px; text-align:right;}
+button, .chip{
+  background:var(--panel2); border:1px solid var(--line); color:var(--ink);
+  border-radius:9px; padding:8px 14px; cursor:pointer; font-size:13.5px;
+  font-family:inherit; transition:border-color .15s, color .15s, background .15s;
+}
+button:hover, .chip:hover{border-color:var(--blue);}
+button.active, .chip.active{border-color:var(--blue); color:var(--blue); background:rgba(88,196,221,.08);}
+.chips-row{display:flex; flex-wrap:wrap; gap:10px; margin-top:14px; align-items:center;}
+.chips-label{color:var(--muted); font-size:13px; margin-right:2px;}
+.readout{
+  display:flex; flex-wrap:wrap; gap:8px 30px; align-items:baseline;
+  font-size:17px;
+}
+.readout .eq{font-size:19px;}
+.status-line{font-size:14.5px; margin-top:10px;}
+.status-line.ok{color:var(--green);}
+.status-line.bad{color:var(--red);}
+.det-line{font-size:14px; color:var(--muted); margin-top:4px;}
+.target-line{font-size:14.5px; margin-top:10px; min-height:22px;}
+.target-line.hit{color:var(--green);}
+.target-line.unreach{color:var(--red);}
+.c-blue{color:var(--blue);} .c-yellow{color:var(--yellow);}
+.c-green{color:var(--green);} .c-red{color:var(--red);} .c-purple{color:var(--purple);}
+aside.note{
+  border-left:3px solid var(--purple); background:rgba(198,136,235,.06);
+  padding:10px 16px; border-radius:0 10px 10px 0; color:var(--muted);
+  font-size:14px; margin:18px 0;
+}
+.insights{display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:16px; margin:26px 0;}
+.insights .card{background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:16px 18px;}
+.insights h3{font-size:15px; margin-bottom:8px; font-weight:600;}
+.insights p{font-size:14px; color:var(--muted);}
+footer{
+  color:var(--muted); font-size:13.5px; margin:34px 0 12px;
+  border-top:1px solid var(--line); padding-top:18px;
+  display:flex; flex-wrap:wrap; gap:10px 24px; justify-content:space-between; align-items:center;
+}
+footer a{color:var(--muted); text-decoration:none;}
+footer a:hover{color:var(--blue);}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <a class="crumb" href="./index.html">&larr; Linear Algebra for Quantum Computing</a>
+  <h1>Span, Linear Independence &amp; Basis</h1>
+  <p class="subtitle">Drag the tips of the <span class="c-blue">blue</span> vector <span class="math c-blue">|v&#8321;&#10217;</span> and the <span class="c-yellow">yellow</span> vector <span class="math c-yellow">|v&#8322;&#10217;</span>, then move the sliders to mix them into the <span class="c-green">green</span> combination <span class="math c-green">w = a&#8321;|v&#8321;&#10217; + a&#8322;|v&#8322;&#10217;</span>. Toggle "Show span" and watch what happens when the two vectors line up.</p>
+</header>
+
+<div class="panel">
+  <div class="canvas-holder">
+    <canvas id="cv"></canvas>
+    <div id="depBanner">linearly dependent — span is a line, dim = 1</div>
+  </div>
+
+  <div class="controls">
+    <div class="ctl">
+      <label class="math c-blue">a&#8321;</label>
+      <input type="range" id="a1" min="-2" max="2" step="0.05" value="1">
+      <span class="val math c-blue" id="a1val">1.00</span>
+    </div>
+    <div class="ctl">
+      <label class="math c-yellow">a&#8322;</label>
+      <input type="range" id="a2" min="-2" max="2" step="0.05" value="1">
+      <span class="val math c-yellow" id="a2val">1.00</span>
+    </div>
+    <button id="spanBtn">Show span</button>
+    <button id="targetBtn">Express this vector!</button>
+  </div>
+
+  <div class="chips-row">
+    <span class="chips-label">Basis presets:</span>
+    <button class="chip" data-preset="comp">computational <span class="math">e&#8321;, e&#8322;</span></button>
+    <button class="chip" data-preset="skew">skewed basis</button>
+    <button class="chip" data-preset="near">nearly dependent</button>
+    <button class="chip" data-preset="dep">make dependent</button>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="readout">
+    <span class="eq math">
+      <span class="c-green">w</span> =
+      <span class="c-blue" id="ro-a1">1.00</span><span class="c-blue">&#8202;|v&#8321;&#10217;</span> +
+      <span class="c-yellow" id="ro-a2">1.00</span><span class="c-yellow">&#8202;|v&#8322;&#10217;</span> =
+      <span class="c-green" id="ro-w">(1.00, 1.00)</span>
+    </span>
+    <span class="math" style="color:var(--muted); font-size:15px;">
+      <span class="c-blue">|v&#8321;&#10217; = <span id="ro-v1">(1.00, 0.00)</span></span>&ensp;
+      <span class="c-yellow">|v&#8322;&#10217; = <span id="ro-v2">(0.00, 1.00)</span></span>
+    </span>
+  </div>
+  <div class="status-line ok" id="statusLine">these two vectors are a BASIS for &#8477;&#178; (independent + spanning)</div>
+  <div class="det-line">det [<span class="math c-blue">v&#8321;</span> <span class="math c-yellow">v&#8322;</span>] = <span class="math" id="detVal">1.000</span> &nbsp;(signed area of the parallelogram; normalized det <span class="math" id="detNVal">1.000</span> — dependent when |det&#770;| &lt; 0.05)</div>
+  <div class="target-line" id="targetLine"></div>
+</div>
+
+<aside class="note">
+  Quantum computing lives in <span class="math">&#8450;&#8319;</span> — amplitudes are complex numbers — but the <em>geometry of span</em> is the same story you see here in <span class="math">&#8477;&#178;</span>: a set of vectors either reaches everything, or it collapses onto something thinner.
+</aside>
+
+<section class="insights">
+  <div class="card">
+    <h3 class="c-blue">Span = every place you can reach</h3>
+    <p>The span of <span class="math">|v&#8321;&#10217;, |v&#8322;&#10217;</span> is the set of all combinations <span class="math">a&#8321;|v&#8321;&#10217; + a&#8322;|v&#8322;&#10217;</span>. Notice how, with two independent directions, sliding <span class="math">a&#8321;</span> and <span class="math">a&#8322;</span> lets the green arrow reach <em>anywhere</em> in the plane. A set that reaches all of <span class="math">V</span> is called a spanning set: every <span class="math">v &#8712; V</span> is writable as <span class="math">&#931; a&#8342;|v&#8342;&#10217;</span>.</p>
+  </div>
+  <div class="card">
+    <h3 class="c-yellow">Independence = no wasted vector</h3>
+    <p>The moment <span class="math">|v&#8322;&#10217;</span> falls onto <span class="math">|v&#8321;&#10217;</span>'s line, it stops contributing a new direction — it's just a multiple of the other, and the span snaps down to a line. Linearly independent means no vector is a combination of the others. A <strong>basis</strong> is exactly a linearly independent spanning set: a minimal, complete coordinate system. The number of basis vectors is the <em>dimension</em> — and many different bases describe the same space.</p>
+  </div>
+  <div class="card">
+    <h3 class="c-green">The computational basis of &#8450;&#178;</h3>
+    <p>In quantum computing the standard basis of <span class="math">&#8450;&#178;</span> is <span class="math">|0&#10217; = (1, 0)</span> and <span class="math">|1&#10217; = (0, 1)</span> — the "computational basis". Every qubit state is one recipe in this basis: <span class="math">|&#968;&#10217; = &#945;|0&#10217; + &#946;|1&#10217;</span>. This is why a basis matters: because it's a basis, that recipe (<span class="math">&#945;, &#946;</span>) exists and is <em>unique</em> for every state.</p>
+  </div>
+</section>
+
+<footer>
+  <span>Interactive companion to the lecture <em>Linear Algebra for Quantum Computing</em> &middot; T2</span>
+  <span>
+    <a href="./euler.html">&larr; Euler's Formula</a> &nbsp;&middot;&nbsp;
+    <a href="./transformations.html">Linear Operators &rarr;</a>
+  </span>
+</footer>
+
+</div>
+
+<script>
+(() => {
+"use strict";
+
+const cv = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+const depBanner = document.getElementById('depBanner');
+const a1Slider = document.getElementById('a1');
+const a2Slider = document.getElementById('a2');
+const a1ValEl = document.getElementById('a1val');
+const a2ValEl = document.getElementById('a2val');
+const spanBtn = document.getElementById('spanBtn');
+const targetBtn = document.getElementById('targetBtn');
+const statusLine = document.getElementById('statusLine');
+const detValEl = document.getElementById('detVal');
+const detNValEl = document.getElementById('detNVal');
+const targetLine = document.getElementById('targetLine');
+const roA1 = document.getElementById('ro-a1');
+const roA2 = document.getElementById('ro-a2');
+const roW = document.getElementById('ro-w');
+const roV1 = document.getElementById('ro-v1');
+const roV2 = document.getElementById('ro-v2');
+
+const COL = {
+  blue:'#58c4dd', yellow:'#ffd35a', red:'#fc6255', green:'#83c167',
+  purple:'#c688eb', grid:'#232b3b', axis:'#4a5568', muted:'#8b94a7'
+};
+
+const state = {
+  v1:{x:1, y:0},
+  v2:{x:0, y:1},
+  a1:1, a2:1,
+  showSpan:false,
+  collapse:0,           // 0 = full-plane span, 1 = collapsed to a line (animated)
+  dependent:false,
+  drag:null,            // 'v1' | 'v2' | null
+  hover:null,
+  // preset animation: interpolates v1,v2 from ->{f1,f2} to ->{t1,t2}
+  anim:null,            // {f1,f2,t1,t2,t0,dur}
+  target:null,          // {x,y}
+  targetHitAt:0,        // timestamp of last hit (for flash)
+  scale:60,             // px per world unit (recomputed on resize)
+  W:0, H:0, dpr:1
+};
+
+const DEP_EPS = 0.05;
+const smooth = t => t*t*(3-2*t);
+const clamp = (v,a,b) => Math.min(b, Math.max(a, v));
+const fmt = n => (n < 0 ? '−' : '') + Math.abs(n).toFixed(2);
+
+// ---------- sizing ----------
+function resize(){
+  const rect = cv.getBoundingClientRect();
+  state.dpr = window.devicePixelRatio || 1;
+  cv.width  = Math.round(rect.width  * state.dpr);
+  cv.height = Math.round(rect.height * state.dpr);
+  state.W = rect.width; state.H = rect.height;
+  state.scale = Math.max(40, Math.min(rect.width, rect.height) / 8.2);
+}
+new ResizeObserver(resize).observe(cv);
+resize();
+
+// world <-> screen (y up)
+const sx = wx => state.W/2 + wx*state.scale;
+const sy = wy => state.H/2 - wy*state.scale;
+const wx = px => (px - state.W/2)/state.scale;
+const wy = py => (state.H/2 - py)/state.scale;
+
+// ---------- math helpers ----------
+function det(){ return state.v1.x*state.v2.y - state.v1.y*state.v2.x; }
+function detNorm(){
+  const n1 = Math.hypot(state.v1.x, state.v1.y);
+  const n2 = Math.hypot(state.v2.x, state.v2.y);
+  if (n1 < 1e-9 || n2 < 1e-9) return 0;
+  return det()/(n1*n2);
+}
+// dominant direction of the collapsed span (unit vector)
+function spanDir(){
+  const n1 = Math.hypot(state.v1.x, state.v1.y);
+  const n2 = Math.hypot(state.v2.x, state.v2.y);
+  const v = n1 >= n2 ? state.v1 : state.v2;
+  const n = Math.max(n1, n2);
+  if (n < 1e-9) return {x:1, y:0};
+  return {x:v.x/n, y:v.y/n};
+}
+
+// ---------- drawing helpers ----------
+function drawArrow(x0, y0, x1, y1, color, width, alpha=1, dashed=false){
+  const dx = x1-x0, dy = y1-y0;
+  const len = Math.hypot(dx, dy);
+  if (len < 1) return;
+  const head = Math.min(13, len*0.5);
+  const ux = dx/len, uy = dy/len;
+  const bx = x1 - ux*head, by = y1 - uy*head;
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.strokeStyle = color; ctx.fillStyle = color;
+  ctx.lineWidth = width;
+  ctx.lineCap = 'round';
+  if (dashed) ctx.setLineDash([6,5]);
+  ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(bx, by); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.beginPath();
+  ctx.moveTo(x1, y1);
+  ctx.lineTo(bx - uy*head*0.42, by + ux*head*0.42);
+  ctx.lineTo(bx + uy*head*0.42, by - ux*head*0.42);
+  ctx.closePath(); ctx.fill();
+  ctx.restore();
+}
+
+function drawGrid(){
+  const {W, H, scale} = state;
+  ctx.fillStyle = '#0b0e14';
+  ctx.fillRect(0, 0, W, H);
+  const xMax = Math.ceil(W/2/scale), yMax = Math.ceil(H/2/scale);
+  ctx.lineWidth = 1;
+  ctx.strokeStyle = COL.grid;
+  ctx.beginPath();
+  for (let i = -xMax; i <= xMax; i++){
+    const x = Math.round(sx(i)) + 0.5;
+    ctx.moveTo(x, 0); ctx.lineTo(x, H);
+  }
+  for (let j = -yMax; j <= yMax; j++){
+    const y = Math.round(sy(j)) + 0.5;
+    ctx.moveTo(0, y); ctx.lineTo(W, y);
+  }
+  ctx.stroke();
+  // axes
+  ctx.strokeStyle = COL.axis; ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(0, sy(0)); ctx.lineTo(W, sy(0));
+  ctx.moveTo(sx(0), 0); ctx.lineTo(sx(0), H);
+  ctx.stroke();
+  // tick labels
+  ctx.fillStyle = COL.muted;
+  ctx.font = '11px "Segoe UI", system-ui, sans-serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  for (let i = -xMax; i <= xMax; i++){
+    if (i === 0) continue;
+    ctx.fillText(String(i), sx(i), sy(0)+4);
+  }
+  ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+  for (let j = -yMax; j <= yMax; j++){
+    if (j === 0) continue;
+    ctx.fillText(String(j), sx(0)+5, sy(j));
+  }
+}
+
+function drawSpan(){
+  if (!state.showSpan) return;
+  const {W, H} = state;
+  const c = smooth(state.collapse);
+  // full-plane tint (fades out as span collapses)
+  if (c < 0.999){
+    ctx.save();
+    ctx.globalAlpha = 0.10 * (1 - c);
+    const g = ctx.createLinearGradient(0, 0, W, H);
+    g.addColorStop(0, COL.blue);
+    g.addColorStop(1, COL.green);
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+    ctx.restore();
+  }
+  // integer-combination lattice dots i*v1 + j*v2
+  ctx.save();
+  const N = 8;
+  const dir = spanDir();
+  for (let i = -N; i <= N; i++){
+    for (let j = -N; j <= N; j++){
+      // as the span collapses, project the lattice onto the line
+      let px = i*state.v1.x + j*state.v2.x;
+      let py = i*state.v1.y + j*state.v2.y;
+      if (c > 0){
+        const t = px*dir.x + py*dir.y;
+        px = px + (dir.x*t - px)*c;
+        py = py + (dir.y*t - py)*c;
+      }
+      const X = sx(px), Y = sy(py);
+      if (X < -10 || X > W+10 || Y < -10 || Y > H+10) continue;
+      ctx.globalAlpha = (i === 0 && j === 0) ? 0.35 : 0.16;
+      ctx.fillStyle = COL.green;
+      ctx.beginPath(); ctx.arc(X, Y, 2.2, 0, Math.PI*2); ctx.fill();
+    }
+  }
+  ctx.restore();
+  // glowing line when (nearly) collapsed
+  if (c > 0.001){
+    const L = Math.hypot(W, H);
+    const x0 = sx(-dir.x*L/state.scale), y0 = sy(-dir.y*L/state.scale);
+    const x1 = sx( dir.x*L/state.scale), y1 = sy( dir.y*L/state.scale);
+    ctx.save();
+    ctx.globalAlpha = 0.85 * c;
+    ctx.strokeStyle = COL.red;
+    ctx.shadowColor = COL.red;
+    ctx.shadowBlur = 18;
+    ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
+    ctx.globalAlpha = 0.25 * c;
+    ctx.lineWidth = 10;
+    ctx.stroke();
+    ctx.restore();
+  }
+}
+
+function drawParallelogram(){
+  const {a1, a2, v1, v2} = state;
+  const p1 = {x:a1*v1.x, y:a1*v1.y};              // a1 v1
+  const w  = {x:p1.x + a2*v2.x, y:p1.y + a2*v2.y}; // w
+  // faint filled parallelogram (0, a1v1, w, a2v2)
+  ctx.save();
+  ctx.globalAlpha = 0.07;
+  ctx.fillStyle = COL.green;
+  ctx.beginPath();
+  ctx.moveTo(sx(0), sy(0));
+  ctx.lineTo(sx(p1.x), sy(p1.y));
+  ctx.lineTo(sx(w.x), sy(w.y));
+  ctx.lineTo(sx(a2*v2.x), sy(a2*v2.y));
+  ctx.closePath(); ctx.fill();
+  ctx.restore();
+  // a1 v1 : faint dashed blue from origin
+  drawArrow(sx(0), sy(0), sx(p1.x), sy(p1.y), COL.blue, 2, 0.35, true);
+  // a2 v2 : faint dashed yellow, tip-to-tail from a1 v1
+  drawArrow(sx(p1.x), sy(p1.y), sx(w.x), sy(w.y), COL.yellow, 2, 0.35, true);
+  return w;
+}
+
+function mathLabel(text, x, y, color, size=14){
+  ctx.save();
+  ctx.font = 'italic ' + size + 'px Georgia, "Times New Roman", serif';
+  ctx.fillStyle = color;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.strokeStyle = 'rgba(11,14,20,0.85)';
+  ctx.lineWidth = 4; ctx.lineJoin = 'round';
+  ctx.strokeText(text, x, y);
+  ctx.fillText(text, x, y);
+  ctx.restore();
+}
+
+function labelPos(v, off=20){
+  const n = Math.hypot(v.x, v.y) || 1;
+  return { x: sx(v.x) + (v.x/n)*off, y: sy(v.y) - (v.y/n)*off - 4 };
+}
+
+function drawHandle(v, hovered){
+  const X = sx(v.x), Y = sy(v.y);
+  ctx.save();
+  if (hovered){
+    ctx.globalAlpha = 0.25;
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath(); ctx.arc(X, Y, 13, 0, Math.PI*2); ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+  ctx.restore();
+}
+
+function drawTarget(now){
+  if (!state.target) return;
+  const t = state.target;
+  const X = sx(t.x), Y = sy(t.y);
+  const flash = now - state.targetHitAt < 900;
+  const pulse = 1 + 0.15*Math.sin(now/280);
+  ctx.save();
+  ctx.strokeStyle = flash ? COL.green : COL.purple;
+  ctx.lineWidth = 2.5;
+  ctx.lineCap = 'round';
+  const r = 8*pulse;
+  ctx.beginPath();
+  ctx.moveTo(X-r, Y-r); ctx.lineTo(X+r, Y+r);
+  ctx.moveTo(X-r, Y+r); ctx.lineTo(X+r, Y-r);
+  ctx.stroke();
+  if (flash){
+    ctx.globalAlpha = 0.35;
+    ctx.strokeStyle = COL.green;
+    ctx.beginPath(); ctx.arc(X, Y, 14 + 20*((now-state.targetHitAt)/900), 0, Math.PI*2); ctx.stroke();
+  }
+  ctx.restore();
+  mathLabel('target', X, Y - 18, flash ? COL.green : COL.purple, 13);
+}
+
+// ---------- main draw ----------
+function draw(now){
+  ctx.setTransform(state.dpr, 0, 0, state.dpr, 0, 0);
+  drawGrid();
+  drawSpan();
+  const w = drawParallelogram();
+  drawTarget(now);
+
+  const {v1, v2} = state;
+  // main vectors
+  drawHandle(v1, state.hover === 'v1' || state.drag === 'v1');
+  drawHandle(v2, state.hover === 'v2' || state.drag === 'v2');
+  drawArrow(sx(0), sy(0), sx(v1.x), sy(v1.y), COL.blue, 3);
+  drawArrow(sx(0), sy(0), sx(v2.x), sy(v2.y), COL.yellow, 3);
+  // draggable tip dots
+  for (const [v, c] of [[v1, COL.blue], [v2, COL.yellow]]){
+    ctx.fillStyle = c;
+    ctx.beginPath(); ctx.arc(sx(v.x), sy(v.y), 7, 0, Math.PI*2); ctx.fill();
+  }
+  // result vector w
+  drawArrow(sx(0), sy(0), sx(w.x), sy(w.y), COL.green, 3);
+
+  // labels
+  const l1 = labelPos(v1); mathLabel('|v₁⟩', l1.x, l1.y, COL.blue);
+  const l2 = labelPos(v2); mathLabel('|v₂⟩', l2.x, l2.y, COL.yellow);
+  if (Math.hypot(w.x, w.y) > 0.12){
+    const lw = labelPos(w, 24); mathLabel('w', lw.x, lw.y, COL.green, 16);
+  }
+  return w;
+}
+
+// ---------- state update / readouts ----------
+function updateReadouts(w){
+  a1ValEl.textContent = fmt(state.a1);
+  a2ValEl.textContent = fmt(state.a2);
+  roA1.textContent = fmt(state.a1);
+  roA2.textContent = fmt(state.a2);
+  roW.textContent = '(' + fmt(w.x) + ', ' + fmt(w.y) + ')';
+  roV1.textContent = '(' + fmt(state.v1.x) + ', ' + fmt(state.v1.y) + ')';
+  roV2.textContent = '(' + fmt(state.v2.x) + ', ' + fmt(state.v2.y) + ')';
+  const d = det(), dn = detNorm();
+  detValEl.textContent = (d < 0 ? '−' : '') + Math.abs(d).toFixed(3);
+  detNValEl.textContent = (dn < 0 ? '−' : '') + Math.abs(dn).toFixed(3);
+
+  const dep = Math.abs(dn) < DEP_EPS;
+  if (dep !== state.dependent){
+    state.dependent = dep;
+    depBanner.classList.toggle('show', dep && state.showSpan);
+  } else {
+    depBanner.classList.toggle('show', dep && state.showSpan);
+  }
+  if (dep){
+    statusLine.className = 'status-line bad';
+    statusLine.innerHTML = 'NOT a basis (dependent) — one vector is a multiple of the other; together they only span a line.';
+  } else {
+    statusLine.className = 'status-line ok';
+    statusLine.innerHTML = 'these two vectors are a BASIS for ℝ² (independent + spanning) — dim = 2';
+  }
+}
+
+function updateTarget(w, now){
+  if (!state.target){ targetLine.textContent = ''; targetLine.className = 'target-line'; return; }
+  const t = state.target;
+  const dist = Math.hypot(w.x - t.x, w.y - t.y);
+  const recentHit = now - state.targetHitAt < 2500;
+  if (dist < 0.15){
+    if (now - state.targetHitAt > 2500) state.targetHitAt = now;
+    targetLine.className = 'target-line hit';
+    targetLine.innerHTML = '✓ every vector has exactly one recipe in a basis';
+    return;
+  }
+  if (recentHit){
+    targetLine.className = 'target-line hit';
+    targetLine.innerHTML = '✓ every vector has exactly one recipe in a basis';
+    return;
+  }
+  // unreachable check: dependent AND target off the span line
+  if (state.dependent){
+    const dir = spanDir();
+    const off = Math.abs(t.x*dir.y - t.y*dir.x); // perpendicular distance from line
+    if (off > 0.2){
+      targetLine.className = 'target-line unreach';
+      targetLine.innerHTML = 'unreachable — this pair doesn’t span the plane';
+      return;
+    }
+  }
+  targetLine.className = 'target-line';
+  targetLine.innerHTML = 'adjust <span class="math c-blue">a₁</span> and <span class="math c-yellow">a₂</span> so <span class="math c-green">w</span> lands on the <span class="c-purple">⨯</span> — distance ' + dist.toFixed(2);
+}
+
+// ---------- animation loop ----------
+const SNAP_IN = 350, SNAP_OUT = 500; // ms — snap collapse in fast, relax out
+let lastT = performance.now();
+function frame(now){
+  const dt = Math.min(50, now - lastT); lastT = now;
+
+  // preset animation
+  if (state.anim){
+    const a = state.anim;
+    let t = (now - a.t0)/a.dur;
+    if (t >= 1){ t = 1; }
+    const s = smooth(t);
+    state.v1.x = a.f1.x + (a.t1.x - a.f1.x)*s;
+    state.v1.y = a.f1.y + (a.t1.y - a.f1.y)*s;
+    state.v2.x = a.f2.x + (a.t2.x - a.f2.x)*s;
+    state.v2.y = a.f2.y + (a.t2.y - a.f2.y)*s;
+    if (t === 1) state.anim = null;
+  }
+
+  // collapse animation for the span overlay (snap)
+  const dep = Math.abs(detNorm()) < DEP_EPS;
+  const targetC = dep ? 1 : 0;
+  const speed = dep ? dt/SNAP_IN : dt/SNAP_OUT;
+  if (state.collapse < targetC) state.collapse = Math.min(1, state.collapse + speed);
+  else if (state.collapse > targetC) state.collapse = Math.max(0, state.collapse - speed);
+
+  const w = draw(now);
+  updateReadouts(w);
+  updateTarget(w, now);
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+// ---------- interactions ----------
+a1Slider.addEventListener('input', () => { state.a1 = parseFloat(a1Slider.value); });
+a2Slider.addEventListener('input', () => { state.a2 = parseFloat(a2Slider.value); });
+
+spanBtn.addEventListener('click', () => {
+  state.showSpan = !state.showSpan;
+  spanBtn.classList.toggle('active', state.showSpan);
+  spanBtn.textContent = state.showSpan ? 'Hide span' : 'Show span';
+});
+
+targetBtn.addEventListener('click', () => {
+  // random target within a comfortably visible window, away from origin
+  let x, y;
+  do {
+    x = (Math.random()*2 - 1) * 3;
+    y = (Math.random()*2 - 1) * 2.4;
+  } while (Math.hypot(x, y) < 0.7);
+  state.target = {x: Math.round(x*10)/10, y: Math.round(y*10)/10};
+  state.targetHitAt = -1e9;
+});
+
+// preset chips
+const PRESETS = {
+  comp:{v1:{x:1, y:0},    v2:{x:0, y:1}},
+  skew:{v1:{x:1.6, y:0.5}, v2:{x:0.4, y:1.4}},
+  near:{v1:{x:1.8, y:0.6}, v2:{x:1.5, y:0.62}}
+};
+function animateTo(t1, t2, dur=900){
+  state.anim = {
+    f1:{...state.v1}, f2:{...state.v2},
+    t1:{...t1}, t2:{...t2},
+    t0: performance.now(), dur
+  };
+}
+document.querySelectorAll('.chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+    const p = chip.dataset.preset;
+    if (p === 'dep'){
+      // rotate v2 onto v1's line, keeping v2's length
+      const n1 = Math.hypot(state.v1.x, state.v1.y) || 1;
+      const n2 = Math.hypot(state.v2.x, state.v2.y) || 1;
+      const u = {x: state.v1.x/n1, y: state.v1.y/n1};
+      // rotate toward same side v2 currently leans
+      const sign = (state.v2.x*u.x + state.v2.y*u.y) >= 0 ? 1 : -1;
+      animateTo({...state.v1}, {x: u.x*n2*sign, y: u.y*n2*sign}, 1100);
+    } else {
+      animateTo(PRESETS[p].v1, PRESETS[p].v2, 900);
+    }
+  });
+});
+
+// pointer drag on vector tips
+function hitTest(px, py){
+  for (const key of ['v1', 'v2']){
+    const v = state[key];
+    if (Math.hypot(px - sx(v.x), py - sy(v.y)) <= 16) return key;
+  }
+  return null;
+}
+function canvasPos(e){
+  const r = cv.getBoundingClientRect();
+  return {x: e.clientX - r.left, y: e.clientY - r.top};
+}
+cv.addEventListener('pointerdown', e => {
+  const p = canvasPos(e);
+  const hit = hitTest(p.x, p.y);
+  if (hit){
+    state.drag = hit;
+    state.anim = null;
+    document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+    cv.setPointerCapture(e.pointerId);
+    cv.style.cursor = 'grabbing';
+    e.preventDefault();
+  }
+});
+cv.addEventListener('pointermove', e => {
+  const p = canvasPos(e);
+  if (state.drag){
+    const xMax = state.W/2/state.scale - 0.15;
+    const yMax = state.H/2/state.scale - 0.15;
+    let nx = clamp(wx(p.x), -xMax, xMax);
+    let ny = clamp(wy(p.y), -yMax, yMax);
+    // keep vectors from vanishing entirely (guard divide-by-zero everywhere)
+    if (Math.hypot(nx, ny) < 0.08){ nx = 0.08; }
+    state[state.drag].x = nx;
+    state[state.drag].y = ny;
+  } else {
+    state.hover = hitTest(p.x, p.y);
+    cv.style.cursor = state.hover ? 'grab' : 'default';
+  }
+});
+function endDrag(e){
+  if (state.drag){
+    state.drag = null;
+    cv.style.cursor = 'grab';
+  }
+}
+cv.addEventListener('pointerup', endDrag);
+cv.addEventListener('pointercancel', endDrag);
+
+})();
+</script>
+</body>
+</html>

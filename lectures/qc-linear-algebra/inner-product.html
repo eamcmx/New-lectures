@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Inner Product &amp; Orthogonality — Linear Algebra for QC</title>
+<style>
+:root{
+  --bg:#0e1117;
+  --panel:#161b26;
+  --panel2:#1c2230;
+  --ink:#e6e9f0;
+  --muted:#8b94a7;
+  --grid:#232b3b;
+  --axis:#4a5568;
+  --blue:#58c4dd;
+  --yellow:#ffd35a;
+  --red:#fc6255;
+  --green:#83c167;
+  --purple:#c688eb;
+  --orange:#ff9f4b;
+  --line:#2a3347;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--bg); color:var(--ink);
+  font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
+  line-height:1.55;
+}
+.wrap{max-width:1100px;margin:0 auto;padding:24px}
+a{color:var(--blue)}
+header a.crumb{color:var(--muted);text-decoration:none;font-size:.9rem}
+header a.crumb:hover{color:var(--blue)}
+h1{margin:.35em 0 .15em;font-size:clamp(1.5rem,3.4vw,2.15rem);letter-spacing:.01em}
+.subtitle{color:var(--muted);margin:0 0 22px;max-width:62ch}
+.math{font-family:Georgia,'Times New Roman',serif;font-style:italic}
+.panel{
+  background:var(--panel);border:1px solid var(--line);
+  border-radius:14px;padding:18px 20px;margin-bottom:22px;
+}
+.panel h2{margin:0 0 10px;font-size:1.05rem;letter-spacing:.02em}
+.panel h2 .math{font-size:1.1em}
+canvas#cv{
+  display:block;width:100%;height:500px;border-radius:10px;
+  background:#0b0e14;border:1px solid var(--line);
+  touch-action:none;cursor:default;
+}
+@media (max-width:640px){ canvas#cv{height:390px} }
+
+/* controls */
+.controls{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px;align-items:center}
+button{
+  background:var(--panel2);border:1px solid var(--line);color:var(--ink);
+  border-radius:9px;padding:8px 14px;cursor:pointer;font:inherit;font-size:.9rem;
+  transition:border-color .15s,color .15s,background .15s;
+}
+button:hover{border-color:var(--blue)}
+button.on{border-color:var(--blue);color:var(--blue);background:rgba(88,196,221,.08)}
+button.chip{border-radius:999px}
+button .k{font-family:Georgia,serif;font-style:italic}
+.bu{color:var(--blue)} .by{color:var(--yellow)}
+.normout{font-size:.85rem;color:var(--muted);display:none}
+.normout.show{display:inline}
+
+/* orthogonality meter */
+.meterrow{display:flex;flex-wrap:wrap;align-items:center;gap:14px;margin-top:16px}
+.meterlab{font-size:.95rem;white-space:nowrap}
+.gauge{position:relative;flex:1;min-width:180px;height:16px;border:1px solid var(--line);border-radius:8px;
+  background:linear-gradient(90deg,rgba(252,98,85,.28),rgba(131,193,103,.4) 50%,rgba(252,98,85,.28));}
+.gzero{position:absolute;left:50%;top:-4px;bottom:-4px;width:2px;background:var(--green);opacity:.85;transform:translateX(-50%)}
+.gneedle{position:absolute;top:-5px;bottom:-5px;width:4px;border-radius:2px;background:var(--ink);
+  box-shadow:0 0 6px rgba(230,233,240,.6);transform:translateX(-50%);left:50%}
+.gticks{display:flex;justify-content:space-between;font-size:.72rem;color:var(--muted);margin-top:3px}
+.gwrap{flex:1;min-width:200px}
+.badge{
+  font-size:.88rem;color:var(--green);border:1px solid var(--green);border-radius:999px;
+  padding:4px 13px;opacity:0;transform:scale(.9);transition:opacity .25s,transform .25s,box-shadow .25s;
+  white-space:nowrap;
+}
+.badge.on{opacity:1;transform:scale(1);box-shadow:0 0 14px rgba(131,193,103,.45)}
+
+/* readout math */
+.bigread{font-size:1.18rem;display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:8px 0 4px}
+.mat{display:inline-flex;position:relative;padding:3px 10px;margin:0 2px;vertical-align:middle}
+.mat::before,.mat::after{content:"";position:absolute;top:0;bottom:0;width:6px;border:1.6px solid var(--muted)}
+.mat::before{left:0;border-right:none;border-radius:2px 0 0 2px}
+.mat::after{right:0;border-left:none;border-radius:0 2px 2px 0}
+.mat.row{flex-direction:row;gap:14px;align-items:center}
+.mat.col{flex-direction:column;gap:2px;align-items:center}
+.mat.m22{display:inline-grid;grid-template-columns:auto auto;gap:2px 14px;justify-items:center}
+.mat span{min-width:42px;text-align:center;font-style:normal;
+  font-family:'Segoe UI',system-ui,sans-serif;font-variant-numeric:tabular-nums;font-size:.95rem}
+.mat.row span,.mat.col span{color:inherit}
+.cu{color:var(--blue)} .cvv{color:var(--yellow)} .cg{color:var(--green)}
+.res{color:var(--green);font-weight:600}
+.shape{font-size:.8rem;color:var(--muted);margin:2px 0 12px}
+.readline{margin:6px 0;font-size:1.02rem}
+.readline .math{font-size:1.06em}
+.aside{font-size:.86rem;color:var(--muted);border-left:3px solid var(--purple);
+  padding:6px 12px;margin-top:14px;background:rgba(198,136,235,.05);border-radius:0 8px 8px 0}
+.aside .math{color:var(--ink)}
+
+/* gram / completeness reveals */
+.reveal{display:none;margin-top:14px;padding-top:12px;border-top:1px dashed var(--line)}
+.reveal.show{display:block}
+.reveal .ok{color:var(--green);font-weight:600}
+.mrow{display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-size:1.05rem}
+
+/* outer product panel */
+.duo{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:6px}
+@media (max-width:720px){ .duo{grid-template-columns:1fr} }
+.card{background:var(--panel2);border:1px solid var(--line);border-radius:11px;padding:14px 16px}
+.card h3{margin:0 0 8px;font-size:.95rem}
+.card h3 .math{font-size:1.12em}
+
+/* insights */
+.insights{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;margin-bottom:26px}
+.insights .card h3{font-size:.92rem;letter-spacing:.03em;text-transform:uppercase}
+.insights .card p{margin:0;font-size:.92rem;color:var(--ink)}
+.insights .t-blue{color:var(--blue)} .insights .t-yellow{color:var(--yellow)} .insights .t-green{color:var(--green)}
+
+footer{color:var(--muted);font-size:.85rem;border-top:1px solid var(--line);padding-top:16px;margin-top:8px}
+footer .nav{display:flex;justify-content:space-between;gap:12px;margin-top:8px;flex-wrap:wrap}
+footer a{color:var(--muted);text-decoration:none}
+footer a:hover{color:var(--blue)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <a class="crumb" href="./index.html">&larr; Linear Algebra for Quantum Computing</a>
+  <h1>Inner Product, Orthogonality &amp; Dirac Notation</h1>
+  <p class="subtitle">Drag the blue tip of <span class="math bu">|u&#10217;</span> and the yellow tip of
+    <span class="math by">|v&#10217;</span>. The green segment is the projection of
+    <span class="math by">|v&#10217;</span> onto <span class="math bu">|u&#10217;</span> &mdash; its signed
+    length times &#8214;u&#8214; is exactly the inner product <span class="math">&#10216;u|v&#10217;</span>.
+    Try to make it vanish.</p>
+</header>
+
+<!-- 1. main canvas -->
+<div class="panel">
+  <canvas id="cv"></canvas>
+
+  <div class="controls">
+    <button id="btnSnap">&#8869; snap to orthogonal</button>
+    <button id="btnNormU">normalize <span class="k bu">|u&#10217;</span></button>
+    <span class="normout math" id="outNU"></span>
+    <button id="btnNormV">normalize <span class="k by">|v&#10217;</span></button>
+    <span class="normout math" id="outNV"></span>
+    <button class="chip" id="btnOrthonorm">make orthonormal pair</button>
+    <button class="chip" id="btnComplete">completeness: <span class="k">e&#8321;, e&#8322;</span></button>
+  </div>
+
+  <!-- 3. orthogonality meter -->
+  <div class="meterrow">
+    <span class="meterlab math">&#10216;&#251;|v&#770;&#10217; = cos&thinsp;&phi; = <b id="ovVal" class="cg">0.00</b></span>
+    <div class="gwrap">
+      <div class="gauge"><div class="gzero"></div><div class="gneedle" id="needle"></div></div>
+      <div class="gticks"><span>&minus;1&ensp;opposite</span><span>0&ensp;&#8869;</span><span>+1&ensp;parallel</span></div>
+    </div>
+    <span class="badge math" id="orthoBadge">&#8869; orthogonal &mdash; &#10216;u|v&#10217; = 0</span>
+  </div>
+</div>
+
+<!-- 2. live readout -->
+<div class="panel">
+  <h2>Live readout — bra times ket</h2>
+  <div class="bigread math">
+    <span>&#10216;u|v&#10217;&nbsp;=</span>
+    <span class="mat row cu"><span id="r_ux">0</span><span id="r_uy">0</span></span>
+    <span class="mat col cvv"><span id="r_vx">0</span><span id="r_vy">0</span></span>
+    <span>=</span>
+    <span class="res" id="r_ip">0</span>
+  </div>
+  <div class="shape">bra <span class="math cu">&#10216;u|</span> is the (conjugate-)transposed row, 1&times;2 &nbsp;&middot;&nbsp;
+    ket <span class="math cvv">|v&#10217;</span> is the column, 2&times;1 &nbsp;&rarr;&nbsp; (1&times;2)(2&times;1) = 1&times;1 : a single <b class="cg">number</b>.</div>
+
+  <div class="readline math">&#8214;u&#8214; = &radic;<span style="text-decoration:overline">&#10216;u|u&#10217;</span> = <b class="cu" id="r_nu">0</b>
+    &emsp; &#8214;v&#8214; = <b class="cvv" id="r_nv">0</b></div>
+  <div class="readline math">&#10216;u|v&#10217; = &#8214;u&#8214;&thinsp;&#8214;v&#8214;&thinsp;cos&thinsp;&phi; =
+    <span class="cu" id="r_a">0</span> &times; <span class="cvv" id="r_b">0</span> &times; cos&thinsp;<span id="r_phi">0&deg;</span>
+    = <b class="cg" id="r_ip2">0</b></div>
+
+  <!-- 4b. orthonormal delta table -->
+  <div class="reveal" id="gramBox">
+    <div class="mrow math">
+      <span>Orthonormal check &mdash; Gram matrix&nbsp; &#10216;v&#7522;|v&#11388;&#10217; =</span>
+      <span class="mat m22"><span id="g11">1</span><span id="g12">0</span><span id="g21">0</span><span id="g22">1</span></span>
+      <span id="gramOK" class="ok" style="display:none">= &delta;&#7522;&#11388; &nbsp;&#10003; orthonormal set</span>
+    </div>
+    <div class="shape">Kronecker delta: &delta;&#7522;&#11388; = 1 when i = j (each vector has unit norm), 0 when i &ne; j (mutually orthogonal).</div>
+  </div>
+
+  <div class="aside">Everything on this page is real, so conjugation does nothing and
+    <span class="math">&#10216;u|v&#10217; = &#10216;v|u&#10217;</span>. In <span class="math">&#8450;&#8319;</span> the bra takes the
+    <em>conjugate</em> transpose (the dagger &dagger;), and the symmetry becomes
+    <span class="math">&#10216;u|v&#10217; = &#10216;v|u&#10217;*</span> &mdash; swap the slots, conjugate the answer.
+    That twist is what keeps <span class="math">&#10216;u|u&#10217;</span> real and &ge; 0, so norms still make sense.</div>
+</div>
+
+<!-- 5. outer product -->
+<div class="panel">
+  <h2>Number vs. matrix — <span class="math">&#10216;u|v&#10217;</span> vs. <span class="math">|u&#10217;&#10216;v|</span></h2>
+  <div class="duo">
+    <div class="card">
+      <h3>Inner product <span class="math">&#10216;u|v&#10217;</span> &nbsp;<span class="shape" style="display:inline">(1&times;2)(2&times;1) = 1&times;1</span></h3>
+      <div class="mrow math">
+        <span class="mat row cu"><span id="o_ux">0</span><span id="o_uy">0</span></span>
+        <span class="mat col cvv"><span id="o_vx">0</span><span id="o_vy">0</span></span>
+        <span>=</span><span class="res" id="o_ip">0</span>
+      </div>
+      <div class="shape">Row times column collapses everything to one <b class="cg">number</b> &mdash; the overlap.</div>
+    </div>
+    <div class="card">
+      <h3>Outer product <span class="math">|u&#10217;&#10216;v|</span> &nbsp;<span class="shape" style="display:inline">(2&times;1)(1&times;2) = 2&times;2</span></h3>
+      <div class="mrow math">
+        <span class="mat col cu"><span id="p_ux">0</span><span id="p_uy">0</span></span>
+        <span class="mat row cvv"><span id="p_vx">0</span><span id="p_vy">0</span></span>
+        <span>=</span>
+        <span class="mat m22 cg"><span id="m11">0</span><span id="m12">0</span><span id="m21">0</span><span id="m22">0</span></span>
+      </div>
+      <div class="shape">Column times row blows up into a whole <b class="cg">matrix</b> &mdash; an operator.</div>
+    </div>
+  </div>
+
+  <div class="reveal" id="compBox">
+    <div class="mrow math">
+      <span>&Sigma;&#11388;&thinsp;|j&#10217;&#10216;j| :&nbsp; |u&#10217;&#10216;u| + |v&#10217;&#10216;v| =</span>
+      <span class="mat m22 cu"><span id="c11">1</span><span id="c12">0</span><span id="c21">0</span><span id="c22">0</span></span>
+      <span>+</span>
+      <span class="mat m22 cvv"><span id="d11">0</span><span id="d12">0</span><span id="d21">0</span><span id="d22">1</span></span>
+      <span>=</span>
+      <span class="mat m22 cg"><span id="s11">1</span><span id="s12">0</span><span id="s21">0</span><span id="s22">1</span></span>
+      <span id="compOK" class="ok" style="display:none">= I &nbsp;&#10003; completeness</span>
+    </div>
+    <div class="shape">With <span class="math">|u&#10217; = |0&#10217; = e&#8321;</span> and <span class="math">|v&#10217; = |1&#10217; = e&#8322;</span>,
+      the projectors onto each basis direction sum to the identity: the basis misses nothing.
+      Nudge either vector and watch the sum drift away from <span class="math">I</span>.</div>
+  </div>
+</div>
+
+<!-- 6. insight cards -->
+<section class="insights">
+  <div class="card">
+    <h3 class="t-blue">A same-direction detector</h3>
+    <p>Notice how the meter reads <b>+1</b> when the unit vectors point the same way, <b>0</b> at a right
+      angle, and <b>&minus;1</b> when they oppose. The inner product doesn&rsquo;t care about clutter &mdash; it asks
+      one question: &ldquo;how much do you two agree in direction?&rdquo; The green projection is that answer made visible.</p>
+  </div>
+  <div class="card">
+    <h3 class="t-yellow">Bra = measuring device, ket = state</h3>
+    <p>Think of <span class="math">|v&#10217;</span> as a state and <span class="math">&#10216;u|</span> as a probe you press
+      against it. <span class="math">&#10216;u|v&#10217;</span> answers &ldquo;how much of <span class="math">v</span> lies
+      along <span class="math">u</span>?&rdquo; In quantum computing that overlap is an <em>amplitude</em>, and
+      <span class="math">|&#10216;u|v&#10217;|&sup2;</span> is the <b>probability</b> of finding the state
+      <span class="math">|v&#10217;</span> in the state <span class="math">|u&#10217;</span> when you measure.</p>
+  </div>
+  <div class="card">
+    <h3 class="t-green">Orthonormal bases make coordinates trivial</h3>
+    <p>With an orthonormal basis, the coordinates of any <span class="math">|&psi;&#10217;</span> are just inner
+      products: <span class="math">a&#11388; = &#10216;v&#11388;|&psi;&#10217;</span> &mdash; no equation solving. That is exactly what the
+      completeness relation <span class="math">&Sigma;&#11388;&thinsp;|j&#10217;&#10216;j| = I</span> encodes: apply it to
+      <span class="math">|&psi;&#10217;</span> and it hands you <span class="math">&Sigma;&#11388;&thinsp;&#10216;v&#11388;|&psi;&#10217;|v&#11388;&#10217;</span>,
+      the state rebuilt from its overlaps.</p>
+  </div>
+</section>
+
+<footer>
+  Interactive companion to the lecture <em>Linear Algebra for Quantum Computing</em> &middot; T2
+  <div class="nav">
+    <a href="./eigen.html">&larr; Eigenvectors &amp; Eigenvalues</a>
+    <a href="./qubit.html">The Qubit &rarr;</a>
+  </div>
+</footer>
+
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* ---------- state ---------- */
+const state = {
+  u: {x: 1.55, y: 0.55},
+  v: {x: 0.55, y: 1.35},
+  drag: null,          // 'u' | 'v' | null
+  hover: null,
+  anim: null,          // {t0,dur,u0,u1,v0,v1}
+  flashT: -1e9,        // last time we *became* orthogonal
+  wasOrtho: false
+};
+
+const cv  = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+const YHALF = 2.35;                 // world half-height
+let W = 0, H = 0, scale = 1, dpr = 1;
+
+const CBLUE   = getCSS('--blue'), CYELLOW = getCSS('--yellow'),
+      CGREEN  = getCSS('--green'), CGRID  = getCSS('--grid'),
+      CAXIS   = getCSS('--axis'),  CMUTED = getCSS('--muted'),
+      CINK    = getCSS('--ink');
+function getCSS(n){ return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
+
+/* ---------- sizing ---------- */
+function resize(){
+  dpr = window.devicePixelRatio || 1;
+  W = cv.clientWidth; H = cv.clientHeight;
+  cv.width  = Math.round(W * dpr);
+  cv.height = Math.round(H * dpr);
+  scale = H / (2 * YHALF);
+}
+new ResizeObserver(resize).observe(cv);
+window.addEventListener('resize', resize);
+resize();
+
+/* ---------- helpers ---------- */
+const sx = x => W/2 + x*scale;
+const sy = y => H/2 - y*scale;
+const smooth = t => t*t*(3-2*t);
+const hyp = v => Math.hypot(v.x, v.y);
+const dot = (a,b) => a.x*b.x + a.y*b.y;
+const clamp = (x,a,b) => Math.max(a, Math.min(b, x));
+function fmt(x, d){ d = (d===undefined)?2:d; const v = Math.abs(x) < 0.5*Math.pow(10,-d) ? 0 : x; return v.toFixed(d); }
+
+function startAnim(u1, v1, dur){
+  state.anim = { t0: performance.now(), dur: dur||900,
+    u0:{...state.u}, v0:{...state.v}, u1:{...u1}, v1:{...v1} };
+}
+function stepAnim(now){
+  const a = state.anim; if(!a) return;
+  const t = clamp((now - a.t0)/a.dur, 0, 1), s = smooth(t);
+  state.u.x = a.u0.x + (a.u1.x - a.u0.x)*s;  state.u.y = a.u0.y + (a.u1.y - a.u0.y)*s;
+  state.v.x = a.v0.x + (a.v1.x - a.v0.x)*s;  state.v.y = a.v0.y + (a.v1.y - a.v0.y)*s;
+  if(t >= 1) state.anim = null;
+}
+
+function unit(v, fallback){
+  const n = hyp(v);
+  if(n < 1e-6) return fallback || {x:1, y:0};
+  return {x: v.x/n, y: v.y/n};
+}
+/* nearest vector perpendicular to u, keeping |v| */
+function perpTarget(){
+  const uh = unit(state.u);
+  const nv = Math.max(hyp(state.v), 0.6);
+  let p = { x: state.v.x - dot(state.v, uh)*uh.x,
+            y: state.v.y - dot(state.v, uh)*uh.y };
+  if(hyp(p) < 1e-4) p = {x: -uh.y, y: uh.x};          // v parallel to u: pick +90 deg
+  const ph = unit(p);
+  return {x: ph.x*nv, y: ph.y*nv};
+}
+
+/* ---------- interactions / buttons ---------- */
+document.getElementById('btnSnap').addEventListener('click', ()=>{
+  startAnim(state.u, perpTarget(), 900);
+});
+document.getElementById('btnNormU').addEventListener('click', ()=>{
+  startAnim(unit(state.u), state.v, 800);
+  document.getElementById('outNU').classList.add('show');
+});
+document.getElementById('btnNormV').addEventListener('click', ()=>{
+  startAnim(state.u, unit(state.v), 800);
+  document.getElementById('outNV').classList.add('show');
+});
+document.getElementById('btnOrthonorm').addEventListener('click', ()=>{
+  const uh = unit(state.u);
+  const p  = perpTarget(), ph = unit(p);
+  startAnim(uh, ph, 1000);
+  document.getElementById('gramBox').classList.add('show');
+  document.getElementById('outNU').classList.add('show');
+  document.getElementById('outNV').classList.add('show');
+});
+document.getElementById('btnComplete').addEventListener('click', ()=>{
+  startAnim({x:1,y:0}, {x:0,y:1}, 1000);
+  document.getElementById('compBox').classList.add('show');
+  document.getElementById('gramBox').classList.add('show');
+});
+
+/* ---------- pointer / dragging ---------- */
+function pointerWorld(e){
+  const r = cv.getBoundingClientRect();
+  return { x: (e.clientX - r.left - W/2)/scale,
+           y: (H/2 - (e.clientY - r.top))/scale };
+}
+function hitTest(e){
+  const r = cv.getBoundingClientRect();
+  const px = e.clientX - r.left, py = e.clientY - r.top;
+  const du = Math.hypot(px - sx(state.u.x), py - sy(state.u.y));
+  const dv = Math.hypot(px - sx(state.v.x), py - sy(state.v.y));
+  if(dv <= 16 && dv <= du) return 'v';
+  if(du <= 16) return 'u';
+  return null;
+}
+cv.addEventListener('pointerdown', e=>{
+  const h = hitTest(e);
+  if(h){
+    state.drag = h; state.anim = null;
+    cv.setPointerCapture(e.pointerId);
+    cv.style.cursor = 'grabbing';
+    e.preventDefault();
+  }
+});
+cv.addEventListener('pointermove', e=>{
+  if(state.drag){
+    const p = pointerWorld(e);
+    const xmax = Math.max(W/(2*scale) - 0.15, 0.5), ymax = YHALF - 0.15;
+    state[state.drag].x = clamp(p.x, -xmax, xmax);
+    state[state.drag].y = clamp(p.y, -ymax, ymax);
+  }else{
+    state.hover = hitTest(e);
+    cv.style.cursor = state.hover ? 'grab' : 'default';
+  }
+});
+function endDrag(e){
+  if(state.drag){ state.drag = null; cv.style.cursor = hitTest(e) ? 'grab' : 'default'; }
+}
+cv.addEventListener('pointerup', endDrag);
+cv.addEventListener('pointercancel', endDrag);
+
+/* ---------- drawing ---------- */
+function arrow(a, b, color, lw, alpha){
+  ctx.save();
+  ctx.globalAlpha = alpha===undefined ? 1 : alpha;
+  ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = lw || 3;
+  const x1 = sx(a.x), y1 = sy(a.y), x2 = sx(b.x), y2 = sy(b.y);
+  const ang = Math.atan2(y2-y1, x2-x1), hl = 13;
+  const bx = x2 - hl*Math.cos(ang)*0.85, by = y2 - hl*Math.sin(ang)*0.85;
+  ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(bx,by); ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(x2, y2);
+  ctx.lineTo(x2 - hl*Math.cos(ang - 0.42), y2 - hl*Math.sin(ang - 0.42));
+  ctx.lineTo(x2 - hl*Math.cos(ang + 0.42), y2 - hl*Math.sin(ang + 0.42));
+  ctx.closePath(); ctx.fill();
+  ctx.restore();
+}
+function handle(p, color, hovered){
+  const x = sx(p.x), y = sy(p.y);
+  ctx.save();
+  if(hovered){
+    ctx.beginPath(); ctx.arc(x, y, 11, 0, 2*Math.PI);
+    ctx.fillStyle = 'rgba(255,255,255,.22)'; ctx.fill();
+  }
+  ctx.beginPath(); ctx.arc(x, y, 7, 0, 2*Math.PI);
+  ctx.fillStyle = color; ctx.fill();
+  ctx.lineWidth = 1.5; ctx.strokeStyle = 'rgba(255,255,255,.55)'; ctx.stroke();
+  ctx.restore();
+}
+function drawGrid(){
+  const xmax = W/(2*scale);
+  ctx.lineWidth = 1; ctx.strokeStyle = CGRID;
+  ctx.beginPath();
+  for(let x = 0.5; x <= xmax; x += 0.5){
+    ctx.moveTo(sx(x), 0);  ctx.lineTo(sx(x), H);
+    ctx.moveTo(sx(-x), 0); ctx.lineTo(sx(-x), H);
+  }
+  for(let y = 0.5; y <= YHALF; y += 0.5){
+    ctx.moveTo(0, sy(y));  ctx.lineTo(W, sy(y));
+    ctx.moveTo(0, sy(-y)); ctx.lineTo(W, sy(-y));
+  }
+  ctx.stroke();
+  /* axes */
+  ctx.lineWidth = 1.5; ctx.strokeStyle = CAXIS;
+  ctx.beginPath();
+  ctx.moveTo(0, sy(0)); ctx.lineTo(W, sy(0));
+  ctx.moveTo(sx(0), 0); ctx.lineTo(sx(0), H);
+  ctx.stroke();
+  /* tick labels */
+  ctx.fillStyle = CMUTED; ctx.font = '11px system-ui,sans-serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  for(let x = -Math.floor(xmax); x <= Math.floor(xmax); x++){
+    if(x !== 0) ctx.fillText(x, sx(x), sy(0) + 5);
+  }
+  ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+  for(let y = -2; y <= 2; y++){
+    if(y !== 0) ctx.fillText(y, sx(0) + 6, sy(y));
+  }
+  /* faint unit circle */
+  ctx.beginPath();
+  ctx.arc(sx(0), sy(0), scale, 0, 2*Math.PI);
+  ctx.strokeStyle = 'rgba(230,233,240,.14)'; ctx.lineWidth = 1;
+  ctx.stroke();
+  ctx.fillStyle = 'rgba(230,233,240,.28)'; ctx.font = '10px system-ui,sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText('unit circle', sx(Math.SQRT1_2) + 6, sy(Math.SQRT1_2) - 6);
+}
+
+function draw(now){
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, W, H);
+  drawGrid();
+
+  const u = state.u, v = state.v;
+  const nu = hyp(u), nv = hyp(v);
+  const ip = dot(u, v);
+  const cosPhi = (nu > 1e-6 && nv > 1e-6) ? clamp(ip/(nu*nv), -1, 1) : 0;
+  const phi = Math.acos(cosPhi);
+  const isOrtho = (nu > 0.05 && nv > 0.05 && Math.abs(cosPhi) < 0.02);
+
+  /* orthogonality flash bookkeeping */
+  if(isOrtho && !state.wasOrtho) state.flashT = now;
+  state.wasOrtho = isOrtho;
+  const flash = clamp(1 - (now - state.flashT)/600, 0, 1);   // 1 -> 0 over 600 ms
+
+  const uh = unit(u);
+  const s  = (nu > 1e-6) ? dot(v, uh) : 0;      // signed projection length of v on u-hat
+  const foot = {x: s*uh.x, y: s*uh.y};
+
+  /* line of u (faint, both ways) */
+  if(nu > 1e-6){
+    const ext = W/scale + H/scale;
+    ctx.save();
+    ctx.strokeStyle = CBLUE; ctx.globalAlpha = 0.18; ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(sx(-uh.x*ext), sy(-uh.y*ext));
+    ctx.lineTo(sx( uh.x*ext), sy( uh.y*ext));
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  /* angle wedge between u and v */
+  if(nu > 0.05 && nv > 0.05){
+    const a0 = Math.atan2(u.y, u.x), a1 = Math.atan2(v.y, v.x);
+    let d = a1 - a0;
+    while(d >  Math.PI) d -= 2*Math.PI;
+    while(d < -Math.PI) d += 2*Math.PI;
+    const r = 0.5*scale;
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(sx(0), sy(0));
+    ctx.arc(sx(0), sy(0), r, -a0, -(a0+d), d > 0);
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(230,233,240,.07)'; ctx.fill();
+    ctx.beginPath();
+    ctx.arc(sx(0), sy(0), r, -a0, -(a0+d), d > 0);
+    ctx.strokeStyle = 'rgba(230,233,240,.45)'; ctx.lineWidth = 1.4; ctx.stroke();
+    const mid = a0 + d/2, lr = r + 26;
+    ctx.fillStyle = CINK; ctx.font = 'italic 14px Georgia,serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('φ = ' + Math.round(phi*180/Math.PI) + '°',
+                 sx(0) + lr*Math.cos(mid), sy(0) - lr*Math.sin(mid));
+    ctx.restore();
+  }
+
+  /* projection: dashed perpendicular from tip of v to the u-line */
+  if(nu > 0.05 && nv > 0.05){
+    ctx.save();
+    ctx.setLineDash([6, 5]);
+    ctx.strokeStyle = CMUTED; ctx.lineWidth = 1.4;
+    ctx.beginPath();
+    ctx.moveTo(sx(v.x), sy(v.y));
+    ctx.lineTo(sx(foot.x), sy(foot.y));
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    /* right-angle marker at the foot */
+    const toV = unit({x: v.x - foot.x, y: v.y - foot.y}, {x: -uh.y, y: uh.x});
+    const d1  = (Math.abs(s) > 0.06) ? {x: -Math.sign(s)*uh.x, y: -Math.sign(s)*uh.y} : {x: uh.x, y: uh.y};
+    const m   = 12/scale;   // marker size in world units (~12 px)
+    const p1 = {x: foot.x + m*d1.x,          y: foot.y + m*d1.y};
+    const p2 = {x: p1.x   + m*toV.x,         y: p1.y   + m*toV.y};
+    const p3 = {x: foot.x + m*toV.x,         y: foot.y + m*toV.y};
+    ctx.beginPath();
+    ctx.moveTo(sx(p1.x), sy(p1.y));
+    ctx.lineTo(sx(p2.x), sy(p2.y));
+    ctx.lineTo(sx(p3.x), sy(p3.y));
+    if(isOrtho){
+      ctx.strokeStyle = CGREEN; ctx.lineWidth = 2.4;
+      ctx.shadowColor = CGREEN; ctx.shadowBlur = 10 + 8*Math.abs(Math.sin(now/280));
+    }else{
+      ctx.strokeStyle = CMUTED; ctx.lineWidth = 1.6;
+    }
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    /* thick green projected segment along u */
+    ctx.strokeStyle = CGREEN; ctx.lineWidth = 6; ctx.lineCap = 'round';
+    ctx.globalAlpha = 0.95;
+    ctx.beginPath();
+    ctx.moveTo(sx(0), sy(0));
+    ctx.lineTo(sx(foot.x), sy(foot.y));
+    ctx.stroke();
+    ctx.globalAlpha = 1; ctx.lineCap = 'butt';
+
+    /* projection label */
+    const midp = {x: foot.x/2, y: foot.y/2};
+    const off  = {x: -uh.y*(18/scale), y: uh.x*(18/scale)};
+    const side = (dot(toV, {x:-uh.y, y:uh.x}) >= 0) ? -1 : 1;   // opposite side from v
+    ctx.fillStyle = CGREEN; ctx.font = 'italic 13px Georgia,serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('⟨û|v⟩ = ' + fmt(s),
+                 sx(midp.x + side*off.x), sy(midp.y + side*off.y));
+    ctx.restore();
+  }
+
+  /* the vectors themselves (flash glow when hitting orthogonality) */
+  ctx.save();
+  if(flash > 0){
+    ctx.shadowColor = CGREEN;
+    ctx.shadowBlur = 22*flash*(0.6 + 0.4*Math.sin(now/60));
+  }
+  arrow({x:0,y:0}, u, CBLUE, 3);
+  arrow({x:0,y:0}, v, CYELLOW, 3);
+  ctx.restore();
+
+  handle(u, CBLUE,   state.hover === 'u' || state.drag === 'u');
+  handle(v, CYELLOW, state.hover === 'v' || state.drag === 'v');
+
+  /* vector labels */
+  ctx.font = 'italic 15px Georgia,serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  const lu = unit(u), lv = unit(v);
+  ctx.fillStyle = CBLUE;
+  ctx.fillText('|u⟩', sx(u.x + lu.x*(22/scale)), sy(u.y + lu.y*(22/scale)));
+  ctx.fillStyle = CYELLOW;
+  ctx.fillText('|v⟩', sx(v.x + lv.x*(22/scale)), sy(v.y + lv.y*(22/scale)));
+
+  return {nu, nv, ip, cosPhi, phi, isOrtho, s};
+}
+
+/* ---------- HTML readouts ---------- */
+const $ = id => document.getElementById(id);
+const els = {
+  r_ux:$('r_ux'), r_uy:$('r_uy'), r_vx:$('r_vx'), r_vy:$('r_vy'), r_ip:$('r_ip'),
+  r_nu:$('r_nu'), r_nv:$('r_nv'), r_a:$('r_a'), r_b:$('r_b'), r_phi:$('r_phi'), r_ip2:$('r_ip2'),
+  o_ux:$('o_ux'), o_uy:$('o_uy'), o_vx:$('o_vx'), o_vy:$('o_vy'), o_ip:$('o_ip'),
+  p_ux:$('p_ux'), p_uy:$('p_uy'), p_vx:$('p_vx'), p_vy:$('p_vy'),
+  m11:$('m11'), m12:$('m12'), m21:$('m21'), m22:$('m22'),
+  g11:$('g11'), g12:$('g12'), g21:$('g21'), g22:$('g22'), gramOK:$('gramOK'),
+  c11:$('c11'), c12:$('c12'), c21:$('c21'), c22:$('c22'),
+  d11:$('d11'), d12:$('d12'), d21:$('d21'), d22:$('d22'),
+  s11:$('s11'), s12:$('s12'), s21:$('s21'), s22:$('s22'), compOK:$('compOK'),
+  ovVal:$('ovVal'), needle:$('needle'), badge:$('orthoBadge'),
+  outNU:$('outNU'), outNV:$('outNV')
+};
+
+function updReadouts(m){
+  const u = state.u, v = state.v;
+  els.r_ux.textContent = fmt(u.x); els.r_uy.textContent = fmt(u.y);
+  els.r_vx.textContent = fmt(v.x); els.r_vy.textContent = fmt(v.y);
+  els.r_ip.textContent = fmt(m.ip);
+  els.r_nu.textContent = fmt(m.nu); els.r_nv.textContent = fmt(m.nv);
+  els.r_a.textContent  = fmt(m.nu); els.r_b.textContent  = fmt(m.nv);
+  els.r_phi.textContent = Math.round(m.phi*180/Math.PI) + '°';
+  els.r_ip2.textContent = fmt(m.nu*m.nv*m.cosPhi);
+
+  /* meter */
+  els.ovVal.textContent = fmt(m.cosPhi);
+  els.needle.style.left = (50 + 50*clamp(m.cosPhi, -1, 1)) + '%';
+  els.badge.classList.toggle('on', m.isOrtho);
+
+  /* normalized forms */
+  const uh = unit(u), vh = unit(v);
+  els.outNU.textContent = '|u⟩/‖u‖ = [' + fmt(uh.x) + ', ' + fmt(uh.y) + ']';
+  els.outNV.textContent = '|v⟩/‖v‖ = [' + fmt(vh.x) + ', ' + fmt(vh.y) + ']';
+
+  /* inner vs outer cards */
+  els.o_ux.textContent = fmt(u.x); els.o_uy.textContent = fmt(u.y);
+  els.o_vx.textContent = fmt(v.x); els.o_vy.textContent = fmt(v.y);
+  els.o_ip.textContent = fmt(m.ip);
+  els.p_ux.textContent = fmt(u.x); els.p_uy.textContent = fmt(u.y);
+  els.p_vx.textContent = fmt(v.x); els.p_vy.textContent = fmt(v.y);
+  els.m11.textContent = fmt(u.x*v.x); els.m12.textContent = fmt(u.x*v.y);
+  els.m21.textContent = fmt(u.y*v.x); els.m22.textContent = fmt(u.y*v.y);
+
+  /* Gram matrix */
+  const g11 = dot(u,u), g12 = dot(u,v), g22 = dot(v,v);
+  els.g11.textContent = fmt(g11); els.g12.textContent = fmt(g12);
+  els.g21.textContent = fmt(g12); els.g22.textContent = fmt(g22);
+  const orthonormal = Math.abs(g11-1) < 0.02 && Math.abs(g22-1) < 0.02 && Math.abs(g12) < 0.02;
+  els.gramOK.style.display = orthonormal ? 'inline' : 'none';
+
+  /* completeness: |u><u| + |v><v| */
+  const a11 = u.x*u.x, a12 = u.x*u.y, a22 = u.y*u.y;
+  const b11 = v.x*v.x, b12 = v.x*v.y, b22 = v.y*v.y;
+  els.c11.textContent = fmt(a11); els.c12.textContent = fmt(a12);
+  els.c21.textContent = fmt(a12); els.c22.textContent = fmt(a22);
+  els.d11.textContent = fmt(b11); els.d12.textContent = fmt(b12);
+  els.d21.textContent = fmt(b12); els.d22.textContent = fmt(b22);
+  const t11 = a11+b11, t12 = a12+b12, t22 = a22+b22;
+  els.s11.textContent = fmt(t11); els.s12.textContent = fmt(t12);
+  els.s21.textContent = fmt(t12); els.s22.textContent = fmt(t22);
+  const isI = Math.abs(t11-1) < 0.02 && Math.abs(t22-1) < 0.02 && Math.abs(t12) < 0.02;
+  els.compOK.style.display = isI ? 'inline' : 'none';
+}
+
+/* ---------- main loop ---------- */
+function frame(now){
+  stepAnim(now);
+  const m = draw(now);
+  updReadouts(m);
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+})();
+</script>
+</body>
+</html>

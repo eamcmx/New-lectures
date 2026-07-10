@@ -39,6 +39,21 @@ Reference frames, rotation matrices and homogeneous transforms — the geometry 
 | `lectures/lecture-07` | Chaining Transformation Matrices Between Coordinate Frames | [Open](https://eamcmx.github.io/New-lectures/lectures/lecture-07/) |
 | `lectures/lecture-08` | Mobile-Frame Rotations & Inverting a Homogeneous Transform | [Open](https://eamcmx.github.io/New-lectures/lectures/lecture-08/) |
 
+## Quantum Computing — Linear Algebra (T2)
+
+Seven interactive, 3Blue1Brown-style explorations built as a companion to the *Linear Algebra for Quantum Computing* lecture. Start from the landing page — each exploration is a hands-on animation of one pillar of the lecture.
+
+| Folder | Page | Published page |
+|--------|------|----------------|
+| `lectures/qc-linear-algebra` | **Landing page — all 7 explorations** | [Open](https://eamcmx.github.io/New-lectures/lectures/qc-linear-algebra/) |
+| ↳ | 1 · The Complex Plane (four notations, conjugate, rotate-and-scale multiplication) | [Open](https://eamcmx.github.io/New-lectures/lectures/qc-linear-algebra/complex-numbers.html) |
+| ↳ | 2 · Euler's Formula (e^(iθ) on the unit circle, De Moivre powers) | [Open](https://eamcmx.github.io/New-lectures/lectures/qc-linear-algebra/euler.html) |
+| ↳ | 3 · Span, Linear Independence & Basis | [Open](https://eamcmx.github.io/New-lectures/lectures/qc-linear-algebra/span-basis.html) |
+| ↳ | 4 · Linear Operators (grid morphing, Pauli & Hadamard presets) | [Open](https://eamcmx.github.io/New-lectures/lectures/qc-linear-algebra/transformations.html) |
+| ↳ | 5 · Eigenvectors & Eigenvalues (sweep + characteristic polynomial) | [Open](https://eamcmx.github.io/New-lectures/lectures/qc-linear-algebra/eigen.html) |
+| ↳ | 6 · Inner Product, Orthogonality & Dirac Notation | [Open](https://eamcmx.github.io/New-lectures/lectures/qc-linear-algebra/inner-product.html) |
+| ↳ | 7 · The Qubit (amplitudes, phase, measurement collapse) | [Open](https://eamcmx.github.io/New-lectures/lectures/qc-linear-algebra/qubit.html) |
+
 ---
 
 *Pages are served from the `main` branch via GitHub Pages. To add a new lecture, drop an `index.html` into a new folder under `lectures/` and add a row to the table above.*
