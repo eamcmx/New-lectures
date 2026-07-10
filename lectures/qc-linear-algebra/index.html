@@ -52,7 +52,15 @@ a.card:hover{border-color:var(--blue); transform:translateY(-2px);}
 .card .go{display:inline-block; margin-top:10px; font-size:.86rem; color:var(--blue);}
 .c1{background:var(--blue);} .c2{background:var(--yellow);} .c3{background:var(--green);}
 .c4{background:var(--purple);} .c5{background:var(--red);} .c6{background:var(--orange);}
-.c7{background:#7ee3c3;}
+.c7{background:#7ee3c3;} .c8{background:#e08fd0;}
+.part2-head{margin:38px 0 6px; display:flex; align-items:baseline; gap:12px; flex-wrap:wrap;}
+.part2-head h2{font-size:1.35rem;}
+.paal-badge{
+  font-size:.72rem; letter-spacing:.08em; text-transform:uppercase;
+  color:var(--purple); border:1px solid var(--purple); border-radius:999px;
+  padding:3px 10px; opacity:.85; white-space:nowrap;
+}
+.part2-sub{color:var(--muted); max-width:760px; font-size:.95rem; margin-bottom:20px;}
 .howto{
   margin:30px 0 0; background:var(--panel); border:1px solid var(--line);
   border-radius:14px; padding:18px 20px;
@@ -128,6 +136,74 @@ footer a{color:var(--muted);} footer a:hover{color:var(--blue);}
       <p>A unit vector in <span class="math">ℂ²</span>: amplitudes as areas, a phase you can dial but
       not measure, and a Measure button that collapses the state — run it 100× and check the tally.</p>
       <span class="go">Explore →</span>
+    </a>
+  </div>
+
+  <div class="part2-head">
+    <h2>Part II — deeper concepts &amp; the learning layer</h2>
+    <span class="paal-badge">PAAL · Progressive AI-Augmented Learning</span>
+  </div>
+  <p class="part2-sub">Three more concept widgets that finish the lecture (tensor products, the
+  operator zoo, spectral decomposition) — plus the CourseForge PAAL toolkit: a gated quiz, worked
+  solutions you unlock by passing it, a guided-prompt studio, an in-page AI study buddy, and a
+  spaced-repetition flashcard deck.</p>
+
+  <div class="grid">
+    <a class="card" href="tensor-product.html">
+      <span class="num c1">8</span>
+      <h2>Tensor &amp; Kronecker Product</h2>
+      <p>Build A⊗B block by block, assemble two-qubit kets |00⟩…|11⟩, and meet a state that
+      refuses to factor — entanglement, live.</p>
+      <span class="go">Explore →</span>
+    </a>
+    <a class="card" href="operator-zoo.html">
+      <span class="num c2">9</span>
+      <h2>The Operator Zoo</h2>
+      <p>Take the dagger † in two animated steps, then classify any matrix live: normal, unitary,
+      Hermitian, projector, positive — with the inclusion map that organizes them all.</p>
+      <span class="go">Explore →</span>
+    </a>
+    <a class="card" href="spectral.html">
+      <span class="num c3">10</span>
+      <h2>Spectral Decomposition</h2>
+      <p>Take an operator apart into λ₁|v₁⟩⟨v₁| + λ₂|v₂⟩⟨v₂|, watch each term act alone, then
+      compute √A and e^(tA) by touching only the eigenvalues.</p>
+      <span class="go">Explore →</span>
+    </a>
+    <a class="card" href="quiz.html">
+      <span class="num c4">11</span>
+      <h2>Formative Quiz</h2>
+      <p>Twelve questions across the whole lecture with instant feedback. Score 80% and the
+      Worked Solutions unlock — retake as often as you like.</p>
+      <span class="go">Take the quiz →</span>
+    </a>
+    <a class="card" href="worked-solutions.html">
+      <span class="num c5">12</span>
+      <h2>Worked Solutions</h2>
+      <p>Five exam-style exercises solved step by step, each step with its why — gated behind
+      the quiz, revealed one move at a time.</p>
+      <span class="go">Unlock →</span>
+    </a>
+    <a class="card" href="prompt-studio.html">
+      <span class="num c6">13</span>
+      <h2>Prompt Studio</h2>
+      <p>The PAAL signature: build calibrated AI-tutor prompts for this lecture, browse expert
+      recipes, and train your eye in the prompt clinic.</p>
+      <span class="go">Open the studio →</span>
+    </a>
+    <a class="card" href="study-buddy.html">
+      <span class="num c7">14</span>
+      <h2>Study Buddy</h2>
+      <p>A Socratic tutor embedded in the page — bring your own free Mistral key (stored only in
+      your browser) and get hints, not answers.</p>
+      <span class="go">Meet the buddy →</span>
+    </a>
+    <a class="card" href="flashcards.html">
+      <span class="num c8">15</span>
+      <h2>Flashcards</h2>
+      <p>Every definition in the lecture as a Leitner-box deck: flip, grade yourself, and let
+      the boxes schedule the forgetting curve for you.</p>
+      <span class="go">Start drilling →</span>
     </a>
   </div>
 
