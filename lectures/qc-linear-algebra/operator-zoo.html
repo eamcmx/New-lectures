@@ -1,0 +1,894 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Operator Zoo — Linear Algebra for QC</title>
+<style>
+:root{
+  --bg:#0e1117;
+  --panel:#161b26;
+  --panel2:#1c2230;
+  --ink:#e6e9f0;
+  --muted:#8b94a7;
+  --grid:#232b3b;
+  --axis:#4a5568;
+  --blue:#58c4dd;
+  --yellow:#ffd35a;
+  --red:#fc6255;
+  --green:#83c167;
+  --purple:#c688eb;
+  --orange:#ff9f4b;
+  --line:#2a3347;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  background:var(--bg);color:var(--ink);
+  font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
+  line-height:1.55;
+}
+.wrap{max-width:1100px;margin:0 auto;padding:24px}
+.math{font-family:Georgia,'Times New Roman',serif;font-style:italic}
+header{margin-bottom:22px}
+header a.crumb{color:var(--muted);text-decoration:none;font-size:14px}
+header a.crumb:hover{color:var(--blue)}
+h1{font-size:30px;margin:10px 0 8px;font-weight:650}
+h2{font-size:18px;font-weight:600;margin-bottom:6px}
+h2 .math{font-weight:400}
+.subtitle{color:var(--muted);max-width:840px;font-size:15px}
+.panel{
+  background:var(--panel);border:1px solid var(--line);
+  border-radius:14px;padding:18px 20px;margin-bottom:20px;
+}
+.hint{color:var(--muted);font-size:13.5px;margin-bottom:14px}
+button{
+  background:var(--panel2);border:1px solid var(--line);color:var(--ink);
+  border-radius:9px;padding:8px 14px;cursor:pointer;font-size:14px;
+  font-family:inherit;transition:border-color .15s,color .15s,background .15s;
+}
+button:hover{border-color:var(--blue)}
+button:disabled{opacity:.45;cursor:default}
+button:disabled:hover{border-color:var(--line)}
+button.active,button.chip.active{
+  border-color:var(--blue);color:var(--blue);background:rgba(88,196,221,.08);
+}
+button.chip{padding:6px 12px;font-size:13px;border-radius:999px}
+.controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:14px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+input[type=range]{accent-color:var(--blue);cursor:pointer}
+
+/* ---------- adjoint machine ---------- */
+.adj-flex{display:flex;flex-wrap:wrap;gap:26px;align-items:flex-start}
+.adj-edit h3,.adj-stagebox h3{
+  font-size:12.5px;text-transform:uppercase;letter-spacing:.07em;
+  color:var(--muted);font-weight:600;margin-bottom:8px;
+}
+.cmat{display:flex;align-items:stretch}
+.brk{width:9px;border:2px solid var(--axis);flex:none}
+.brk.l{border-right:none;border-radius:3px 0 0 3px}
+.brk.r{border-left:none;border-radius:0 3px 3px 0}
+.cmat .cells{
+  display:grid;grid-template-columns:repeat(2,auto);
+  gap:7px 14px;padding:10px 12px;align-items:center;
+}
+.ccell{display:flex;align-items:center;gap:3px;white-space:nowrap}
+.ccell input{
+  width:52px;background:var(--panel2);border:1px solid var(--line);
+  color:var(--ink);border-radius:7px;padding:5px 4px;font-size:14px;
+  text-align:center;font-family:Georgia,serif;
+}
+.ccell input:focus{outline:none;border-color:var(--blue)}
+.ccell input.imin{color:var(--purple);border-color:rgba(198,136,235,.35)}
+.ccell input.imin:focus{border-color:var(--purple)}
+.ccell .plus{color:var(--muted);font-size:13px}
+.ccell .isym{color:var(--purple);font-family:Georgia,serif;font-style:italic;font-size:15px}
+.imv{color:var(--purple)}
+/* rendered (non-editable) matrices */
+.mrender{display:inline-flex;align-items:stretch;vertical-align:middle}
+.mrender .cells{
+  display:grid;grid-template-columns:repeat(2,minmax(58px,auto));
+  gap:5px 14px;padding:8px 12px;align-items:center;
+  font-family:Georgia,'Times New Roman',serif;font-style:italic;font-size:15.5px;
+}
+.mrender .mc{text-align:center;padding:3px 4px;border-radius:6px;white-space:nowrap}
+.mrender .mc.ok{background:rgba(131,193,103,.13)}
+.mrender .mc.bad{background:rgba(252,98,85,.16)}
+/* animation stage */
+.stage{display:flex;align-items:center;gap:16px;flex-wrap:wrap;min-height:110px}
+.smat{display:inline-flex;align-items:stretch}
+.smat .cells{
+  display:grid;grid-template-columns:repeat(2,minmax(74px,auto));
+  gap:6px 12px;padding:9px 11px;align-items:center;
+}
+.scell{
+  background:var(--panel2);border:1px solid var(--line);border-radius:8px;
+  padding:6px 8px;text-align:center;font-family:Georgia,serif;font-style:italic;
+  font-size:15.5px;white-space:nowrap;position:relative;will-change:transform;
+}
+.scell.conj-pulse{animation:conjPulse .8s ease}
+@keyframes conjPulse{
+  0%{background:var(--panel2);box-shadow:none}
+  35%{background:rgba(198,136,235,.28);box-shadow:0 0 14px rgba(198,136,235,.5)}
+  100%{background:var(--panel2);box-shadow:none}
+}
+.scell.sliding{transition:transform .8s cubic-bezier(.45,0,.2,1);z-index:2;border-color:var(--yellow)}
+.dagArrow{font-size:24px;color:var(--yellow);font-family:Georgia,serif}
+.steplabel{font-size:13.5px;color:var(--muted);margin-top:10px;min-height:22px}
+.steplabel .on{color:var(--yellow)}
+.propline{margin-top:14px;padding-top:12px;border-top:1px dashed var(--line);
+  color:var(--muted);font-size:13.5px}
+.propline .math{color:var(--ink)}
+
+/* ---------- zoo cages ---------- */
+.cages{display:grid;grid-template-columns:repeat(auto-fit,minmax(158px,1fr));gap:12px;margin:14px 0 18px}
+.cage{
+  position:relative;background:var(--panel2);border:1px solid var(--line);
+  border-radius:12px;padding:14px 12px 12px;text-align:center;overflow:hidden;
+  transition:border-color .25s,box-shadow .25s;
+}
+.cage .bars{
+  position:absolute;inset:0 0 auto 0;height:9px;opacity:.5;
+  background:repeating-linear-gradient(90deg,var(--line) 0 3px,transparent 3px 12px);
+}
+.cage h3{font-size:13px;letter-spacing:.08em;text-transform:uppercase;font-weight:650;margin:4px 0 4px}
+.cage .eq{font-size:14.5px;color:var(--muted);min-height:24px}
+.cage .mark{font-size:22px;margin-top:6px;color:var(--muted)}
+.cage.lit .mark{color:var(--green);text-shadow:0 0 12px rgba(131,193,103,.8)}
+.cage.lit .eq{color:var(--ink)}
+.cage.lit{box-shadow:0 0 16px rgba(131,193,103,.14)}
+.cage[data-c=blue] h3{color:var(--blue)}   .cage.lit[data-c=blue]{border-color:var(--blue)}
+.cage[data-c=yellow] h3{color:var(--yellow)} .cage.lit[data-c=yellow]{border-color:var(--yellow)}
+.cage[data-c=green] h3{color:var(--green)}  .cage.lit[data-c=green]{border-color:var(--green)}
+.cage[data-c=purple] h3{color:var(--purple)} .cage.lit[data-c=purple]{border-color:var(--purple)}
+.cage[data-c=orange] h3{color:var(--orange)} .cage.lit[data-c=orange]{border-color:var(--orange)}
+.zoo-note{color:var(--muted);font-size:13.5px;min-height:22px;margin-top:10px}
+.zoo-note b{color:var(--ink);font-weight:600}
+.theta-row{display:flex;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap;
+  color:var(--muted);font-size:13.5px}
+.theta-row input{width:200px}
+.theta-val{color:var(--yellow)}
+/* venn */
+.vennwrap{margin-top:8px}
+.vennwrap svg{width:100%;max-width:620px;display:block;margin:0 auto}
+.vr{fill:transparent;stroke:var(--line);stroke-width:1.4;transition:fill .3s,stroke .3s}
+.vt{fill:var(--muted);font:600 11px 'Segoe UI',sans-serif;letter-spacing:.09em;transition:fill .3s}
+.vr.lit-blue{stroke:var(--blue);fill:rgba(88,196,221,.07)}
+.vr.lit-yellow{stroke:var(--yellow);fill:rgba(255,211,90,.08)}
+.vr.lit-green{stroke:var(--green);fill:rgba(131,193,103,.08)}
+.vr.lit-orange{stroke:var(--orange);fill:rgba(255,159,75,.09)}
+.vr.lit-purple{stroke:var(--purple);fill:rgba(198,136,235,.10)}
+.vt.lit-blue{fill:var(--blue)} .vt.lit-yellow{fill:var(--yellow)}
+.vt.lit-green{fill:var(--green)} .vt.lit-orange{fill:var(--orange)}
+.vt.lit-purple{fill:var(--purple)}
+.venn-foot{color:var(--muted);font-size:12.5px;text-align:center;margin-top:6px}
+
+/* ---------- evidence ---------- */
+.ev-row{display:flex;flex-wrap:wrap;gap:14px 22px;align-items:center;margin-top:6px}
+.ev-block{text-align:center}
+.ev-block .lbl{font-size:13px;color:var(--muted);margin-bottom:5px;font-family:Georgia,serif;font-style:italic}
+.verdict{font-size:15px;font-family:Georgia,serif}
+.verdict.yes{color:var(--green)}
+.verdict.no{color:var(--red)}
+.badge{
+  display:inline-block;font-size:12.5px;border-radius:999px;padding:3px 11px;
+  border:1px solid var(--green);color:var(--green);background:rgba(131,193,103,.08);
+}
+.ev-sub{margin-top:14px;padding-top:12px;border-top:1px dashed var(--line);font-size:14px}
+.ev-sub .math{font-size:15px}
+.ev-sub.hidden{display:none}
+.tag-real{color:var(--green);font-style:normal;font-size:13px}
+
+/* ---------- norm canvas ---------- */
+canvas{display:block;width:100%;border-radius:10px;touch-action:none}
+#normCanvas{height:360px}
+.aside{color:var(--muted);font-size:12.5px;margin-top:10px;max-width:760px}
+.normcap{font-size:14px;color:var(--muted)}
+.normcap.good{color:var(--green)}
+.normcap.warn{color:var(--orange)}
+
+/* ---------- insights ---------- */
+.insights{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin-bottom:26px}
+.insights .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px}
+.insights h3{font-size:14px;margin-bottom:7px}
+.insights p{font-size:13.5px;color:var(--muted)}
+.insights p .math{color:var(--ink)}
+.c-blue{color:var(--blue)} .c-yellow{color:var(--yellow)} .c-green{color:var(--green)}
+.c-purple{color:var(--purple)} .c-orange{color:var(--orange)} .c-red{color:var(--red)}
+
+footer{
+  display:flex;justify-content:space-between;align-items:center;gap:14px;
+  flex-wrap:wrap;color:var(--muted);font-size:13px;margin-top:8px;
+  border-top:1px solid var(--line);padding-top:16px;
+}
+footer a{color:var(--muted);text-decoration:none}
+footer a:hover{color:var(--blue)}
+footer .nav{display:flex;gap:18px;flex-wrap:wrap}
+@media(max-width:640px){
+  .adj-flex{gap:16px}
+  .smat .cells{grid-template-columns:repeat(2,minmax(58px,auto))}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <a class="crumb" href="./index.html">← Linear Algebra for Quantum Computing</a>
+  <h1>The Operator Zoo — adjoints, Hermitians, unitaries &amp; friends</h1>
+  <p class="subtitle">Type any 2×2 complex matrix (purple = imaginary parts), or pick a specimen chip.
+  Take its dagger <span class="math">†</span> and watch the two-step machine work; below, the cages light up
+  for every species the matrix belongs to, with live evidence.</p>
+</header>
+
+<!-- ============ 1 · ADJOINT MACHINE ============ -->
+<section class="panel">
+  <h2>1 · The adjoint machine <span class="math">A† = (A*)ᵀ</span></h2>
+  <p class="hint">The adjoint (dagger) is conjugate-then-transpose. It is exactly the bookkeeping that makes
+  <span class="math">⟨u|A†|v⟩ = ⟨v|A|u⟩*</span> hold.</p>
+
+  <div class="adj-flex">
+    <div class="adj-edit">
+      <h3>Matrix <span class="math" style="text-transform:none">A</span> (editable)</h3>
+      <div class="cmat">
+        <div class="brk l"></div>
+        <div class="cells" id="editCells"></div>
+        <div class="brk r"></div>
+      </div>
+    </div>
+
+    <div class="adj-stagebox" style="flex:1;min-width:300px">
+      <h3>Dagger stage</h3>
+      <div class="stage">
+        <div class="smat"><div class="brk l"></div><div class="cells" id="workCells"></div><div class="brk r"></div></div>
+        <span class="dagArrow" id="stageEq" style="visibility:hidden">= <span class="math">A†</span></span>
+      </div>
+      <div class="steplabel" id="stepLabel">Press the button to run: conjugate, then transpose.</div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button id="daggerBtn">Take the dagger †</button>
+    <button class="chip" id="againBtn" disabled>† again</button>
+    <span class="steplabel" id="adjCaption" style="margin-top:0"></span>
+  </div>
+
+  <div class="propline">Rules of the dagger:&nbsp;
+    <span class="math">(A†)† = A</span> &nbsp;·&nbsp;
+    <span class="math">(AB)† = B†A†</span> &nbsp;·&nbsp;
+    <span class="math">(A + B)† = A† + B†</span> &nbsp;·&nbsp;
+    <span class="math">(λA)† = λ*A†</span>
+  </div>
+</section>
+
+<!-- ============ 2 · ZOO CLASSIFIER ============ -->
+<section class="panel">
+  <h2>2 · The zoo — which cages does <span class="math">A</span> belong in?</h2>
+  <p class="hint">Specimens to try (they load into the matrix above):</p>
+  <div class="chips" id="specimenChips"></div>
+  <div class="theta-row" id="thetaRow">
+    <span>Rotation angle <span class="math">θ</span></span>
+    <input type="range" id="thetaSlider" min="0" max="360" step="1" value="36">
+    <span class="math theta-val" id="thetaVal">θ = 36°</span>
+  </div>
+
+  <div class="cages">
+    <div class="cage" data-c="blue" id="cage-normal"><div class="bars"></div>
+      <h3>Normal</h3><div class="math eq">AA† = A†A</div><div class="mark">✗</div></div>
+    <div class="cage" data-c="yellow" id="cage-unitary"><div class="bars"></div>
+      <h3>Unitary</h3><div class="math eq">UU† = U†U = I</div><div class="mark">✗</div></div>
+    <div class="cage" data-c="green" id="cage-hermitian"><div class="bars"></div>
+      <h3>Hermitian</h3><div class="math eq">A = A†</div><div class="mark">✗</div></div>
+    <div class="cage" data-c="purple" id="cage-projector"><div class="bars"></div>
+      <h3>Projector</h3><div class="math eq">P² = P, P = P†</div><div class="mark">✗</div></div>
+    <div class="cage" data-c="orange" id="cage-positive"><div class="bars"></div>
+      <h3>Positive</h3><div class="math eq">⟨v|A|v⟩ ≥ 0</div><div class="mark">✗</div></div>
+  </div>
+
+  <div class="zoo-note" id="zooNote"></div>
+
+  <div class="vennwrap">
+    <svg viewBox="0 0 620 250" role="img" aria-label="Inclusion diagram of operator classes">
+      <rect class="vr" id="v-normal" x="6" y="6" width="608" height="238" rx="16"/>
+      <text class="vt" id="vt-normal" x="22" y="28">NORMAL &#160;AA† = A†A</text>
+      <rect class="vr" id="v-unitary" x="26" y="46" width="252" height="182" rx="12"/>
+      <text class="vt" id="vt-unitary" x="42" y="68">UNITARY</text>
+      <rect class="vr" id="v-hermitian" x="236" y="46" width="358" height="182" rx="12"/>
+      <text class="vt" id="vt-hermitian" x="470" y="68">HERMITIAN</text>
+      <rect class="vr" id="v-positive" x="300" y="86" width="272" height="122" rx="10"/>
+      <text class="vt" id="vt-positive" x="446" y="106">POSITIVE</text>
+      <rect class="vr" id="v-projector" x="322" y="122" width="228" height="64" rx="8"/>
+      <text class="vt" id="vt-projector" x="386" y="158">PROJECTOR</text>
+      <text class="vt" x="245" y="216" style="font-size:10px;letter-spacing:.04em">X, Y, Z, H live here →</text>
+    </svg>
+    <div class="venn-foot">The unitary and Hermitian boxes overlap: <span class="math">X, Y, Z, H</span> are both.
+      Diagonalizable ⇔ normal — everything outside the big box (like the shear) has no orthonormal eigenbasis.</div>
+  </div>
+</section>
+
+<!-- ============ 3 · EVIDENCE ============ -->
+<section class="panel">
+  <h2>3 · Evidence for the verdicts</h2>
+  <div class="ev-row">
+    <div class="ev-block"><div class="lbl">AA†</div><div id="evAAd"></div></div>
+    <div class="ev-block"><span class="verdict" id="evVerdict">=</span></div>
+    <div class="ev-block"><div class="lbl">A†A</div><div id="evAdA"></div></div>
+    <div class="ev-block" id="evUnit" style="display:none"><span class="badge">= I &nbsp;→&nbsp; unitary</span></div>
+  </div>
+  <div class="ev-sub hidden" id="evHerm"></div>
+  <div class="ev-sub hidden" id="evProj"></div>
+</section>
+
+<!-- ============ 4 · NORM PRESERVATION ============ -->
+<section class="panel">
+  <h2>4 · Does it preserve norms?</h2>
+  <p class="hint">A faint unit circle with 12 unit vectors. Apply the current matrix: unitaries land the circle
+  exactly on itself; everything else stretches it.</p>
+  <canvas id="normCanvas"></canvas>
+  <div class="controls">
+    <button id="applyBtn">▶ Apply to circle</button>
+    <span class="normcap" id="normCaption"></span>
+  </div>
+  <p class="aside">Honesty note: when <span class="math">A</span> has complex entries, <span class="math">Av</span>
+  leaves the real plane, so for those matrices we draw each direction <span class="math">v</span> at radius
+  <span class="math">‖Av‖</span> — the stretch profile on the real slice. For real matrices we draw the true image
+  <span class="math">Av</span>. Either way, unitary ⇒ every radius stays 1.</p>
+</section>
+
+<!-- ============ INSIGHTS ============ -->
+<section class="insights">
+  <div class="card">
+    <h3 class="c-purple">The dagger is bookkeeping for bra-ket</h3>
+    <p>Notice how conjugate + transpose is exactly what makes
+    <span class="math">⟨u|A†|v⟩ = ⟨v|A|u⟩*</span> work: bras and kets trade places, and the stray conjugate
+    from flipping <span class="math">⟨v|u⟩ = ⟨u|v⟩*</span> is absorbed by conjugating the entries.
+    That's why <span class="math">(AB)† = B†A†</span> reverses the order — the bra reads it from the other side.</p>
+  </div>
+  <div class="card">
+    <h3 class="c-yellow">Why quantum insists on these species</h3>
+    <p>Gates must be <b class="c-yellow">unitary</b> — reversible and norm-preserving, so probabilities keep summing to 1.
+    Observables must be <b class="c-green">Hermitian</b> — their eigenvalues are real, and a measurement must read out a real number.
+    Measurements themselves are <b class="c-purple">projectors</b>: apply one twice and nothing new happens, <span class="math">P² = P</span>.</p>
+  </div>
+  <div class="card">
+    <h3 class="c-blue">Memorize the picture, not five definitions</h3>
+    <p>The zoo is nested: positive ⊂ Hermitian ⊂ normal, unitary ⊂ normal, projector ⊂ positive.
+    One picture carries all the facts — Hermitian ⇒ real eigenvalues, unitary ⇒ eigenvalues on the unit circle,
+    projector ⇒ eigenvalues 0 or 1, and normal is precisely "diagonalizable with an orthonormal eigenbasis".</p>
+  </div>
+</section>
+
+<footer>
+  <span>Interactive companion to the lecture <i>Linear Algebra for Quantum Computing</i> · T2</span>
+  <span class="nav">
+    <a href="./tensor-product.html">← Tensor &amp; Kronecker Product</a>
+    <a href="./index.html">All explorations</a>
+    <a href="./spectral.html">Spectral Decomposition →</a>
+  </span>
+</footer>
+
+</div>
+<script>
+(() => {
+'use strict';
+/* ================= complex helpers ================= */
+const C = (re, im=0) => ({re, im});
+const cadd = (a,b) => C(a.re+b.re, a.im+b.im);
+const csub = (a,b) => C(a.re-b.re, a.im-b.im);
+const cmul = (a,b) => C(a.re*b.re - a.im*b.im, a.re*b.im + a.im*b.re);
+const cconj = a => C(a.re, -a.im);
+const cabs2 = a => a.re*a.re + a.im*a.im;
+const TOL = 1.5e-3;
+
+/* 2x2 complex matrix ops: M = [[c,c],[c,c]] */
+const mclone = M => M.map(r => r.map(z => C(z.re, z.im)));
+const madj = M => [[cconj(M[0][0]), cconj(M[1][0])],[cconj(M[0][1]), cconj(M[1][1])]];
+function mmul(A,B){
+  const out = [[C(0),C(0)],[C(0),C(0)]];
+  for(let i=0;i<2;i++) for(let j=0;j<2;j++)
+    out[i][j] = cadd(cmul(A[i][0],B[0][j]), cmul(A[i][1],B[1][j]));
+  return out;
+}
+const I2 = () => [[C(1),C(0)],[C(0),C(1)]];
+function mclose(A,B,tol=TOL){
+  for(let i=0;i<2;i++) for(let j=0;j<2;j++){
+    if(Math.abs(A[i][j].re-B[i][j].re) > tol) return false;
+    if(Math.abs(A[i][j].im-B[i][j].im) > tol) return false;
+  }
+  return true;
+}
+const mdet = M => csub(cmul(M[0][0],M[1][1]), cmul(M[0][1],M[1][0]));
+
+/* ================= formatting ================= */
+function fN(x, d=3){
+  if(!isFinite(x)) return '0';
+  let v = Math.round(x * 10**d) / 10**d;
+  if(Object.is(v,-0) || Math.abs(v) < 1e-9) v = 0;
+  return String(v);
+}
+function fmtC(z){
+  const re = Math.abs(z.re) < 5e-4 ? 0 : z.re;
+  const im = Math.abs(z.im) < 5e-4 ? 0 : z.im;
+  if(re === 0 && im === 0) return '0';
+  let out = '';
+  if(re !== 0) out += fN(re);
+  if(im !== 0){
+    const a = Math.abs(im);
+    const coeff = Math.abs(a-1) < 5e-4 ? '' : fN(a);
+    if(re !== 0) out += ' ' + (im < 0 ? '−' : '+') + ' <span class="imv">' + coeff + 'i</span>';
+    else out += (im < 0 ? '−' : '') + '<span class="imv">' + coeff + 'i</span>';
+  }
+  return out;
+}
+function renderMat(M, marks){
+  let cells = '';
+  for(let i=0;i<2;i++) for(let j=0;j<2;j++){
+    const cls = marks ? (marks[i][j] ? ' ok' : ' bad') : '';
+    cells += '<span class="mc'+cls+'">'+fmtC(M[i][j])+'</span>';
+  }
+  return '<span class="mrender"><span class="brk l"></span><span class="cells">'+cells+
+         '</span><span class="brk r"></span></span>';
+}
+
+/* ================= state ================= */
+const state = {
+  M: [[C(0),C(1)],[C(1),C(0)]],      // start with Pauli X
+  preset: 'X',
+  theta: 36 * Math.PI/180,
+  cls: null,
+  dag: { busy:false, canAgain:false, showing:null, run:0 }, // showing: 'adj' when stage holds A†
+  circ: { t:0, target:0, animStart:0, animFrom:0, animating:false, applied:false }
+};
+
+/* ================= presets ================= */
+const S2 = Math.SQRT1_2;
+const PRESETS = [
+  { id:'X', label:'Pauli X', note:'<b>Pauli X</b> — Hermitian <i>and</i> unitary at once: it is its own adjoint and its own inverse (X² = I).',
+    M: () => [[C(0),C(1)],[C(1),C(0)]] },
+  { id:'Y', label:'Pauli Y', note:'<b>Pauli Y</b> — genuinely complex, yet Hermitian: conjugating flips −i ↔ i and transposing swaps them back.',
+    M: () => [[C(0),C(0,-1)],[C(0,1),C(0)]] },
+  { id:'Z', label:'Pauli Z', note:'<b>Pauli Z</b> — real diagonal, so Hermitian; eigenvalues ±1 have modulus 1, so unitary too. Not positive: λ = −1 &lt; 0.',
+    M: () => [[C(1),C(0)],[C(0),C(-1)]] },
+  { id:'H', label:'Hadamard', note:'<b>Hadamard</b> — real symmetric ⇒ Hermitian, and H² = I ⇒ unitary. Eigenvalues ±1, so not positive and not a projector.',
+    M: () => [[C(S2),C(S2)],[C(S2),C(-S2)]] },
+  { id:'rot', label:'Rotation(θ)', note:'<b>Rotation</b> — unitary (orthogonal) for every θ: it only turns vectors, never stretches. Hermitian only at θ = 0° or 180°.',
+    M: () => { const c=Math.cos(state.theta), s=Math.sin(state.theta);
+               return [[C(c),C(-s)],[C(s),C(c)]]; } },
+  { id:'p0', label:'|0⟩⟨0|', note:'<b>|0⟩⟨0|</b> — a rank-1 projector: P² = P, Hermitian, eigenvalues 1 and 0, hence positive. And I − P = |1⟩⟨1| is a projector too.',
+    M: () => [[C(1),C(0)],[C(0),C(0)]] },
+  { id:'pp', label:'|+⟩⟨+|', note:'<b>|+⟩⟨+|</b> — projects onto the diagonal direction |+⟩ = (|0⟩+|1⟩)/√2. Check the evidence panel: P² comes out exactly P.',
+    M: () => [[C(.5),C(.5)],[C(.5),C(.5)]] },
+  { id:'pos', label:'[[2,1],[1,2]]', note:'<b>[[2,1],[1,2]]</b> — real symmetric ⇒ Hermitian; eigenvalues 3 and 1 are ≥ 0 ⇒ positive. Not unitary: it stretches (watch the circle).',
+    M: () => [[C(2),C(1)],[C(1),C(2)]] },
+  { id:'shear', label:'[[1,1],[0,1]] shear', note:'<b>Shear</b> — AA† ≠ A†A, so it is <b>not normal</b>: not diagonalizable, not in the zoo. Nothing lights up.',
+    M: () => [[C(1),C(1)],[C(0),C(1)]] },
+  { id:'iI', label:'iI', note:'<b>iI</b> — unitary, since |i| = 1: (iI)(iI)† = (iI)(−iI) = I. Normal too. But (iI)† = −iI ≠ iI, so <b>not</b> Hermitian (it is anti-Hermitian).',
+    M: () => [[C(0,1),C(0)],[C(0),C(0,1)]] }
+];
+
+/* ================= DOM refs ================= */
+const $ = id => document.getElementById(id);
+const editCells = $('editCells'), workCells = $('workCells');
+const stepLabel = $('stepLabel'), adjCaption = $('adjCaption'), stageEq = $('stageEq');
+const daggerBtn = $('daggerBtn'), againBtn = $('againBtn');
+const zooNote = $('zooNote'), thetaSlider = $('thetaSlider'), thetaVal = $('thetaVal');
+const evAAd = $('evAAd'), evAdA = $('evAdA'), evVerdict = $('evVerdict'),
+      evUnit = $('evUnit'), evHerm = $('evHerm'), evProj = $('evProj');
+const applyBtn = $('applyBtn'), normCaption = $('normCaption');
+const canvas = $('normCanvas'), ctx = canvas.getContext('2d');
+
+/* ================= matrix editor ================= */
+const inputs = []; // inputs[i][j] = {re, im}
+(function buildEditor(){
+  for(let i=0;i<2;i++){
+    inputs.push([]);
+    for(let j=0;j<2;j++){
+      const cell = document.createElement('span');
+      cell.className = 'ccell';
+      const re = document.createElement('input');
+      re.type='number'; re.step='0.1'; re.setAttribute('aria-label','row '+(i+1)+' col '+(j+1)+' real part');
+      const im = document.createElement('input');
+      im.type='number'; im.step='0.1'; im.className='imin';
+      im.setAttribute('aria-label','row '+(i+1)+' col '+(j+1)+' imaginary part');
+      const plus = document.createElement('span'); plus.className='plus'; plus.textContent='+';
+      const isym = document.createElement('span'); isym.className='isym'; isym.textContent='i';
+      cell.append(re, plus, im, isym);
+      editCells.appendChild(cell);
+      inputs[i].push({re, im});
+      [re, im].forEach(inp => inp.addEventListener('input', () => {
+        state.M[i][j] = C(parseFloat(re.value)||0, parseFloat(im.value)||0);
+        state.preset = null;
+        syncChips();
+        updateAll(false);
+      }));
+    }
+  }
+})();
+function writeInputs(){
+  for(let i=0;i<2;i++) for(let j=0;j<2;j++){
+    inputs[i][j].re.value = fN(state.M[i][j].re, 4);
+    inputs[i][j].im.value = fN(state.M[i][j].im, 4);
+  }
+}
+
+/* ================= dagger stage ================= */
+const work = []; // 4 scell divs, row-major
+(function buildStage(){
+  for(let k=0;k<4;k++){
+    const d = document.createElement('div');
+    d.className = 'scell';
+    workCells.appendChild(d);
+    work.push(d);
+  }
+})();
+function fillStage(M){
+  for(let i=0;i<2;i++) for(let j=0;j<2;j++)
+    work[i*2+j].innerHTML = fmtC(M[i][j]);
+}
+function resetStage(){
+  state.dag.run++;  // invalidate any in-flight animation timeouts
+  state.dag.busy = false; state.dag.canAgain = false; state.dag.showing = null;
+  fillStage(state.M);
+  stageEq.style.visibility = 'hidden';
+  stepLabel.innerHTML = 'Press the button to run: conjugate, then transpose.';
+  adjCaption.innerHTML = '';
+  againBtn.disabled = true; daggerBtn.disabled = false;
+  work.forEach(d => { d.classList.remove('conj-pulse','sliding'); d.style.transform=''; });
+}
+function runDagger(src, isAgain){
+  if(state.dag.busy) return;
+  state.dag.busy = true;
+  const myRun = ++state.dag.run;
+  const alive = () => state.dag.run === myRun;
+  daggerBtn.disabled = true; againBtn.disabled = true;
+  adjCaption.innerHTML = '';
+  stageEq.style.visibility = 'hidden';
+  const conj = src.map(r => r.map(cconj));
+  const result = madj(src);
+  fillStage(src);
+  /* step 1: conjugate */
+  stepLabel.innerHTML = '<span class="on">Step 1 — conjugate:</span> every imaginary part flips sign.';
+  work.forEach(d => { d.classList.remove('conj-pulse'); void d.offsetWidth; d.classList.add('conj-pulse'); });
+  setTimeout(() => { if(alive()) fillStage(conj); }, 330);
+  /* step 2: transpose (slide the off-diagonal cells) */
+  setTimeout(() => {
+    if(!alive()) return;
+    work.forEach(d => d.classList.remove('conj-pulse'));
+    stepLabel.innerHTML = '<span class="on">Step 2 — transpose:</span> the off-diagonal entries slide across the diagonal.';
+    const b = work[1], c = work[2];
+    const rb = b.getBoundingClientRect(), rc = c.getBoundingClientRect();
+    b.classList.add('sliding'); c.classList.add('sliding');
+    requestAnimationFrame(() => {
+      b.style.transform = 'translate('+(rc.left-rb.left)+'px,'+(rc.top-rb.top)+'px)';
+      c.style.transform = 'translate('+(rb.left-rc.left)+'px,'+(rb.top-rc.top)+'px)';
+    });
+    setTimeout(() => {
+      if(!alive()) return;
+      b.classList.remove('sliding'); c.classList.remove('sliding');
+      b.style.transform = ''; c.style.transform = '';
+      fillStage(result);
+      stageEq.style.visibility = 'visible';
+      stageEq.innerHTML = isAgain ? '= <span class="math">(A†)†</span>' : '= <span class="math">A†</span>';
+      if(isAgain){
+        stepLabel.innerHTML = 'Done — and we are back where we started.';
+        adjCaption.innerHTML = '<span class="math c-green">(A†)† = A</span>&nbsp; — two daggers cancel.';
+        state.dag.showing = null;
+        state.dag.canAgain = false;
+      } else {
+        stepLabel.innerHTML = 'Done: this is <span class="math">A†</span>. Compare it to <span class="math">A</span> on the left' +
+          (state.cls && state.cls.hermitian ? ' — identical! <span class="math">A = A†</span>: Hermitian.' : '.');
+        state.dag.showing = 'adj';
+        state.dag.canAgain = true;
+      }
+      state.dag.busy = false;
+      daggerBtn.disabled = false;
+      againBtn.disabled = !state.dag.canAgain;
+    }, 880);
+  }, 900);
+}
+daggerBtn.addEventListener('click', () => runDagger(state.M, false));
+againBtn.addEventListener('click', () => {
+  if(state.dag.showing === 'adj') runDagger(madj(state.M), true);
+});
+
+/* ================= classification ================= */
+function classify(M){
+  const Ad  = madj(M);
+  const AAd = mmul(M, Ad);
+  const AdA = mmul(Ad, M);
+  const normal    = mclose(AAd, AdA);
+  const unitary   = mclose(AAd, I2()) && mclose(AdA, I2());
+  const hermitian = mclose(M, Ad);
+  const projector = hermitian && mclose(mmul(M, M), M);
+  let positive = false, eig = null;
+  if(hermitian){
+    const tr  = M[0][0].re + M[1][1].re;          // real for Hermitian
+    const det = mdet(M).re;                        // real for Hermitian
+    const disc = Math.max(0, tr*tr - 4*det);
+    const s = Math.sqrt(disc);
+    eig = { tr, det, l1:(tr+s)/2, l2:(tr-s)/2 };
+    positive = eig.l2 >= -TOL;
+  }
+  /* singular values via eigenvalues of A†A (Hermitian, PSD) */
+  const trB  = AdA[0][0].re + AdA[1][1].re;
+  const detB = cabs2(mdet(M));
+  const discB = Math.max(0, trB*trB - 4*detB);
+  const sB = Math.sqrt(discB);
+  const smax = Math.sqrt(Math.max(0,(trB+sB)/2));
+  const smin = Math.sqrt(Math.max(0,(trB-sB)/2));
+  let isReal = true;
+  for(let i=0;i<2;i++) for(let j=0;j<2;j++) if(Math.abs(M[i][j].im) > TOL) isReal = false;
+  return { Ad, AAd, AdA, normal, unitary, hermitian, projector, positive, eig, smax, smin, isReal };
+}
+
+/* ================= cages + venn ================= */
+const CAGES = [
+  ['normal','normal'], ['unitary','unitary'], ['hermitian','hermitian'],
+  ['projector','projector'], ['positive','positive']
+];
+const VCOLOR = { normal:'blue', unitary:'yellow', hermitian:'green', positive:'orange', projector:'purple' };
+function updateCages(cls){
+  CAGES.forEach(([key]) => {
+    const on = cls[key];
+    const cage = $('cage-'+key);
+    cage.classList.toggle('lit', on);
+    cage.querySelector('.mark').textContent = on ? '✓' : '✗';
+    const col = VCOLOR[key];
+    $('v-'+key).setAttribute('class', 'vr' + (on ? ' lit-'+col : ''));
+    $('vt-'+key).setAttribute('class', 'vt' + (on ? ' lit-'+col : ''));
+  });
+}
+
+/* ================= evidence panel ================= */
+function updateEvidence(cls){
+  const marksL = [], marksR = [];
+  for(let i=0;i<2;i++){
+    marksL.push([]); marksR.push([]);
+    for(let j=0;j<2;j++){
+      const eq = Math.abs(cls.AAd[i][j].re - cls.AdA[i][j].re) <= TOL &&
+                 Math.abs(cls.AAd[i][j].im - cls.AdA[i][j].im) <= TOL;
+      marksL[i].push(eq); marksR[i].push(eq);
+    }
+  }
+  evAAd.innerHTML = renderMat(cls.AAd, marksL);
+  evAdA.innerHTML = renderMat(cls.AdA, marksR);
+  evVerdict.textContent = cls.normal ? '=' : '≠';
+  evVerdict.className = 'verdict ' + (cls.normal ? 'yes' : 'no');
+  evUnit.style.display = cls.unitary ? '' : 'none';
+
+  if(cls.hermitian && cls.eig){
+    const e = cls.eig;
+    evHerm.classList.remove('hidden');
+    evHerm.innerHTML =
+      'Hermitian ⇒ real spectrum. &nbsp;<span class="math">λ = (tr ± √(tr² − 4·det))/2 ' +
+      '= ('+fN(e.tr)+' ± √'+fN(Math.max(0,e.tr*e.tr-4*e.det))+')/2</span> &nbsp;⇒&nbsp; ' +
+      '<span class="math c-green">λ₁ = '+fN(e.l1)+', λ₂ = '+fN(e.l2)+'</span> ' +
+      '<span class="tag-real">real ✓</span>' +
+      (cls.positive ? ' &nbsp;<span class="tag-real">both ≥ 0 ⇒ positive ✓</span>' : '') +
+      (cls.projector ? ' &nbsp;<span class="tag-real" style="color:var(--purple)">eigenvalues in {0, 1} — projector spectrum</span>' : '');
+  } else {
+    evHerm.classList.add('hidden');
+  }
+
+  if(cls.projector){
+    const P2 = mmul(state.M, state.M);
+    evProj.classList.remove('hidden');
+    evProj.innerHTML =
+      '<div class="ev-row" style="margin-top:2px">' +
+      '<div class="ev-block"><div class="lbl">P</div>' + renderMat(state.M) + '</div>' +
+      '<div class="ev-block"><span class="verdict yes">=</span></div>' +
+      '<div class="ev-block"><div class="lbl">P²</div>' + renderMat(P2) + '</div>' +
+      '<div class="ev-block"><span class="badge" style="border-color:var(--purple);color:var(--purple);background:rgba(198,136,235,.08)">P² = P ✓ &nbsp;(and I − P is a projector too)</span></div>' +
+      '</div>';
+  } else {
+    evProj.classList.add('hidden');
+  }
+}
+
+/* ================= specimen chips ================= */
+const chipEls = {};
+PRESETS.forEach(p => {
+  const b = document.createElement('button');
+  b.className = 'chip';
+  b.textContent = p.label;
+  b.addEventListener('click', () => applyPreset(p.id));
+  $('specimenChips').appendChild(b);
+  chipEls[p.id] = b;
+});
+function syncChips(){
+  PRESETS.forEach(p => chipEls[p.id].classList.toggle('active', state.preset === p.id));
+}
+function applyPreset(id){
+  const p = PRESETS.find(q => q.id === id);
+  if(!p) return;
+  state.preset = id;
+  state.M = p.M();
+  writeInputs();
+  syncChips();
+  updateAll(true);
+}
+thetaSlider.addEventListener('input', () => {
+  state.theta = (+thetaSlider.value) * Math.PI/180;
+  thetaVal.textContent = 'θ = ' + thetaSlider.value + '°';
+  if(state.preset === 'rot'){
+    state.M = PRESETS.find(q => q.id === 'rot').M();
+    writeInputs();
+    updateAll(true);
+  }
+});
+
+/* ================= norm canvas ================= */
+let cw = 0, ch = 0, dpr = 1;
+function resizeCanvas(){
+  dpr = window.devicePixelRatio || 1;
+  const r = canvas.getBoundingClientRect();
+  cw = r.width; ch = r.height;
+  canvas.width = Math.round(cw*dpr);
+  canvas.height = Math.round(ch*dpr);
+}
+window.addEventListener('resize', resizeCanvas);
+if(window.ResizeObserver) new ResizeObserver(resizeCanvas).observe(canvas);
+resizeCanvas();
+
+const smooth = t => t<=0 ? 0 : t>=1 ? 1 : t*t*(3-2*t);
+function mapPoint(phi, t){
+  /* returns world coords of circle point at parameter phi, morph amount t in [0,1] */
+  const vx = Math.cos(phi), vy = Math.sin(phi);
+  const M = state.M, cls = state.cls;
+  if(cls.isReal){
+    const ax = M[0][0].re*vx + M[0][1].re*vy;
+    const ay = M[1][0].re*vx + M[1][1].re*vy;
+    return [vx + (ax-vx)*t, vy + (ay-vy)*t];
+  }
+  /* complex: radial stretch profile r = ||Av|| */
+  const w0 = cadd(cmul(M[0][0], C(vx)), cmul(M[0][1], C(vy)));
+  const w1 = cadd(cmul(M[1][0], C(vx)), cmul(M[1][1], C(vy)));
+  const r = Math.sqrt(cabs2(w0) + cabs2(w1));
+  const rr = 1 + (r-1)*t;
+  return [vx*rr, vy*rr];
+}
+function arrow(x0,y0,x1,y1,color,width,alpha){
+  const dx=x1-x0, dy=y1-y0, len=Math.hypot(dx,dy);
+  if(len < 1e-6) return;
+  ctx.save();
+  ctx.globalAlpha = alpha; ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = width;
+  const hl = Math.min(10, len*0.35);
+  const ux=dx/len, uy=dy/len;
+  const bx = x1-ux*hl, by = y1-uy*hl;
+  ctx.beginPath(); ctx.moveTo(x0,y0); ctx.lineTo(bx,by); ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(x1,y1);
+  ctx.lineTo(bx-uy*hl*0.45, by+ux*hl*0.45);
+  ctx.lineTo(bx+uy*hl*0.45, by-ux*hl*0.45);
+  ctx.closePath(); ctx.fill();
+  ctx.restore();
+}
+function drawCanvas(){
+  if(cw < 10) return;
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,cw,ch);
+  const cls = state.cls;
+  const worldR = Math.max(1.55, cls.smax*1.12 + 0.15);
+  const cx = cw/2, cy = ch/2;
+  const sc = (Math.min(cw,ch)/2 - 12) / worldR;
+  const X = x => cx + x*sc, Y = y => cy - y*sc;
+  /* grid */
+  ctx.lineWidth = 1; ctx.strokeStyle = '#232b3b';
+  const step = worldR > 2.4 ? 1 : 0.5;
+  for(let g = step; g <= worldR + 1e-9; g += step){
+    for(const s of [g, -g]){
+      ctx.beginPath(); ctx.moveTo(X(s), 0); ctx.lineTo(X(s), ch); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0, Y(s)); ctx.lineTo(cw, Y(s)); ctx.stroke();
+    }
+  }
+  /* axes */
+  ctx.lineWidth = 1.5; ctx.strokeStyle = '#4a5568';
+  ctx.beginPath(); ctx.moveTo(0, cy); ctx.lineTo(cw, cy); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(cx, 0); ctx.lineTo(cx, ch); ctx.stroke();
+  ctx.fillStyle = '#8b94a7'; ctx.font = '11px "Segoe UI",sans-serif';
+  ctx.fillText('1', X(1)+3, cy+13);
+  ctx.fillText('−1', X(-1)-14, cy+13);
+  /* unit circle ghost */
+  ctx.save();
+  ctx.strokeStyle = '#8b94a7'; ctx.globalAlpha = 0.35; ctx.setLineDash([4,5]); ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.arc(cx, cy, sc, 0, Math.PI*2); ctx.stroke();
+  ctx.restore();
+  const t = smooth(state.circ.t);
+  /* morphed circle */
+  ctx.strokeStyle = '#58c4dd'; ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  const N = 144;
+  for(let k=0;k<=N;k++){
+    const [px,py] = mapPoint(k/N*Math.PI*2, t);
+    if(k===0) ctx.moveTo(X(px), Y(py)); else ctx.lineTo(X(px), Y(py));
+  }
+  ctx.stroke();
+  /* 12 sample vectors: ghosts + morphed */
+  for(let k=0;k<12;k++){
+    const phi = k*Math.PI/6;
+    arrow(cx, cy, X(Math.cos(phi)), Y(Math.sin(phi)), '#8b94a7', 1.4, 0.22);
+    const [px,py] = mapPoint(phi, t);
+    arrow(cx, cy, X(px), Y(py), '#ffd35a', 2.4, 0.85);
+  }
+  /* small mode label */
+  ctx.fillStyle = '#8b94a7'; ctx.font = 'italic 13px Georgia,serif'; ctx.globalAlpha = 0.9;
+  ctx.fillText(cls.isReal ? 'real matrix — true image Av' : 'complex matrix — stretch profile ‖Av‖', 12, 20);
+  ctx.globalAlpha = 1;
+}
+function setNormCaption(){
+  const cls = state.cls;
+  if(!state.circ.applied && state.circ.t < 0.02){
+    normCaption.className = 'normcap';
+    normCaption.innerHTML = 'Circle at rest — press apply.';
+    return;
+  }
+  if(cls.unitary){
+    normCaption.className = 'normcap good';
+    normCaption.innerHTML = 'The circle lands on itself: <span class="math">‖Uv‖ = ‖v‖</span> — norms preserved. ' +
+      'Unitary eigenvalues all have <span class="math">|λ| = 1</span>.';
+  } else {
+    normCaption.className = 'normcap warn';
+    normCaption.innerHTML = 'Not norm-preserving: max stretch <span class="math">σ_max = '+fN(cls.smax,3)+
+      '</span>, min <span class="math">σ_min = '+fN(cls.smin,3)+'</span>.';
+  }
+}
+applyBtn.addEventListener('click', () => {
+  state.circ.animFrom = state.circ.t;
+  state.circ.target = state.circ.applied ? 0 : 1;
+  state.circ.applied = !state.circ.applied;
+  state.circ.animating = true;
+  state.circ.animStart = performance.now();
+  applyBtn.textContent = state.circ.applied ? '↺ Reset circle' : '▶ Apply to circle';
+  setNormCaption();
+});
+
+/* ================= zoo note ================= */
+function updateNote(){
+  const p = PRESETS.find(q => q.id === state.preset);
+  if(p){ zooNote.innerHTML = p.note; return; }
+  const cls = state.cls;
+  if(!cls.normal){
+    zooNote.innerHTML = 'Custom matrix — <b>not normal</b>: <span class="math">AA† ≠ A†A</span>, so it is not diagonalizable by any orthonormal basis. Not in the zoo.';
+  } else {
+    const names = [];
+    if(cls.unitary) names.push('unitary');
+    if(cls.hermitian) names.push('Hermitian');
+    if(cls.projector) names.push('a projector');
+    if(cls.positive) names.push('positive');
+    zooNote.innerHTML = 'Custom matrix — normal' + (names.length ? ', and also ' + names.join(', ') : '') + '.';
+  }
+}
+
+/* ================= master update ================= */
+function updateAll(fromPreset){
+  state.cls = classify(state.M);
+  updateCages(state.cls);
+  updateEvidence(state.cls);
+  updateNote();
+  resetStage();
+  /* reset the circle morph when the matrix changes */
+  state.circ.t = 0; state.circ.target = 0; state.circ.applied = false; state.circ.animating = false;
+  applyBtn.textContent = '▶ Apply to circle';
+  setNormCaption();
+}
+
+/* ================= single rAF loop ================= */
+function frame(now){
+  if(state.circ.animating){
+    const D = 1000; /* ~1s ease */
+    const u = Math.min(1, (now - state.circ.animStart)/D);
+    state.circ.t = state.circ.animFrom + (state.circ.target - state.circ.animFrom)*smooth(u);
+    if(u >= 1){ state.circ.t = state.circ.target; state.circ.animating = false; setNormCaption(); }
+  }
+  drawCanvas();
+  requestAnimationFrame(frame);
+}
+
+/* ================= boot ================= */
+writeInputs();
+syncChips();
+updateAll(true);
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
