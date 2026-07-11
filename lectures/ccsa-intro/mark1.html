@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Harvard Mark I — Intro to Computer Systems Architecture</title>
+<style>
+:root{
+  --bg:#0e1117;
+  --panel:#161b26;
+  --panel2:#1c2230;
+  --ink:#e6e9f0;
+  --muted:#8b94a7;
+  --grid:#232b3b;
+  --axis:#4a5568;
+  --blue:#58c4dd;
+  --yellow:#ffd35a;
+  --red:#fc6255;
+  --green:#83c167;
+  --purple:#c688eb;
+  --orange:#ff9f4b;
+  --line:#2a3347;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--bg); color:var(--ink);
+  font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
+  line-height:1.55;
+}
+.wrap{max-width:1100px;margin:0 auto;padding:24px}
+a{color:var(--blue);text-decoration:none}
+a:hover{text-decoration:underline}
+header .crumb{color:var(--muted);font-size:14px}
+header .crumb:hover{color:var(--blue);text-decoration:none}
+h1{margin:10px 0 6px;font-size:34px;line-height:1.2}
+.subtitle{color:var(--muted);max-width:70ch;margin:0 0 22px}
+h2{font-size:15px;letter-spacing:.12em;color:var(--muted);text-transform:uppercase;margin:0 0 12px}
+.math{font-family:Georgia,'Times New Roman',serif;font-style:italic}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin-bottom:22px}
+.mono{font-family:ui-monospace,'Cascadia Mono',Consolas,monospace}
+
+/* ---- history panel ---- */
+.hist{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.hist .block h3{margin:0 0 6px;font-size:13px;letter-spacing:.08em;text-transform:uppercase}
+.hist .block:nth-child(1) h3{color:var(--blue)}
+.hist .block:nth-child(2) h3{color:var(--yellow)}
+.hist .block:nth-child(3) h3{color:var(--green)}
+.hist p{margin:0;font-size:14px;color:var(--ink)}
+.hist .dim{color:var(--muted)}
+
+/* ---- controls ---- */
+button{
+  background:var(--panel2);border:1px solid var(--line);color:var(--ink);
+  border-radius:9px;padding:8px 14px;cursor:pointer;font-size:14px;font-family:inherit;
+}
+button:hover{border-color:var(--blue)}
+button.active,button.on{border-color:var(--blue);color:var(--blue);background:rgba(88,196,221,.08)}
+button:disabled{opacity:.45;cursor:default}
+button:disabled:hover{border-color:var(--line)}
+input[type=range]{accent-color:var(--blue);vertical-align:middle}
+input[type=number]{
+  background:var(--panel2);border:1px solid var(--line);color:var(--ink);
+  border-radius:8px;padding:6px 8px;width:70px;font-family:inherit;font-size:14px;
+}
+.controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:12px}
+.controls .sep{width:1px;height:26px;background:var(--line);margin:0 4px}
+.chip{
+  background:var(--panel2);border:1px solid var(--line);border-radius:9px;
+  padding:6px 12px;font-size:13px;color:var(--muted);white-space:nowrap;
+}
+.chip b{color:var(--ink);font-weight:600;font-family:ui-monospace,'Cascadia Mono',Consolas,monospace}
+.chip.time b{color:var(--orange)}
+.chip.cyc b{color:var(--purple)}
+.presets{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:10px}
+.presets button{border-radius:999px}
+#caption{
+  border-left:3px solid var(--yellow);background:rgba(255,211,90,.05);
+  border-radius:0 9px 9px 0;padding:10px 14px;font-size:14px;color:var(--ink);
+  margin-bottom:14px;display:none;
+}
+#caption b{color:var(--yellow)}
+
+/* ---- simulator grid ---- */
+.simgrid{display:grid;grid-template-columns:390px 1fr;gap:18px;align-items:start}
+.tapecol .cv{background:var(--bg);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+canvas{display:block;width:100%;height:540px}
+.loopbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:10px;font-size:14px}
+.loopbar label{color:var(--muted);font-size:13px}
+.editor{margin-top:12px}
+.editor textarea{
+  width:100%;min-height:130px;background:var(--panel2);border:1px solid var(--line);
+  color:var(--ink);border-radius:9px;padding:10px 12px;
+  font-family:ui-monospace,'Cascadia Mono',Consolas,monospace;font-size:13px;line-height:1.6;
+  resize:vertical;
+}
+.editor textarea:focus{outline:none;border-color:var(--blue)}
+.editor .row{display:flex;gap:10px;align-items:center;margin-top:8px}
+#errlist{color:var(--red);font-size:13px;margin-top:6px;font-family:ui-monospace,'Cascadia Mono',Consolas,monospace;white-space:pre-line}
+.legend{margin-top:10px;font-size:12.5px;color:var(--muted)}
+.legend table{border-collapse:collapse;width:100%}
+.legend td{padding:2px 8px 2px 0;vertical-align:top}
+.legend td:first-child{font-family:ui-monospace,'Cascadia Mono',Consolas,monospace;color:var(--blue);white-space:nowrap}
+
+/* ---- accumulators: odometer wheels ---- */
+.accs{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.acc{
+  background:var(--panel2);border:1px solid var(--line);border-radius:10px;
+  padding:8px 10px;display:flex;align-items:center;gap:8px;
+  transition:box-shadow .25s,border-color .25s;
+}
+.acc.flash{border-color:var(--green);box-shadow:0 0 12px rgba(131,193,103,.35)}
+.acc .nm{color:var(--muted);font-size:12px;font-weight:600;width:22px;letter-spacing:.05em}
+.acc .sign{
+  width:16px;height:26px;border:1px solid var(--line);border-radius:4px;
+  display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--muted);
+  background:var(--bg);flex:0 0 auto;
+}
+.acc .sign.neg{color:var(--red);border-color:var(--red)}
+.wheels{display:flex;gap:2px}
+.wheel{
+  width:16px;height:26px;overflow:hidden;background:var(--bg);
+  border:1px solid var(--line);border-radius:4px;position:relative;flex:0 0 auto;
+}
+.wheel::after{ /* wheel shading, odometer feel */
+  content:"";position:absolute;inset:0;pointer-events:none;border-radius:3px;
+  background:linear-gradient(180deg,rgba(0,0,0,.55),rgba(0,0,0,0) 30%,rgba(0,0,0,0) 70%,rgba(0,0,0,.55));
+}
+.wheel .strip{
+  display:flex;flex-direction:column;transition:transform .45s cubic-bezier(.25,.6,.3,1);
+  font-family:ui-monospace,'Cascadia Mono',Consolas,monospace;font-size:15px;
+}
+.wheel .strip span{height:26px;display:flex;align-items:center;justify-content:center;color:var(--ink)}
+
+/* ---- constant registers: dial switches ---- */
+.constbox,.multbox{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.subhead{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 8px}
+.creg{display:flex;align-items:center;gap:6px;margin-bottom:6px}
+.creg .nm{color:var(--yellow);font-size:12px;font-weight:600;width:22px}
+.dials{display:flex;gap:2px}
+.dial{display:flex;flex-direction:column;align-items:center}
+.dial button{
+  padding:0;width:16px;height:11px;font-size:8px;line-height:1;border-radius:3px;
+  color:var(--muted);display:flex;align-items:center;justify-content:center;
+}
+.dial button:hover{color:var(--blue)}
+.dial .dg{
+  width:16px;height:20px;background:var(--bg);border:1px solid var(--line);border-radius:3px;
+  display:flex;align-items:center;justify-content:center;
+  font-family:ui-monospace,'Cascadia Mono',Consolas,monospace;font-size:13px;margin:1px 0;
+}
+.constnote{font-size:11.5px;color:var(--muted);margin-top:4px}
+
+/* ---- multiply–divide unit ---- */
+.multbox{position:relative;transition:box-shadow .3s,border-color .3s}
+.multbox.lit{border-color:var(--orange);box-shadow:0 0 18px rgba(255,159,75,.35)}
+.multbox .lamp{
+  width:12px;height:12px;border-radius:50%;background:#3a3347;display:inline-block;
+  vertical-align:middle;margin-right:8px;transition:background .3s,box-shadow .3s;
+}
+.multbox.lit .lamp{background:var(--orange);box-shadow:0 0 10px var(--orange)}
+.multbox .opname{font-size:13px;color:var(--muted)}
+.multbox.lit .opname{color:var(--orange)}
+.mbar{height:6px;background:var(--bg);border-radius:3px;margin-top:8px;overflow:hidden}
+.mbar i{display:block;height:100%;width:0;background:var(--orange);border-radius:3px}
+
+/* ---- typewriter ---- */
+.typebox{margin-top:12px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.paper{
+  background:#e8e2cd;color:#3a3428;border-radius:6px;padding:10px 14px;
+  font-family:ui-monospace,'Cascadia Mono',Consolas,monospace;font-size:14px;line-height:1.7;
+  min-height:72px;max-height:180px;overflow-y:auto;white-space:pre;
+  box-shadow:inset 0 2px 8px rgba(0,0,0,.25);
+}
+.paper .fresh{background:rgba(131,193,103,.35)}
+
+/* ---- status bar ---- */
+#status{
+  margin-top:14px;padding:10px 14px;border-radius:9px;font-size:14px;
+  background:var(--panel2);border:1px solid var(--line);color:var(--muted);min-height:42px;
+}
+#status.ok{border-color:var(--green);color:var(--green)}
+#status.jam{border-color:var(--red);color:var(--red)}
+
+/* ---- cards ---- */
+.notecard{
+  border-left:3px solid var(--purple);background:rgba(198,136,235,.05);
+  border-radius:0 9px 9px 0;padding:12px 16px;font-size:14px;margin-bottom:22px;
+}
+.notecard b{color:var(--purple)}
+.simpl ul{margin:6px 0 0;padding-left:20px;font-size:14px;color:var(--muted)}
+.simpl li{margin-bottom:4px}
+.insights{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-bottom:22px}
+.insights .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px}
+.insights .card h3{margin:0 0 6px;font-size:14px}
+.insights .card p{margin:0;font-size:14px;color:var(--ink)}
+.insights .card:nth-child(1) h3{color:var(--green)}
+.insights .card:nth-child(2) h3{color:var(--orange)}
+.insights .card:nth-child(3) h3{color:var(--blue)}
+.insights .card.go{border-color:var(--blue);background:rgba(88,196,221,.06)}
+.insights .card.go h3{color:var(--blue)}
+.insights .card.go a{font-weight:600}
+
+footer{color:var(--muted);font-size:13px;text-align:center;padding:12px 0 30px}
+footer .nav{display:flex;justify-content:space-between;gap:10px;margin-top:10px;flex-wrap:wrap}
+footer .nav a{color:var(--muted)}
+footer .nav a:hover{color:var(--blue);text-decoration:none}
+
+@media (max-width:900px){
+  .simgrid{grid-template-columns:1fr}
+  .hist{grid-template-columns:1fr}
+  .insights{grid-template-columns:1fr}
+  .accs{grid-template-columns:1fr 1fr}
+  canvas{height:440px}
+  h1{font-size:27px}
+}
+@media (max-width:520px){
+  .accs{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <a class="crumb" href="./index.html">← Intro to Computer Systems Architecture</a>
+  <h1>The Harvard Mark I — fifty feet of clockwork arithmetic</h1>
+  <p class="subtitle">A room-sized electromechanical calculator that read its program from a punched paper tape, one instruction per line, and clicked through it at three additions per second — for fifteen years straight. Load a preset below, press ▶ Run, and watch the digit wheels turn. Notice the machine-time readout: you are about to <em>feel</em> how slow "fast" once was.</p>
+</header>
+
+<!-- ============ THE MACHINE ============ -->
+<section class="panel">
+  <h2>The Machine</h2>
+  <div class="hist">
+    <div class="block">
+      <h3>1944 · Aiken &amp; IBM · relays and shafts</h3>
+      <p>The IBM <b>Automatic Sequence Controlled Calculator</b> (ASCC), completed in 1944 and installed at Harvard. Roughly <b>750,000 electromechanical components</b> — relays, rotating shafts, clutches — synchronized by a <b>50-foot drive shaft turned by a 5-horsepower motor</b>. A <b>decimal</b> machine: <b>72 accumulator registers of 23 digits plus sign</b>. <span class="dim">Speed: ~3 additions/second; a multiplication took ~6 seconds. It ran nearly continuously for ~15 years.</span></p>
+    </div>
+    <div class="block">
+      <h3>How it was programmed</h3>
+      <p>A <b>24-channel punched paper tape</b>, one instruction per line, fed through a reader: each line said <i>take from this unit, deliver to that unit, do this</i>. There was <b>no conditional branch</b> — long computations meant tapes many meters long, and a loop meant <b>physically splicing the tape into a loop</b>. <b>Grace Hopper</b> was one of its first programmers (and later taped the legendary "first actual bug" — a moth — into the logbook of its successor, Mark II).</p>
+    </div>
+    <div class="block">
+      <h3>What it actually computed</h3>
+      <p><b>Mathematical tables.</b> It ground out <b>Bessel function tables</b> for years — the staff nicknamed it <b>"Bessie"</b>. It computed <b>Navy gunnery and ballistics tables</b>, and in 1944 <b>John von Neumann</b> ran <b>implosion calculations for the Manhattan Project</b> on it. Table-making, one difference at a time: the defining computational job of the era.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ THE SIMULATOR ============ -->
+<section class="panel">
+  <h2>The Simulator — the sequence-controlled tape machine</h2>
+
+  <div class="presets">
+    <button id="p-bessie">① A page of Bessie's tables: x² via differences</button>
+    <button id="p-ballistics">② Ballistics flavor: range table row</button>
+    <button id="p-interest">③ Compound interest table</button>
+  </div>
+  <div id="caption"></div>
+
+  <div class="controls">
+    <button id="btn-run">▶ Run</button>
+    <button id="btn-pause">⏸ Pause</button>
+    <button id="btn-step">Step</button>
+    <button id="btn-reset">Reset</button>
+    <span class="sep"></span>
+    <label style="color:var(--muted);font-size:13px">speed
+      <input type="range" id="speed" min="0.2" max="2" step="0.05" value="0.6">
+      <span id="speedval" class="mono" style="color:var(--blue);font-size:13px">0.60 s/step</span>
+    </label>
+    <span class="sep"></span>
+    <span class="chip cyc">cycle <b id="cycdisp">–</b></span>
+    <span class="chip">line <b id="linedisp">–</b></span>
+    <span class="chip time">real machine time <b id="timedisp">0.0 s</b></span>
+  </div>
+
+  <div class="simgrid">
+    <!-- ---- left: the program tape ---- -->
+    <div class="tapecol">
+      <div class="cv"><canvas id="tape"></canvas></div>
+      <div class="loopbar">
+        <button id="btn-loop">⟲ Splice tape into a loop</button>
+        <label>run <input type="number" id="cycles" min="1" max="99" value="10"> cycles</label>
+      </div>
+      <div class="editor">
+        <p class="subhead" style="margin-top:14px">Tape editor — one instruction per line</p>
+        <textarea id="prog" spellcheck="false"></textarea>
+        <div class="row">
+          <button id="btn-splice">⤓ Punch &amp; splice this tape</button>
+        </div>
+        <div id="errlist"></div>
+        <div class="legend">
+          <table>
+            <tr><td>A3 -&gt; A5</td><td>transfer: <b>add</b> A3 into A5 (receiving always adds!)</td></tr>
+            <tr><td>A3 -s&gt; A5</td><td>transfer subtractive: subtract A3 from A5</td></tr>
+            <tr><td>C2 -&gt; A1</td><td>constant register into accumulator (adds)</td></tr>
+            <tr><td>A2 * A3 -&gt; A6</td><td>multiply — routed through the slow multiply unit</td></tr>
+            <tr><td>A2 / A3 -&gt; A6</td><td>divide — slower still</td></tr>
+            <tr><td>TYPE A5</td><td>print accumulator on the typewriter</td></tr>
+            <tr><td>CLEAR A5</td><td>reset an accumulator to zero</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ---- right: machine state ---- -->
+    <div class="statecol">
+      <p class="subhead">Accumulators (8 of the real 72 · each 8 digits of the real 23)</p>
+      <div class="accs" id="accs"></div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px" class="row2">
+        <div class="constbox">
+          <p class="subhead">Constant registers — switch panels</p>
+          <div id="consts"></div>
+          <p class="constnote">Click ▲▼ to set the dials — the real machine had 60 constant registers set by 1,440 hand-turned rotary switches.</p>
+        </div>
+        <div class="multbox" id="multbox">
+          <p class="subhead">Multiply–Divide Unit</p>
+          <span class="lamp"></span><span class="opname" id="multop">idle</span>
+          <div class="mbar"><i id="multbar"></i></div>
+          <p class="constnote">A separate bank of machinery. Multiplication ≈ 6 s, division ≈ 15 s — twenty to fifty times the cost of an addition. Watch it light up.</p>
+        </div>
+      </div>
+
+      <div class="typebox">
+        <p class="subhead">Output typewriter</p>
+        <div class="paper" id="paper"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="status">Load a preset above, or punch your own tape. Space bar = step while paused.</div>
+</section>
+
+<!-- ============ historical footnote card ============ -->
+<div class="notecard">
+  <b>1946: crude branching arrives.</b> Two years in, a "subsidiary sequence unit" was bolted on, letting the machine pick between a few auxiliary tapes — the first whiff of a conditional branch. But for years before that, Bessie just looped: if you wanted <span class="math">n</span> iterations, you glued the tape's ends together and let the reader go around. The <em>if-statement</em> you take for granted was once a hardware upgrade.
+</div>
+
+<!-- ============ SIMPLIFICATIONS ============ -->
+<section class="panel simpl">
+  <h2>Simplifications — where this simulator cheats</h2>
+  <ul>
+    <li><b>8 accumulators, not 72</b> — and 8 digits each, not 23 digits + sign.</li>
+    <li><b>4 constant registers, not 60</b> (the real ones were set by 1,440 rotary switches).</li>
+    <li><b>Friendly assembler, not hole codes</b> — the real tape carried numeric unit codes punched across 24 channels (OUT | IN | MISC); our hole patterns are suggestive, not the true encoding.</li>
+    <li><b>Timing compressed</b> — the multiply–divide unit is slowed only 4–6× on screen; the "real machine time" readout uses the true speeds instead (add 0.3 s, multiply 6 s, divide 15 s, typing a result ≈ 5 s).</li>
+    <li><b>The loop toggle stands in for glue</b> — real loops were paper, scissors, and splice cement.</li>
+  </ul>
+</section>
+
+<!-- ============ INSIGHTS ============ -->
+<section class="insights">
+  <div class="card">
+    <h3>Receiving means adding</h3>
+    <p>Notice how a plain transfer <span class="mono">A3 -&gt; A5</span> doesn't <em>replace</em> A5 — it <em>adds into</em> it. That's not a quirk, it's the machine's nature: an accumulator is a counter wheel, and delivering a number turns the wheel. This is the direct ancestor of the <span class="mono">+=</span> operator and of the accumulate path inside every modern ALU. When you had to overwrite, you cleared first — count how many <span class="mono">CLEAR</span> lines the presets need.</p>
+  </div>
+  <div class="card">
+    <h3>The cost model was visible</h3>
+    <p>Multiplication cost ~20 additions; division cost ~50. You could <em>hear</em> the difference. So algorithm design meant counting operations — which is exactly why preset ① computes squares with two additions instead of one multiplication. Nothing has changed but the units: today we count FLOPs versus memory traffic, and the best algorithms still route around the expensive unit.</p>
+  </div>
+  <div class="card">
+    <h3>Harvard architecture — this page's namesake</h3>
+    <p>The program lived on paper tape; the data lived in accumulator wheels. Two physically separate paths — instructions could never be data. Von Neumann's shared-memory design won the war of ideas, but the Harvard idea never died: your CPU's split L1 instruction / L1 data caches (L1i / L1d) are exactly this tape-versus-wheels separation, rebuilt in silicon for speed.</p>
+  </div>
+  <div class="card go">
+    <h3>Go further: run both architectures</h3>
+    <p>This course ships full CPU simulators. Try the <a href="../../sim/harvard.html">Harvard-architecture simulator</a> to program a machine with split instruction/data memory, then open the <a href="../../sim/compare.html">side-by-side comparison</a> to race it against a von Neumann machine on the same problem.</p>
+  </div>
+</section>
+
+<footer>
+  Interactive companion to the lecture <em>Introduction to Computers &amp; Computer Systems Architecture</em> · CCSA T1
+  <div class="nav">
+    <a href="./z3.html">← The Zuse Z3</a>
+    <a href="./index.html">All explorations</a>
+    <a href="./eniac.html">ENIAC →</a>
+  </div>
+</footer>
+
+</div>
+
+<script>
+'use strict';
+/* ============================================================
+   The Harvard Mark I simulator — sequence-controlled tape machine
+   ============================================================ */
+
+const ACC_NAMES = ['A1','A2','A3','A4','A5','A6','A7','A8'];
+const CONST_NAMES = ['C1','C2','C3','C4'];
+const NDIGITS = 8;
+const CAP = 10 ** NDIGITS;            // overflow bound (|v| must stay < 10^8)
+
+/* real Mark I costs in seconds, per instruction */
+const COST = {add:0.3, sub:0.3, clear:0.3, type:5, mult:6, div:15};
+/* on-screen duration multiplier per op (× the speed-slider step time) */
+const DUR  = {add:1, sub:1, clear:1, type:1.5, mult:4, div:6};
+
+const state = {
+  accs:  Object.fromEntries(ACC_NAMES.map(n=>[n,0])),
+  consts:Object.fromEntries(CONST_NAMES.map(n=>[n,0])),
+  snapshotAccs: Object.fromEntries(ACC_NAMES.map(n=>[n,0])),
+  lines: [],            // [{raw, parsed|null, err|null, out,in,misc}]
+  pos: 0,               // index of next instruction within tape
+  absPos: 0,            // ever-increasing line count (for smooth loop scrolling)
+  cycle: 1,
+  loop: false,
+  cyclesWanted: 10,
+  scale: 0,             // decimal places inserted by the typewriter (fixed-point scaling)
+  running: false,
+  done: false,
+  jam: false,
+  machineTime: 0,
+  steps: 0,
+  nextStepAt: 0,        // performance.now() ms when next step fires
+  execAbs: -1,          // absolute index of the line currently under the head
+  offset: -1,           // animated tape offset (in line units, follows execAbs)
+  unit: null,           // {name,start,end} multiply–divide unit activity
+  flashUntil: {},       // accName -> timestamp
+};
+
+/* ---------------- DOM: accumulators as odometer wheels ---------------- */
+const accsEl = document.getElementById('accs');
+const accDom = {};
+for(const n of ACC_NAMES){
+  const box = document.createElement('div'); box.className='acc';
+  const nm = document.createElement('div'); nm.className='nm'; nm.textContent=n;
+  const sign = document.createElement('div'); sign.className='sign'; sign.textContent='+';
+  const wheels = document.createElement('div'); wheels.className='wheels';
+  const strips=[];
+  for(let i=0;i<NDIGITS;i++){
+    const w=document.createElement('div'); w.className='wheel';
+    const s=document.createElement('div'); s.className='strip';
+    for(let d=0;d<=9;d++){const sp=document.createElement('span');sp.textContent=d;s.appendChild(sp);}
+    w.appendChild(s); wheels.appendChild(w); strips.push(s);
+  }
+  box.appendChild(nm); box.appendChild(sign); box.appendChild(wheels);
+  accsEl.appendChild(box);
+  accDom[n]={box,sign,strips};
+}
+function renderAcc(n, flash){
+  const v = state.accs[n], a = Math.abs(v);
+  const d = accDom[n];
+  d.sign.textContent = v<0 ? '−' : '+';
+  d.sign.classList.toggle('neg', v<0);
+  for(let i=0;i<NDIGITS;i++){
+    const dig = Math.floor(a / 10**(NDIGITS-1-i)) % 10;
+    d.strips[i].style.transform = `translateY(${-dig*26}px)`;
+  }
+  if(flash){
+    d.box.classList.add('flash');
+    clearTimeout(state.flashUntil[n]);
+    state.flashUntil[n]=setTimeout(()=>d.box.classList.remove('flash'),550);
+  }
+}
+function renderAllAccs(){ for(const n of ACC_NAMES) renderAcc(n,false); }
+
+/* ---------------- DOM: constant-register dial switches ---------------- */
+const constsEl = document.getElementById('consts');
+const constDom = {};
+for(const n of CONST_NAMES){
+  const row=document.createElement('div'); row.className='creg';
+  const nm=document.createElement('div'); nm.className='nm'; nm.textContent=n;
+  const dials=document.createElement('div'); dials.className='dials';
+  const digs=[];
+  for(let i=0;i<NDIGITS;i++){
+    const dial=document.createElement('div'); dial.className='dial';
+    const up=document.createElement('button'); up.textContent='▲'; up.title='dial up';
+    const dg=document.createElement('div'); dg.className='dg'; dg.textContent='0';
+    const dn=document.createElement('button'); dn.textContent='▼'; dn.title='dial down';
+    const place = 10**(NDIGITS-1-i);
+    const bump=(delta)=>{
+      const cur=Math.floor(state.consts[n]/place)%10;
+      const nd=(cur+delta+10)%10;
+      state.consts[n]+= (nd-cur)*place;
+      renderConst(n);
+    };
+    up.addEventListener('click',()=>bump(1));
+    dn.addEventListener('click',()=>bump(-1));
+    dial.appendChild(up); dial.appendChild(dg); dial.appendChild(dn);
+    dials.appendChild(dial); digs.push(dg);
+  }
+  row.appendChild(nm); row.appendChild(dials); constsEl.appendChild(row);
+  constDom[n]=digs;
+}
+function renderConst(n){
+  const v=state.consts[n];
+  for(let i=0;i<NDIGITS;i++)
+    constDom[n][i].textContent = Math.floor(v/10**(NDIGITS-1-i))%10;
+}
+function renderAllConsts(){ for(const n of CONST_NAMES) renderConst(n); }
+
+/* ---------------- parsing the friendly assembler ---------------- */
+const R_MULDIV=/^(A[1-8]|C[1-4])\s*([*\/])\s*(A[1-8]|C[1-4])\s*->\s*(A[1-8])$/i;
+const R_SUB   =/^(A[1-8]|C[1-4])\s*-s>\s*(A[1-8])$/i;
+const R_ADD   =/^(A[1-8]|C[1-4])\s*->\s*(A[1-8])$/i;
+const R_TYPE  =/^TYPE\s+(A[1-8])$/i;
+const R_CLEAR =/^CLEAR\s+(A[1-8])$/i;
+const U=s=>s.toUpperCase();
+
+function parseLine(raw){
+  const t = raw.replace(/#.*$/,'').trim();
+  if(!t) return null;                       // blank / comment — not punched
+  let m;
+  if((m=t.match(R_MULDIV))){
+    const op = m[2]==='*' ? 'mult' : 'div';
+    return {raw:t, parsed:{op, a:U(m[1]), b:U(m[3]), dst:U(m[4])},
+            out:U(m[1])+'·'+U(m[3]), in_:U(m[4]), misc:op==='mult'?'MULT':'DIV'};
+  }
+  if((m=t.match(R_SUB)))  return {raw:t, parsed:{op:'sub', src:U(m[1]), dst:U(m[2])}, out:U(m[1]), in_:U(m[2]), misc:'SUB'};
+  if((m=t.match(R_ADD)))  return {raw:t, parsed:{op:'add', src:U(m[1]), dst:U(m[2])}, out:U(m[1]), in_:U(m[2]), misc:'ADD'};
+  if((m=t.match(R_TYPE))) return {raw:t, parsed:{op:'type', src:U(m[1])}, out:U(m[1]), in_:'TYP', misc:'PRINT'};
+  if((m=t.match(R_CLEAR)))return {raw:t, parsed:{op:'clear', dst:U(m[1])}, out:'—', in_:U(m[1]), misc:'CLEAR'};
+  return {raw:t, parsed:null, err:'unreadable holes', out:'?', in_:'?', misc:'?'};
+}
+
+function spliceTape(){
+  const src = document.getElementById('prog').value.split('\n');
+  const lines=[]; const errs=[];
+  src.forEach((raw,i)=>{
+    const L=parseLine(raw);
+    if(!L) return;
+    if(L.err) errs.push(`line ${i+1}: "${L.raw}" — ${L.err}`);
+    lines.push(L);
+  });
+  state.lines=lines;
+  document.getElementById('errlist').textContent =
+    errs.length ? '⚠ mis-punched lines (the reader will jam on them):\n'+errs.join('\n') : '';
+  rewind();
+  if(lines.length===0) setStatus('The tape is blank — punch some instructions first.','');
+  else setStatus(`Tape punched and threaded: ${lines.length} line${lines.length>1?'s':''}${state.loop?' — spliced into a loop':''}. Press ▶ Run or Step.`,'');
+}
+
+/* ---------------- hole pattern (suggestive 24-channel encoding) ---------------- */
+function unitCode(s){
+  if(!s) return 0;
+  if(s[0]==='A') return +s[1];         // 1..8
+  if(s[0]==='C') return 8 + +s[1];     // 9..12
+  if(s==='TYP') return 13;
+  return 15;
+}
+const MISC_CODE={ADD:1,SUB:2,MULT:3,DIV:4,PRINT:5,CLEAR:6,'?':7};
+function holeBits(L){
+  // 24 booleans: ch 0-7 = OUT, 8-15 = IN, 16-23 = MISC (binary-ish, purely suggestive)
+  const bits=new Array(24).fill(false);
+  let o=0;
+  if(L.parsed){
+    const p=L.parsed;
+    o = unitCode(p.src||p.a||'');
+    if(p.b) o |= unitCode(p.b)<<4;
+  }else o=0xAA;
+  const i_=unitCode(L.in_==='TYP'?'TYP':(L.in_==='—'?'':L.in_));
+  const m=MISC_CODE[L.misc]||7;
+  for(let k=0;k<8;k++){ bits[k]=!!(o>>k&1); bits[8+k]=!!(i_>>k&1); bits[16+k]=!!(m>>k&1); }
+  return bits;
+}
+
+/* ---------------- typewriter ---------------- */
+const paperEl=document.getElementById('paper');
+function fmtValue(v){
+  const neg=v<0, a=Math.abs(v);
+  let s;
+  if(state.scale>0){
+    const p=10**state.scale;
+    s = Math.floor(a/p) + '.' + String(a%p).padStart(state.scale,'0');
+  }else s=String(a);
+  if(neg) s='−'+s;
+  return s.padStart(12,' ');
+}
+function typeOut(text){
+  const line=document.createElement('div'); line.className='fresh';
+  paperEl.appendChild(line);
+  let i=0;
+  const iv=setInterval(()=>{
+    line.textContent=text.slice(0,++i);
+    if(i>=text.length){clearInterval(iv); setTimeout(()=>line.classList.remove('fresh'),450);}
+  },28);
+  paperEl.scrollTop=paperEl.scrollHeight;
+  setTimeout(()=>{paperEl.scrollTop=paperEl.scrollHeight;},text.length*28+50);
+}
+
+/* ---------------- execution ---------------- */
+function setStatus(msg,cls){
+  const el=document.getElementById('status');
+  el.textContent=msg; el.className=cls||'';
+}
+function jam(msg){
+  state.jam=true; state.running=false;
+  setStatus('⚠ THE MACHINE JAMS — '+msg+' A bell rings; the tape reader stops. Press Reset.','jam');
+  syncButtons();
+}
+function getVal(reg){ return reg[0]==='A' ? state.accs[reg] : state.consts[reg]; }
+function addInto(dst, delta){
+  state.accs[dst]+=delta;
+  if(Math.abs(state.accs[dst])>=CAP){ renderAcc(dst,true); jam(`accumulator ${dst} overflowed its ${NDIGITS} digit wheels (the real machine had 23 digits of headroom — this is why).`); return false; }
+  renderAcc(dst,true);
+  return true;
+}
+
+function executeStep(){
+  if(state.jam||state.done||state.lines.length===0) return 0;
+  const L=state.lines[state.pos];
+  state.execAbs=state.absPos;
+  if(!L.parsed){ jam(`the reader hit a mis-punched line: "${L.raw}".`); return 0; }
+  const p=L.parsed;
+  let ok=true;
+  switch(p.op){
+    case 'add':  ok=addInto(p.dst, getVal(p.src)); break;
+    case 'sub':  ok=addInto(p.dst,-getVal(p.src)); break;
+    case 'clear':state.accs[p.dst]=0; renderAcc(p.dst,true); break;
+    case 'type': typeOut(fmtValue(state.accs[p.src])); break;
+    case 'mult': case 'div': {
+      const x=getVal(p.a), y=getVal(p.b);
+      if(p.op==='div' && y===0){ jam('division by zero — the multiply–divide unit grinds to a halt.'); return 0; }
+      const r = p.op==='mult' ? x*y : Math.trunc(x/y);
+      if(Math.abs(r)>=CAP){ jam(`the ${p.op==='mult'?'product':'quotient'} exceeds ${NDIGITS} digits.`); return 0; }
+      ok=addInto(p.dst,r);
+      break;
+    }
+  }
+  if(!ok) return 0;
+  state.machineTime+=COST[p.op];
+  state.steps++;
+  /* advance the tape */
+  state.pos++; state.absPos++;
+  if(state.pos>=state.lines.length){
+    if(state.loop && state.cycle<state.cyclesWanted){
+      state.cycle++; state.pos=0;
+    }else{
+      state.done=true; state.running=false;
+      const passes = state.loop? state.cycle : 1;
+      setStatus(`✓ Tape finished — ${passes} ${state.loop?'cycle':'pass'}${passes>1?'s':''}, ${state.steps} instructions executed. The real Mark I would have taken ≈ ${fmtTime(state.machineTime)}.`,'ok');
+    }
+  }
+  updateChips(); syncButtons();
+  return DUR[p.op];
+}
+
+function fmtTime(s){
+  if(s<60) return s.toFixed(1)+' s';
+  const m=Math.floor(s/60);
+  return `${m} min ${Math.round(s-m*60)} s`;
+}
+function updateChips(){
+  document.getElementById('cycdisp').textContent =
+    state.lines.length? (state.loop? `${state.cycle} / ${state.cyclesWanted}` : `${state.cycle} / 1`) : '–';
+  document.getElementById('linedisp').textContent =
+    state.lines.length? `${Math.min(state.pos+1,state.lines.length)} / ${state.lines.length}` : '–';
+  document.getElementById('timedisp').textContent = fmtTime(state.machineTime);
+}
+function rewind(){
+  state.pos=0; state.absPos=0; state.cycle=1; state.done=false; state.jam=false;
+  state.running=false; state.machineTime=0; state.steps=0;
+  state.execAbs=-1; state.offset=-1; state.unit=null;
+  updateChips(); syncButtons();
+}
+function resetMachine(){
+  rewind();
+  state.accs={...state.snapshotAccs};
+  renderAllAccs();
+  paperEl.innerHTML='';
+  setStatus('Machine reset: accumulators restored, typewriter paper torn off, tape rewound. (Constant-register dials keep their settings — they are physical switches.)','');
+}
+
+/* ---------------- run loop (rAF) ---------------- */
+const speedEl=document.getElementById('speed');
+function stepSeconds(){ return parseFloat(speedEl.value); }
+speedEl.addEventListener('input',()=>{
+  document.getElementById('speedval').textContent=stepSeconds().toFixed(2)+' s/step';
+});
+
+const multbox=document.getElementById('multbox');
+const multop=document.getElementById('multop');
+const multbar=document.getElementById('multbar');
+
+function fireStep(now){
+  const L=state.lines[state.pos];
+  const dur=executeStep();                     // returns duration multiplier
+  if(dur===0) return;
+  const ms=dur*stepSeconds()*1000;
+  state.nextStepAt=now+ms;
+  if(L && L.parsed && (L.parsed.op==='mult'||L.parsed.op==='div')){
+    state.unit={name:L.parsed.op==='mult'?'MULTIPLYING…':'DIVIDING…', start:now, end:now+ms};
+  }
+}
+
+let lastT=performance.now();
+function frame(now){
+  const dt=Math.min(0.1,(now-lastT)/1000); lastT=now;
+  /* running stepper */
+  if(state.running && !state.done && !state.jam && now>=state.nextStepAt) fireStep(now);
+  /* multiply–divide unit lamp + progress */
+  if(state.unit){
+    const u=state.unit;
+    if(now>=u.end){ state.unit=null; multbox.classList.remove('lit'); multop.textContent='idle'; multbar.style.width='0'; }
+    else{
+      multbox.classList.add('lit'); multop.textContent=u.name;
+      multbar.style.width=(100*(now-u.start)/(u.end-u.start)).toFixed(1)+'%';
+    }
+  }
+  /* tape offset eases toward the line under the head */
+  const target=Math.max(0,state.execAbs);
+  state.offset += (target-state.offset)*Math.min(1,dt*7);
+  drawTape();
+  requestAnimationFrame(frame);
+}
+
+/* ---------------- buttons ---------------- */
+const bRun=document.getElementById('btn-run'), bPause=document.getElementById('btn-pause'),
+      bStep=document.getElementById('btn-step'), bReset=document.getElementById('btn-reset'),
+      bLoop=document.getElementById('btn-loop'), cyclesEl=document.getElementById('cycles');
+
+function syncButtons(){
+  bRun.disabled = state.running || state.jam || state.lines.length===0;
+  bPause.disabled = !state.running;
+  bStep.disabled = state.running || state.done || state.jam || state.lines.length===0;
+  bLoop.classList.toggle('on', state.loop);
+  bLoop.textContent = state.loop ? '⟲ Tape is spliced into a loop' : '⟲ Splice tape into a loop';
+}
+bRun.addEventListener('click',()=>{
+  if(state.done) resetMachine();
+  if(state.lines.length===0||state.jam) return;
+  state.running=true; state.nextStepAt=performance.now();
+  setStatus('The clutches engage; the tape crawls through the reader…','');
+  syncButtons();
+});
+bPause.addEventListener('click',()=>{ state.running=false; setStatus('Paused — the drive shaft keeps spinning, the clutches are just disengaged. Step or ▶ Run to continue.',''); syncButtons(); });
+bStep.addEventListener('click',()=>{ if(!state.running) fireStep(performance.now()); });
+bReset.addEventListener('click',resetMachine);
+bLoop.addEventListener('click',()=>{
+  state.loop=!state.loop;
+  if(!state.loop && state.cycle>1) state.done=true;
+  setStatus(state.loop
+    ? 'Snip, glue — the tape ends are now spliced together. Set how many cycles to run, then ▶ Run.'
+    : 'The splice is cut: the tape runs straight through once and stops.','');
+  updateChips(); syncButtons();
+});
+cyclesEl.addEventListener('input',()=>{
+  const v=Math.max(1,Math.min(99,Math.round(+cyclesEl.value||1)));
+  state.cyclesWanted=v; updateChips();
+});
+document.getElementById('btn-splice').addEventListener('click',spliceTape);
+window.addEventListener('keydown',e=>{
+  if(e.code==='Space' && !state.running &&
+     !/TEXTAREA|INPUT/.test(document.activeElement.tagName)){
+    e.preventDefault(); fireStep(performance.now());
+  }
+});
+
+/* ---------------- tape canvas ---------------- */
+const cv=document.getElementById('tape');
+const ctx=cv.getContext('2d');
+let W=0,H=0;
+function fitCanvas(){
+  const r=cv.getBoundingClientRect(), dpr=window.devicePixelRatio||1;
+  W=r.width; H=r.height;
+  cv.width=Math.round(W*dpr); cv.height=Math.round(H*dpr);
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+}
+new ResizeObserver(fitCanvas).observe(cv);
+window.addEventListener('resize',fitCanvas);
+
+const PAPER='#ddd4b4', PAPER_EDGE='#b8ae8c', INK='#443c2c', INK_FAINT='rgba(68,60,44,.35)';
+const LINE_H=46;
+
+function drawTape(){
+  if(!W) fitCanvas();
+  ctx.clearRect(0,0,W,H);
+  /* dark field + faint grid */
+  ctx.fillStyle=getCSS('--bg'); ctx.fillRect(0,0,W,H);
+  ctx.strokeStyle=getCSS('--grid'); ctx.lineWidth=1;
+  ctx.beginPath();
+  for(let x=0.5;x<W;x+=28){ctx.moveTo(x,0);ctx.lineTo(x,H);}
+  for(let y=0.5;y<H;y+=28){ctx.moveTo(0,y);ctx.lineTo(W,y);}
+  ctx.stroke();
+
+  const n=state.lines.length;
+  const tapeW=Math.min(250,W-96), tx=(W-tapeW)/2, headY=H*0.40;
+  const chN=24, chPad=18, chSpace=(tapeW-2*chPad)/(chN-1);
+
+  if(n===0){
+    ctx.fillStyle=getCSS('--muted'); ctx.font='14px sans-serif'; ctx.textAlign='center';
+    ctx.fillText('— no tape threaded —',W/2,headY);
+    drawHead(tx,tapeW,headY);
+    return;
+  }
+
+  const off=state.offset;
+  const first=Math.floor(off)-Math.ceil(headY/LINE_H)-1;
+  const last =Math.floor(off)+Math.ceil((H-headY)/LINE_H)+1;
+
+  /* paper strip: figure out visible vertical extent of actual tape */
+  let topAbs=first, botAbs=last;
+  if(!state.loop){ topAbs=Math.max(first,0); botAbs=Math.min(last,n-1); }
+  const yOf=a=>headY+(a-off)*LINE_H;
+  const topY=yOf(topAbs)-LINE_H*0.55, botY=yOf(botAbs)+LINE_H*0.55;
+
+  /* strip body */
+  ctx.fillStyle=PAPER;
+  ctx.fillRect(tx,Math.max(-2,topY),tapeW,Math.min(H+4,botY)-Math.max(-2,topY));
+  /* edge shading */
+  ctx.fillStyle=PAPER_EDGE;
+  ctx.fillRect(tx,Math.max(-2,topY),3,Math.min(H+4,botY)-Math.max(-2,topY));
+  ctx.fillRect(tx+tapeW-3,Math.max(-2,topY),3,Math.min(H+4,botY)-Math.max(-2,topY));
+
+  /* torn ends when not looped */
+  if(!state.loop){
+    if(topY>-2) tornEdge(tx,tapeW,topY,true);
+    if(botY<H+2) tornEdge(tx,tapeW,botY,false);
+  }
+
+  /* lines */
+  ctx.textAlign='center';
+  for(let a=first;a<=last;a++){
+    let idx=a;
+    if(state.loop) idx=((a%n)+n)%n;
+    else if(a<0||a>=n) continue;
+    const y=yOf(a);
+    if(y<-LINE_H||y>H+LINE_H) continue;
+    const L=state.lines[idx];
+
+    /* splice seam between wrap-around boundaries */
+    if(state.loop && idx===0 && a!==topAbs){
+      const sy=y-LINE_H*0.5;
+      ctx.save();
+      ctx.strokeStyle='rgba(198,136,235,.9)'; ctx.lineWidth=2;
+      ctx.setLineDash([5,4]);
+      ctx.beginPath(); ctx.moveTo(tx-6,sy); ctx.lineTo(tx+tapeW+6,sy); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle=getCSS('--purple'); ctx.font='10px sans-serif'; ctx.textAlign='left';
+      ctx.fillText('splice',tx+tapeW+10,sy+3);
+      ctx.textAlign='center';
+      ctx.restore();
+    }
+
+    /* sprocket feed holes */
+    ctx.fillStyle='#0e1117';
+    circle(tx+8,y,2.2,true); circle(tx+tapeW-8,y,2.2,true);
+
+    /* invalid tint */
+    if(L.err){
+      ctx.fillStyle='rgba(252,98,85,.18)';
+      ctx.fillRect(tx,y-LINE_H*0.48,tapeW,LINE_H*0.96);
+      ctx.fillStyle=getCSS('--red');
+      ctx.fillRect(tx,y-LINE_H*0.48,3,LINE_H*0.96);
+    }
+
+    /* 24-channel holes */
+    const bits=holeBits(L);
+    for(let c=0;c<chN;c++){
+      const hx=tx+chPad+c*chSpace, hy=y-8;
+      if(bits[c]){ ctx.fillStyle='#0e1117'; circle(hx,hy,2.6,true); }
+      else{ ctx.strokeStyle=INK_FAINT; ctx.lineWidth=1; circle(hx,hy,2.2,false); }
+    }
+    /* printed instruction (OUT | IN | MISC + text) */
+    ctx.fillStyle=L.err?getCSS('--red'):INK;
+    ctx.font='11px ui-monospace, Consolas, monospace';
+    ctx.fillText(L.raw,tx+tapeW/2,y+9);
+    ctx.fillStyle=L.err?'rgba(252,98,85,.75)':INK_FAINT;
+    ctx.font='8.5px ui-monospace, Consolas, monospace';
+    ctx.fillText(`OUT ${L.out}   IN ${L.in_}   ${L.misc}`,tx+tapeW/2,y+19);
+
+    /* line number annotation on the dark field */
+    ctx.fillStyle=getCSS('--muted'); ctx.font='10px sans-serif'; ctx.textAlign='right';
+    ctx.fillText(String(idx+1),tx-10,y+3);
+    ctx.textAlign='center';
+  }
+
+  drawHead(tx,tapeW,headY);
+
+  /* channel field brackets label at top */
+  ctx.fillStyle=getCSS('--muted'); ctx.font='10px sans-serif';
+  ctx.fillText('24 channels · OUT | IN | MISC',tx+tapeW/2,16);
+
+  /* loop badge */
+  if(state.loop){
+    ctx.fillStyle=getCSS('--purple'); ctx.font='16px sans-serif'; ctx.textAlign='left';
+    ctx.fillText('⟲',W-56,26);
+    ctx.font='11px sans-serif';
+    ctx.fillText(`× ${state.cyclesWanted}`,W-38,26);
+    ctx.textAlign='center';
+  }
+}
+function drawHead(tx,tapeW,headY){
+  /* reader head: translucent blue band + brackets + lamp */
+  ctx.fillStyle='rgba(88,196,221,.12)';
+  ctx.fillRect(tx-14,headY-LINE_H*0.5,tapeW+28,LINE_H);
+  ctx.strokeStyle=getCSS('--blue'); ctx.lineWidth=2;
+  ctx.beginPath();
+  ctx.moveTo(tx-14+8,headY-LINE_H*0.5); ctx.lineTo(tx-14,headY-LINE_H*0.5); ctx.lineTo(tx-14,headY+LINE_H*0.5); ctx.lineTo(tx-14+8,headY+LINE_H*0.5);
+  ctx.moveTo(tx+tapeW+14-8,headY-LINE_H*0.5); ctx.lineTo(tx+tapeW+14,headY-LINE_H*0.5); ctx.lineTo(tx+tapeW+14,headY+LINE_H*0.5); ctx.lineTo(tx+tapeW+14-8,headY+LINE_H*0.5);
+  ctx.stroke();
+  ctx.fillStyle=getCSS('--blue'); ctx.font='9px sans-serif'; ctx.textAlign='left';
+  ctx.save(); ctx.translate(tx+tapeW+22,headY+14); ctx.rotate(-Math.PI/2);
+  ctx.fillText('READER',0,0); ctx.restore();
+  ctx.textAlign='center';
+}
+function tornEdge(tx,tapeW,y,top){
+  ctx.fillStyle=getCSS('--bg');
+  ctx.beginPath();
+  ctx.moveTo(tx-1,y);
+  const teeth=8, step=(tapeW+2)/teeth;
+  for(let i=0;i<teeth;i++){
+    ctx.lineTo(tx-1+step*(i+0.5), y+(top?-7:7));
+    ctx.lineTo(tx-1+step*(i+1), y);
+  }
+  ctx.lineTo(tx+tapeW+1,y+(top?-30:30));
+  ctx.lineTo(tx-1,y+(top?-30:30));
+  ctx.closePath(); ctx.fill();
+}
+function circle(x,y,r,fill){
+  ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2);
+  fill?ctx.fill():ctx.stroke();
+}
+let cssCache={};
+function getCSS(v){
+  if(!cssCache[v]) cssCache[v]=getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+  return cssCache[v];
+}
+
+/* ---------------- presets (outputs verified by hand) ---------------- */
+const PRESETS={
+  bessie:{
+    tape:`TYPE A1\nA2 -> A1\nC1 -> A2`,
+    accs:{A1:0,A2:1}, consts:{C1:2}, scale:0, loop:true, cycles:10,
+    caption:`<b>① Bessie's day job.</b> A difference table for <span class="math">f(x)=x²</span>: A1 holds <span class="math">f</span>, A2 holds the difference Δ, C1 holds 2. Each pass around the spliced loop: print <span class="math">f</span>, add Δ into <span class="math">f</span>, add 2 into Δ. Ten cycles print 0, 1, 4, 9, … 81 — <b>no multiplication needed</b>. The Mark I spent literal years doing exactly this shape of job, grinding out Bessel-function tables for the Navy one difference at a time — hence the nickname "Bessie". Watch the machine-time readout: about 10 printed table lines per minute.`,
+    status:'Preset ① loaded: x² by differences, tape spliced into a loop of 10 cycles. Expected output: 0, 1, 4, 9, 16, 25, 36, 49, 64, 81.'
+  },
+  ballistics:{
+    tape:`C1 -> A1\nCLEAR A2\nA1 * A1 -> A2\nCLEAR A3\nA2 / C2 -> A3\nTYPE A3`,
+    accs:{}, consts:{C1:100,C2:10}, scale:0, loop:true, cycles:3,
+    caption:`<b>② One row of a range table.</b> A simplified range formula <span class="math">R = v²/g</span> (with a tidy <span class="math">g</span> = 10 on dial C2), sweeping muzzle velocity <span class="math">v</span> = 100, 200, 300 via the loop. Expected prints: 1000, 4000, 9000. Gunnery tables were the war's computational bottleneck — one shell/angle combination at a time. Notice where the time goes: of each ~27-second cycle, 21 seconds are spent inside the lit-up multiply–divide unit. <b>The slow units dominate</b> — that is the cost model.`,
+    status:'Preset ② loaded: range table row, R = v²/g, loop of 3 cycles. Expected output: 1000, 4000, 9000.'
+  },
+  interest:{
+    tape:`TYPE A1\nCLEAR A2\nA1 * C1 -> A2\nCLEAR A1\nA2 / C2 -> A1`,
+    accs:{A1:100000}, consts:{C1:105,C2:100}, scale:2, loop:true, cycles:9,
+    caption:`<b>③ Business arithmetic — the other table-hungry customer.</b> A balance of 1000.00 grows 5% a year for 8 years: multiply by 105, divide by 100 (the typewriter is set to print two decimal places — everything on this machine is <b>scaled fixed-point decimal</b>, no floating point here, unlike the Z3 on the previous page!). Expected: 1000.00, 1050.00, 1102.50, 1157.62, 1215.50, … 1477.43. The true year-8 value is 1477.46 — the missing 3 cents fell off in truncating divisions. Now you see why the real machine carried <b>23 digits</b> of headroom.`,
+    status:'Preset ③ loaded: compound interest, ×1.05 per cycle, 9 cycles (year 0 through 8). Expected output: 1000.00, 1050.00, 1102.50, 1157.62, 1215.50, 1276.27, 1340.08, 1407.08, 1477.43.'
+  }
+};
+function loadPreset(key,btn){
+  const P=PRESETS[key];
+  state.running=false;
+  /* constants = operator dials */
+  for(const n of CONST_NAMES) state.consts[n]=P.consts[n]||0;
+  renderAllConsts();
+  /* accumulators = operator preset, remembered as reset point */
+  state.snapshotAccs=Object.fromEntries(ACC_NAMES.map(n=>[n,P.accs[n]||0]));
+  state.accs={...state.snapshotAccs};
+  renderAllAccs();
+  state.scale=P.scale;
+  state.loop=P.loop;
+  state.cyclesWanted=P.cycles;
+  cyclesEl.value=P.cycles;
+  document.getElementById('prog').value=P.tape;
+  paperEl.innerHTML='';
+  spliceTape();
+  document.querySelectorAll('.presets button').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  const cap=document.getElementById('caption');
+  cap.innerHTML=P.caption; cap.style.display='block';
+  setStatus(P.status,'');
+}
+document.getElementById('p-bessie').addEventListener('click',e=>loadPreset('bessie',e.currentTarget));
+document.getElementById('p-ballistics').addEventListener('click',e=>loadPreset('ballistics',e.currentTarget));
+document.getElementById('p-interest').addEventListener('click',e=>loadPreset('interest',e.currentTarget));
+
+/* ---------------- boot ---------------- */
+renderAllAccs(); renderAllConsts(); updateChips(); syncButtons();
+loadPreset('bessie',document.getElementById('p-bessie'));
+requestAnimationFrame(t=>{lastT=t;requestAnimationFrame(frame);});
+</script>
+</body>
+</html>
