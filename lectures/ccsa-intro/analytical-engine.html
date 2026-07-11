@@ -865,8 +865,7 @@ function stepOnce(){
     return;
   }
   setStatus('Card ' + state.current + ': ' + res.msg, state.halted ? 'ok' : '');
-  state.pc = (res.jump !== null && res.jump !== undefined && res.jump !== null) ? res.jump : state.pc + 1;
-  if(res.jump !== null && res.jump !== undefined) state.pc = res.jump;
+  state.pc = (res.jump === null || res.jump === undefined) ? state.pc + 1 : res.jump;
   if(state.halted) stopRunning();
   updateButtons();
 }
