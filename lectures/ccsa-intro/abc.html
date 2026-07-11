@@ -1,0 +1,1237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Atanasoff–Berry Computer — Intro to Computer Systems Architecture</title>
+<style>
+:root{
+  --bg:#0e1117;
+  --panel:#161b26;
+  --panel2:#1c2230;
+  --ink:#e6e9f0;
+  --muted:#8b94a7;
+  --grid:#232b3b;
+  --axis:#4a5568;
+  --blue:#58c4dd;
+  --yellow:#ffd35a;
+  --red:#fc6255;
+  --green:#83c167;
+  --purple:#c688eb;
+  --orange:#ff9f4b;
+  --line:#2a3347;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--bg); color:var(--ink);
+  font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
+  line-height:1.55;
+}
+.wrap{max-width:1100px;margin:0 auto;padding:24px}
+a{color:var(--blue);text-decoration:none}
+a:hover{text-decoration:underline}
+header .crumb{color:var(--muted);font-size:14px}
+header .crumb:hover{color:var(--blue);text-decoration:none}
+h1{margin:10px 0 6px;font-size:32px;letter-spacing:.2px}
+.subtitle{color:var(--muted);max-width:820px;margin:0 0 22px}
+.math{font-family:Georgia,'Times New Roman',serif;font-style:italic}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin-bottom:22px}
+.panel h2{margin:0 0 12px;font-size:15px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.hist{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+.hist .block{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:12px 14px;font-size:14px}
+.hist .block b{display:block;margin-bottom:6px;font-size:12px;letter-spacing:.1em;text-transform:uppercase}
+.hist .block:nth-child(1) b{color:var(--blue)}
+.hist .block:nth-child(2) b{color:var(--yellow)}
+.hist .block:nth-child(3) b{color:var(--green)}
+.hist .block p{margin:0;color:var(--ink)}
+.hist .muted{color:var(--muted)}
+
+button{
+  background:var(--panel2);border:1px solid var(--line);color:var(--ink);
+  border-radius:9px;padding:8px 14px;cursor:pointer;font-size:14px;font-family:inherit;
+  transition:border-color .15s, color .15s, background .15s;
+}
+button:hover:not(:disabled){border-color:var(--blue)}
+button.active{border-color:var(--blue);color:var(--blue);background:rgba(88,196,221,.08)}
+button:disabled{opacity:.38;cursor:default}
+button.fire-btn:not(:disabled){border-color:var(--red);color:var(--red);background:rgba(252,98,85,.08)}
+button.punch-btn:not(:disabled){border-color:var(--green);color:var(--green);background:rgba(131,193,103,.08)}
+button.solve-btn:not(:disabled){border-color:var(--yellow);color:var(--yellow);background:rgba(255,211,90,.08)}
+input[type=range]{accent-color:var(--blue)}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.preset-caption{color:var(--muted);font-size:13.5px;margin:10px 0 0;max-width:900px}
+.preset-caption b{color:var(--ink)}
+
+/* problem card */
+.setupflex{display:flex;flex-wrap:wrap;gap:16px;margin-top:14px;align-items:flex-start}
+.probcard{flex:1 1 380px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.probcard h3, .rack h3, .checklist h3{margin:0 0 8px;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.eqrow{
+  display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:9px;border:1px solid transparent;
+  font-size:16px;margin:3px 0;transition:border-color .15s, background .15s;
+}
+.eqrow .eqtag{color:var(--muted);font-size:14px;width:20px}
+.eqrow.clickable{cursor:pointer}
+.eqrow.clickable:hover{border-color:var(--axis);background:rgba(88,196,221,.04)}
+.eqrow.await{border-color:var(--blue);animation:pulse 1.2s ease-in-out infinite;cursor:pointer}
+.eqrow.onka .drumtag, .eqrow.onca .drumtag{
+  font-size:11px;letter-spacing:.08em;border-radius:6px;padding:1px 7px;margin-left:auto;
+}
+.eqrow.onka .drumtag{color:var(--blue);border:1px solid var(--blue)}
+.eqrow.onca .drumtag{color:var(--red);border:1px solid var(--red)}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(88,196,221,.35)}50%{box-shadow:0 0 0 5px rgba(88,196,221,0)}}
+.chip{
+  display:inline-block;border:1px solid;border-radius:7px;padding:1px 7px;font-size:15px;line-height:1.35;
+  font-family:Georgia,'Times New Roman',serif;font-style:italic;white-space:nowrap;
+}
+.chip .vv{opacity:.85;margin-left:2px}
+.op{color:var(--muted);margin:0 2px;font-family:Georgia,serif}
+.c0{color:var(--blue);border-color:rgba(88,196,221,.55)}
+.c1{color:var(--yellow);border-color:rgba(255,211,90,.55)}
+.c2{color:var(--purple);border-color:rgba(198,136,235,.55)}
+.crhs{color:var(--green);border-color:rgba(131,193,103,.55)}
+
+/* editor */
+.editor{flex:1 1 300px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:12px 14px;display:none}
+.editor.open{display:block}
+.editor table{border-collapse:collapse}
+.editor td{padding:3px 4px;font-family:Georgia,serif;font-style:italic;font-size:15px}
+.editor input{
+  width:64px;background:var(--bg);border:1px solid var(--line);color:var(--ink);
+  border-radius:6px;padding:5px 6px;font-size:14px;text-align:right;font-family:inherit;
+}
+.editor input:focus{outline:none;border-color:var(--blue)}
+.editor .vlab0{color:var(--blue)} .editor .vlab1{color:var(--yellow)} .editor .vlab2{color:var(--purple)}
+
+/* canvas */
+.canvaswrap{position:relative;margin-top:16px}
+canvas#machine{width:100%;height:440px;display:block;border-radius:10px;background:#0a0d13;border:1px solid var(--line);touch-action:manipulation}
+
+/* controls */
+.controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:14px}
+.controls .spacer{flex:1}
+.counterbox{
+  background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:6px 12px;
+  font-size:13px;color:var(--muted);
+}
+.counterbox b{color:var(--ink);font-variant-numeric:tabular-nums}
+.speedlab{color:var(--muted);font-size:13px;display:flex;align-items:center;gap:7px}
+
+/* checklist + rack */
+.workflex{display:flex;flex-wrap:wrap;gap:16px;margin-top:16px;align-items:flex-start}
+.checklist{flex:1 1 340px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.checklist .stageline{font-size:13.5px;color:var(--yellow);margin-bottom:8px;min-height:1.3em}
+.checklist ol{margin:0;padding-left:6px;list-style:none}
+.checklist li{
+  padding:5px 8px 5px 12px;border-left:3px solid transparent;border-radius:0 8px 8px 0;
+  color:var(--muted);font-size:14px;margin:2px 0;transition:all .2s;
+}
+.checklist li.current{border-left-color:var(--blue);background:rgba(88,196,221,.08);color:var(--ink)}
+.checklist li.done{color:var(--axis)}
+.checklist li.done::after{content:" ✓";color:var(--green)}
+.checklist li .stepno{color:var(--muted);margin-right:6px;font-size:12px}
+.rack{flex:1 1 340px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.rackcards{display:flex;flex-wrap:wrap;gap:10px;min-height:74px;align-items:flex-start}
+.rackempty{color:var(--axis);font-size:13px;font-style:italic;padding:14px 4px}
+.pcard{
+  background:#e8dcc0;color:#2a2418;border-radius:6px;padding:7px 9px 8px;min-width:170px;
+  border:1px solid #c9b98f;box-shadow:0 2px 6px rgba(0,0,0,.45);position:relative;
+  font-size:11px;transition:transform .15s, box-shadow .15s;
+}
+.pcard::before{content:"";position:absolute;top:0;right:0;border-style:solid;border-width:0 14px 14px 0;border-color:transparent #0a0d13 transparent transparent}
+.pcard .ptitle{font-weight:700;letter-spacing:.08em;font-size:10.5px;margin-bottom:4px}
+.pcard .peq{font-family:Georgia,serif;font-style:italic;font-size:11.5px;margin-bottom:5px}
+.pcard .holerow{display:flex;align-items:center;gap:1.5px;margin:1.5px 0}
+.pcard .holerow .hl{width:20px;font-family:Georgia,serif;font-style:italic;font-size:10px}
+.pcard .hole{width:7px;height:9px;border-radius:2px;background:#d6c8a4;border:1px solid #bfae82}
+.pcard .hole.p{background:#181206;border-color:#000}
+.pcard.clickable{cursor:pointer}
+.pcard.clickable:hover{transform:translateY(-2px);box-shadow:0 5px 12px rgba(0,0,0,.55)}
+.pcard.await{outline:2px solid var(--blue);animation:pulse 1.2s infinite}
+.pcard.used{opacity:.45}
+.pcard.onDrum{outline:2px dashed var(--red)}
+
+/* status */
+.status{
+  margin-top:14px;background:var(--bg);border:1px solid var(--line);border-radius:9px;
+  padding:9px 14px;font-size:14px;color:var(--muted);min-height:2.6em;
+}
+.status b{color:var(--ink)}
+.status.good{border-color:rgba(131,193,103,.5);color:var(--green)}
+.status.warn{border-color:rgba(252,98,85,.5);color:var(--red)}
+
+/* back substitution */
+.backsub{display:none;margin-top:16px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.backsub.open{display:block}
+.backsub h3{margin:0 0 10px;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.bsline{
+  font-family:Georgia,serif;font-style:italic;font-size:16.5px;margin:7px 0;opacity:0;
+  transform:translateX(-12px);transition:opacity .5s, transform .5s;
+}
+.bsline.show{opacity:1;transform:none}
+.bsline .res{color:var(--green);font-weight:700}
+.verify{margin-top:12px;border-top:1px dashed var(--line);padding-top:10px;display:none}
+.verify.show{display:block}
+.verify .vline{font-size:14.5px;font-family:Georgia,serif;font-style:italic;color:var(--muted);margin:4px 0;opacity:0;transition:opacity .5s}
+.verify .vline.show{opacity:1}
+.verify .ok{color:var(--green)}
+.solutionband{
+  display:none;margin-top:10px;padding:9px 14px;border-radius:9px;
+  border:1px solid rgba(131,193,103,.55);background:rgba(131,193,103,.07);
+  font-family:Georgia,serif;font-style:italic;font-size:19px;color:var(--green);
+}
+.solutionband.show{display:block}
+
+/* simplifications & insights */
+.simpl ul{margin:6px 0 0;padding-left:20px;color:var(--muted);font-size:14px}
+.simpl li{margin:5px 0}
+.simpl li b{color:var(--ink)}
+.insights{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin-bottom:22px}
+.insights .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px;font-size:14.5px}
+.insights .card h3{margin:0 0 8px;font-size:14px}
+.insights .card:nth-child(1) h3{color:var(--blue)}
+.insights .card:nth-child(2) h3{color:var(--yellow)}
+.insights .card:nth-child(3) h3{color:var(--green)}
+.insights .card p{margin:0;color:var(--ink)}
+
+footer{color:var(--muted);font-size:13.5px;border-top:1px solid var(--line);padding-top:16px;margin-top:8px}
+footer .navrow{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:8px}
+@media (max-width:640px){
+  h1{font-size:25px}
+  canvas#machine{height:400px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <a class="crumb" href="./index.html">← Intro to Computer Systems Architecture</a>
+  <h1>The Atanasoff–Berry Computer</h1>
+  <p class="subtitle">The first <em>electronic</em> digital computer (1939–42) — 300 vacuum tubes, binary numbers spinning on capacitor drums, and exactly one talent: solving systems of linear equations. It had no program. <b style="color:var(--ink)">You</b> were the control unit. Below, take the operator's chair: load equations onto the drums, fire the add–subtract mechanism, punch the results to cards, and feel why programmability was the missing piece.</p>
+</header>
+
+<!-- HISTORY -->
+<section class="panel">
+  <h2>The Machine</h2>
+  <div class="hist">
+    <div class="block"><b>1939–1942 · Iowa State</b>
+      <p>Designed by physics professor <b>John Atanasoff</b> and graduate student <b>Clifford Berry</b>. First <b>electronic</b> digital computing device: <b>300+ vacuum tubes</b> doing binary arithmetic and logic. Numbers lived as <b>50-bit binary words</b> on two rotating capacitor <b>drums</b> — regenerative memory, refreshed every turn <span class="muted">(the ancestor of DRAM refresh)</span>.</p></div>
+    <div class="block"><b>How it was operated</b>
+      <p><b>Not programmable, not general-purpose.</b> There was no instruction store at all. A human operator fed decimal cards in, threw switches to pick the coefficient to kill, watched the drums turn at 60 rpm, and punched each intermediate result onto a <b>binary card</b> — then fed those cards back in. The operator <em>was</em> the control unit, executing Gaussian elimination step by step, for hours.</p></div>
+    <div class="block"><b>What it solved</b>
+      <p>One job: systems of up to <b>29 simultaneous linear equations</b>. Atanasoff needed this for physics — big linear systems fall out of fitting spectra data and approximating PDEs in quantum mechanics and structural problems. By hand, 29 equations took weeks; the ABC did the arithmetic electronically, flawlessly.</p></div>
+  </div>
+</section>
+
+<!-- SIMULATOR -->
+<section class="panel">
+  <h2>The Simulator — Be the Operator</h2>
+
+  <div class="row" id="presetRow">
+    <button class="preset active" data-p="0">Two currents (2×2)</button>
+    <button class="preset" data-p="1">Three-bar truss (3×3)</button>
+    <button class="preset" data-p="2">Least-squares fit (2×2)</button>
+    <button id="editToggle">✎ Edit coefficients</button>
+    <span class="spacer" style="flex:1"></span>
+    <button id="binToggle" title="Show 16-bit fixed-point words, as the drums really stored them">01 Binary view</button>
+  </div>
+  <p class="preset-caption" id="presetCaption"></p>
+
+  <div class="setupflex">
+    <div class="probcard">
+      <h3>Problem card — the system to solve <span style="text-transform:none;letter-spacing:0">(click an equation to load a drum)</span></h3>
+      <div id="eqList"></div>
+    </div>
+    <div class="editor" id="editor">
+      <h3 style="margin:0 0 8px;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)">Coefficient editor</h3>
+      <div class="row" style="margin-bottom:8px">
+        <button id="n2" class="active">2×2</button>
+        <button id="n3">3×3</button>
+      </div>
+      <table id="editGrid"></table>
+      <div class="row" style="margin-top:10px">
+        <button id="applyEdit">Apply → reset machine</button>
+      </div>
+      <p style="color:var(--muted);font-size:12.5px;margin:8px 0 0">Values are held as 16-bit fixed point (8.8): keep them within ±127.</p>
+    </div>
+  </div>
+
+  <div class="canvaswrap">
+    <canvas id="machine"></canvas>
+  </div>
+
+  <div class="controls">
+    <button id="autoBtn" title="Watch the whole procedure run itself">▶ Ghost of Berry (auto)</button>
+    <button id="pauseBtn">⏸ Pause</button>
+    <button id="stepBtn" title="Perform the next operator action (Space when paused)">Step</button>
+    <button id="resetBtn">↺ Reset</button>
+    <button id="fireBtn" class="fire-btn" disabled>⚡ Fire add–subtract</button>
+    <button id="punchBtn" class="punch-btn" disabled>⇥ Punch card</button>
+    <button id="solveBtn" class="solve-btn" disabled>✎ Back-substitute</button>
+    <span class="spacer"></span>
+    <span class="speedlab">speed <input type="range" id="speed" min="0.2" max="2" step="0.1" value="0.6"> <span id="speedVal">0.6s</span></span>
+  </div>
+  <div class="controls">
+    <span class="counterbox">operator actions: <b id="stepCount">0</b></span>
+    <span class="counterbox">operator time on the real ABC: <b id="opTime">0m 00s</b></span>
+    <span class="counterbox" style="border-style:dashed" id="scaleNote">a full 29×29 system: roughly an operator-day of card-shuttling</span>
+  </div>
+
+  <div class="workflex">
+    <div class="checklist">
+      <h3>Operator procedure — you are the control unit</h3>
+      <div class="stageline" id="stageLine"></div>
+      <ol id="checkList">
+        <li data-s="loadKA"><span class="stepno">1</span>Load the <b style="color:var(--blue)">pivot equation</b> onto drum <b>KA</b></li>
+        <li data-s="loadCA"><span class="stepno">2</span>Load the <b style="color:var(--red)">target equation</b> onto drum <b>CA</b></li>
+        <li data-s="selectVar"><span class="stepno">3</span>Select the coefficient to eliminate <span style="font-size:12.5px">(click it on drum CA)</span></li>
+        <li data-s="fire"><span class="stepno">4</span>Fire the add–subtract mechanism — shift &amp; subtract until it reads zero</li>
+        <li data-s="punch"><span class="stepno">5</span>Punch the result onto a binary card</li>
+        <li data-s="repeat"><span class="stepno">6</span>Repeat for the remaining pairs — feed punched cards back in for stage 2</li>
+        <li data-s="backsub"><span class="stepno">7</span>Back-substitute at the desk, verify by plugging in</li>
+      </ol>
+    </div>
+    <div class="rack">
+      <h3>Card rack — intermediate results <span style="text-transform:none;letter-spacing:0">(click a card to feed it back)</span></h3>
+      <div class="rackcards" id="rackCards"><div class="rackempty">— rack empty — punched results collect here —</div></div>
+    </div>
+  </div>
+
+  <div class="status" id="status"></div>
+
+  <div class="backsub" id="backsub">
+    <h3>Back-substitution — pencil work at the operator's desk</h3>
+    <div id="bsLines"></div>
+    <div class="solutionband" id="solutionBand"></div>
+    <div class="verify" id="verify">
+      <div style="font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-style:normal;font-family:'Segoe UI',sans-serif">Verification — plug back into the originals</div>
+      <div id="vLines"></div>
+    </div>
+  </div>
+</section>
+
+<!-- SIMPLIFICATIONS -->
+<section class="panel simpl">
+  <h2>Simplifications — where we cheat</h2>
+  <ul>
+    <li><b>Size:</b> the real ABC handled up to <b>29 equations in 29 unknowns</b>; we shrink to 2–3 so you can see every bit.</li>
+    <li><b>Word length:</b> real drums held <b>50-bit</b> base-2 fixed-point words (≈15 decimal digits); our binary view shows 16-bit (8.8) words.</li>
+    <li><b>Parallel hardware:</b> the machine had <b>~30 add–subtract mechanisms working in parallel — one per coefficient</b> — so a whole equation was combined on every drum revolution. We animate one sweeping pass for clarity.</li>
+    <li><b>One click = one elimination:</b> on the real machine, zeroing a single coefficient took many drum revolutions of nonrestoring shift-and-subtract; we compress that into one animated firing.</li>
+    <li><b>Timing:</b> the drums really turned at 60 rpm, but the operator's card punching and re-feeding dominated — hours of it for a large system. Our "operator time" counter estimates that honest cost.</li>
+    <li>The real intermediate cards were written by <b>burning spots with high voltage</b> (and misread about 1 time in 100,000 — the bug that kept the ABC from ever finishing a 29×29 system!). Our cards never misread.</li>
+  </ul>
+</section>
+
+<!-- INSIGHTS -->
+<section class="insights">
+  <div class="card">
+    <h3>Regenerative drums → DRAM</h3>
+    <p>The drum capacitors leaked charge, so every revolution the machine read each bit and wrote it right back — <em>refresh</em>. Notice how that is exactly what the DRAM in your laptop does thousands of times a second, in 2025 as in 1939. Cheap, dense, forgetful memory plus a refresh cycle beat expensive memory that remembers on its own.</p>
+  </div>
+  <div class="card">
+    <h3>Parallel before programmable</h3>
+    <p>The ABC had ~30 add–subtract mechanisms firing together — one per coefficient — so each drum turn combined an <em>entire equation</em> at once. That is SIMD avant la lettre: one operation, many data lanes, the same idea as your CPU's vector units and your GPU. Parallelism showed up in hardware <em>before</em> the stored program did.</p>
+  </div>
+  <div class="card">
+    <h3>The missing piece was control</h3>
+    <p>Did you feel it? The arithmetic was instant — it was <em>you</em> shuttling cards, choosing coefficients, sequencing steps. The ABC proved electronic arithmetic; what it lacked was a control unit. The <a href="./z3.html">Z3</a>, <a href="./mark1.html">Mark I</a> and finally the <a href="../../sim/vnmsim.html">stored-program machine</a> put the operator on tape — and then into memory itself.</p>
+  </div>
+</section>
+
+<footer>
+  Interactive companion to the lecture <em>Introduction to Computers &amp; Computer Systems Architecture</em> · CCSA T1
+  <div class="navrow">
+    <a href="./turing-machine.html">← The Turing Machine</a>
+    <a href="./index.html">All explorations</a>
+    <a href="./z3.html">The Zuse Z3 →</a>
+  </div>
+</footer>
+
+</div>
+
+<script>
+(function(){
+"use strict";
+/* ============================== data ============================== */
+const VARCOLORS = ['#58c4dd','#ffd35a','#c688eb'];
+const RHSCOLOR  = '#83c167';
+const PRESETS = [
+  { name:"Two currents", n:2, vars:['I₁','I₂'],
+    A:[[3,2,8],[2,5,9]],
+    caption:'<b>Two currents:</b> Kirchhoff’s laws for a two-loop circuit give 3I₁ + 2I₂ = 8 and 2I₁ + 5I₂ = 9. Linear systems are physics’ native tongue — circuits, forces, curve fitting — which is exactly why Atanasoff built a machine for them. (Solution: I₁ = 2 A, I₂ = 1 A.)'},
+  { name:"Three-bar truss", n:3, vars:['F₁','F₂','F₃'],
+    A:[[2,1,1,7],[1,3,2,13],[1,1,4,15]],
+    caption:'<b>Three-bar truss:</b> force balance at the joints of a small truss. Structural analysis like this was drowning 1930s engineers in hand elimination — exactly Atanasoff’s itch. Three unknowns need <em>three</em> eliminations and a second pass with the punched cards fed back in. (Solution: F₁ = 1, F₂ = 2, F₃ = 3.)'},
+  { name:"Least squares", n:2, vars:['a','b'],
+    A:[[4,6,14],[6,14,26]],
+    caption:'<b>Least-squares fit:</b> fitting y = a + bx to the four points (0,3), (1,2), (2,3), (3,6) produces the <em>normal equations</em> 4a + 6b = 14 and 6a + 14b = 26. Atanasoff’s physics students fitted spectra data this way; with 29 unknowns the normal equations took weeks by hand. (Solution: a = 2, b = 1.)'}
+];
+/* operator time costs (seconds on the real machine) */
+const COST = { loadEq:40, feedCard:45, select:10, fire:16, punch:30, backsub:300 };
+const PASSES = 8;               /* shift–subtract passes shown per firing */
+
+/* ============================== state ============================== */
+const state = {
+  preset:0, n:2, vars:['I₁','I₂'], A:[[3,2,8],[2,5,9]],
+  plan:[], pi:0, expect:'loadKA',                 /* loadKA|loadCA|selectVar|fire|punch|backsub|done */
+  ka:null, ca:null,                               /* {v:[...], label, src:{type,i}} */
+  selVar:-1,
+  cards:[],                                       /* {v:[...], label, fromLabel, usedOnDrum:false} */
+  queue:[], animT:0,
+  auto:false, paused:false,
+  autoWait:0,
+  steps:0, opSec:0,
+  binary:false,
+  rot:0,
+  singular:false,
+  bsMeta:null,
+  hits:[],           /* canvas hit regions rebuilt each frame */
+  lastTs:0
+};
+
+/* ============================== helpers ============================== */
+const $ = id => document.getElementById(id);
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const ease=t=>t*t*(3-2*t);
+function fmt(v){
+  if(!isFinite(v)) return '∞';
+  const r=Math.round(v);
+  if(Math.abs(v-r)<1e-9) return String(r);
+  return (Math.round(v*1000)/1000).toString();
+}
+function fmtTime(s){ s=Math.round(s); const m=Math.floor(s/60); return m+'m '+String(s%60).padStart(2,'0')+'s'; }
+function bits16(v){
+  let raw=Math.round(clamp(v,-127.996,127.996)*256);
+  if(raw<0) raw+=65536;
+  const b=[]; for(let i=15;i>=0;i--) b.push((raw>>i)&1);
+  return b;
+}
+function speedSec(){ return parseFloat($('speed').value); }
+function speedFactor(){ return speedSec()/0.6; }
+
+function setStatus(msg, tone){
+  const el=$('status');
+  el.innerHTML=msg;
+  el.className='status'+(tone?' '+tone:'');
+}
+function addTime(sec){ state.opSec+=sec; $('opTime').textContent=fmtTime(state.opSec); }
+function addStep(){ state.steps++; $('stepCount').textContent=state.steps; }
+
+/* ============================== plan ============================== */
+function detOf(A,n){
+  const M=A.map(r=>r.slice());
+  let det=1;
+  for(let c=0;c<n;c++){
+    let p=-1;
+    for(let r=c;r<n;r++) if(Math.abs(M[r][c])>1e-9){p=r;break;}
+    if(p<0) return 0;
+    if(p!==c){ const t=M[p];M[p]=M[c];M[c]=t; det=-det; }
+    det*=M[c][c];
+    for(let r=c+1;r<n;r++){
+      const f=M[r][c]/M[c][c];
+      for(let j=c;j<=n;j++) M[r][j]-=f*M[c][j];
+    }
+  }
+  return det;
+}
+function elimRow(ka,ca,k){
+  const f=ca[k]/ka[k];
+  const r=ca.map((v,j)=>v-f*ka[j]);
+  r[k]=0;
+  return r;
+}
+function buildPlan(){
+  const {A,n}=state;
+  if(Math.abs(detOf(A,n))<1e-9) return {ok:false};
+  let p0=0;
+  while(p0<n && Math.abs(A[p0][0])<1e-9) p0++;
+  const others=[]; for(let i=0;i<n;i++) if(i!==p0) others.push(i);
+  const plan=[];
+  if(n===2){
+    plan.push({kaSrc:{type:'eq',i:p0}, caSrc:{type:'eq',i:others[0]}, k:0, label:'A'});
+    state.bsMeta={pivotEq:p0, lastCard:0};
+  }else{
+    plan.push({kaSrc:{type:'eq',i:p0}, caSrc:{type:'eq',i:others[0]}, k:0, label:'A'});
+    plan.push({kaSrc:{type:'eq',i:p0}, caSrc:{type:'eq',i:others[1]}, k:0, label:'B'});
+    /* simulate stage-1 results to pick the stage-2 pivot card */
+    const rA=elimRow(A[p0],A[others[0]],0), rB=elimRow(A[p0],A[others[1]],0);
+    let kaCard=0, caCard=1;
+    if(Math.abs(rA[1])<1e-9){ kaCard=1; caCard=0; }
+    plan.push({kaSrc:{type:'card',i:kaCard}, caSrc:{type:'card',i:caCard}, k:1, label:'C'});
+    state.bsMeta={pivotEq:p0, yCard:kaCard, lastCard:2};
+  }
+  return {ok:true, plan};
+}
+
+/* ============================== reset / presets ============================== */
+function resetProcedure(quiet){
+  state.pi=0; state.ka=null; state.ca=null; state.selVar=-1;
+  state.cards=[]; state.queue=[]; state.auto=false; state.paused=false;
+  state.steps=0; state.opSec=0; state.singular=false;
+  $('stepCount').textContent='0'; $('opTime').textContent='0m 00s';
+  $('autoBtn').classList.remove('active'); $('autoBtn').textContent='▶ Ghost of Berry (auto)';
+  $('pauseBtn').classList.remove('active'); $('pauseBtn').textContent='⏸ Pause';
+  $('backsub').classList.remove('open');
+  $('bsLines').innerHTML=''; $('vLines').innerHTML='';
+  $('solutionBand').classList.remove('show'); $('verify').classList.remove('show');
+  const bp=buildPlan();
+  if(!bp.ok){
+    state.singular=true; state.plan=[]; state.expect='done';
+    setStatus('⚠ <b>The determinant vanishes.</b> The drums would spin forever — this system has no unique solution. Edit the coefficients and try again.','warn');
+  }else{
+    state.plan=bp.plan; state.expect='loadKA';
+    if(!quiet) setStatus('You are the control unit. The machine only shifts, adds and subtracts — <b>you</b> supply the algorithm. Start with step 1, or press <b>▶ Ghost of Berry</b> to watch first.');
+  }
+  renderProblem(); renderRack(); renderChecklist(); updateButtons();
+}
+function setPreset(i){
+  const p=PRESETS[i];
+  state.preset=i; state.n=p.n; state.vars=p.vars.slice();
+  state.A=p.A.map(r=>r.slice());
+  document.querySelectorAll('#presetRow .preset').forEach((b,j)=>b.classList.toggle('active',j===i));
+  $('presetCaption').innerHTML=p.caption;
+  buildEditor();
+  resetProcedure();
+}
+
+/* ============================== rendering: HTML ============================== */
+function termHTML(val,j,first){
+  const cls = j<state.n ? 'c'+j : 'crhs';
+  const vname = j<state.n ? '<span class="vv">'+state.vars[j]+'</span>' : '';
+  let sign='';
+  if(j===state.n){ sign='<span class="op">=</span>'; }
+  else if(first){ sign = val<0 ? '<span class="op">−</span>' : ''; }
+  else sign = '<span class="op">'+(val<0?'−':'+')+'</span>';
+  const shown = (j===state.n)?fmt(val):fmt(Math.abs(val));
+  return sign+'<span class="chip '+cls+'">'+shown+vname+'</span>';
+}
+function eqHTML(row){
+  let h='', first=true;
+  for(let j=0;j<state.n;j++){
+    if(Math.abs(row[j])<1e-12 && !(first&&j===state.n-1)){ continue; }
+    h+=termHTML(row[j],j,first); first=false;
+  }
+  if(first) h+='<span class="chip c0">0</span>';
+  h+=termHTML(row[state.n],state.n,false);
+  return h;
+}
+const CIRCLED=['①','②','③'];
+function renderProblem(){
+  const list=$('eqList'); list.innerHTML='';
+  const item=state.plan[state.pi];
+  state.A.forEach((row,i)=>{
+    const d=document.createElement('div');
+    d.className='eqrow';
+    d.innerHTML='<span class="eqtag">'+CIRCLED[i]+'</span><span>'+eqHTML(row)+'</span>';
+    const onKA = state.ka && state.ka.src.type==='eq' && state.ka.src.i===i;
+    const onCA = state.ca && state.ca.src.type==='eq' && state.ca.src.i===i;
+    if(onKA){ d.classList.add('onka'); d.innerHTML+='<span class="drumtag">ON KA</span>'; }
+    if(onCA){ d.classList.add('onca'); d.innerHTML+='<span class="drumtag">ON CA</span>'; }
+    if(item){
+      const want = state.expect==='loadKA' ? item.kaSrc : state.expect==='loadCA' ? item.caSrc : null;
+      if(want && want.type==='eq'){
+        d.classList.add('clickable');
+        if(want.i===i) d.classList.add('await');
+      }
+    }
+    d.addEventListener('click',()=>attemptLoad('eq',i));
+    list.appendChild(d);
+  });
+}
+function cardEqHTML(v){
+  let h='',first=true;
+  for(let j=0;j<state.n;j++){
+    if(Math.abs(v[j])<1e-9) continue;
+    h+=(first?(v[j]<0?'−':''):(v[j]<0?' − ':' + '))+fmt(Math.abs(v[j]))+'·'+state.vars[j];
+    first=false;
+  }
+  if(first)h+='0';
+  return h+' = '+fmt(v[state.n]);
+}
+function renderRack(){
+  const rack=$('rackCards'); rack.innerHTML='';
+  if(!state.cards.length){
+    rack.innerHTML='<div class="rackempty">— rack empty — punched results collect here —</div>';
+    return;
+  }
+  const item=state.plan[state.pi];
+  state.cards.forEach((c,i)=>{
+    const d=document.createElement('div'); d.className='pcard';
+    let rows='';
+    for(let j=0;j<=state.n;j++){
+      const lab=j<state.n?state.vars[j]:'=';
+      rows+='<div class="holerow"><span class="hl">'+lab+'</span>'+
+        bits16(c.v[j]).map(b=>'<span class="hole'+(b?' p':'')+'"></span>').join('')+'</div>';
+    }
+    d.innerHTML='<div class="ptitle">CARD '+c.label+' <span style="font-weight:400;opacity:.7">· from '+c.fromLabel+'</span></div>'+
+      '<div class="peq">'+cardEqHTML(c.v)+'</div>'+rows;
+    const onKA = state.ka && state.ka.src.type==='card' && state.ka.src.i===i;
+    const onCA = state.ca && state.ca.src.type==='card' && state.ca.src.i===i;
+    if(onKA||onCA) d.classList.add('onDrum');
+    if(item){
+      const want = state.expect==='loadKA' ? item.kaSrc : state.expect==='loadCA' ? item.caSrc : null;
+      if(want && want.type==='card'){
+        d.classList.add('clickable');
+        if(want.i===i) d.classList.add('await');
+      }
+    }
+    d.addEventListener('click',()=>attemptLoad('card',i));
+    rack.appendChild(d);
+  });
+}
+function renderChecklist(){
+  const item=state.plan[state.pi];
+  const total=state.plan.length;
+  const lis=document.querySelectorAll('#checkList li');
+  const order=['loadKA','loadCA','selectVar','fire','punch','repeat','backsub'];
+  const curIdx = state.expect==='done' ? 99 :
+                 state.expect==='backsub' ? 6 : order.indexOf(state.expect);
+  lis.forEach((li,idx)=>{
+    li.classList.remove('current','done');
+    if(state.expect==='done'&&!state.singular){ li.classList.add('done'); return; }
+    if(idx===curIdx) li.classList.add('current');
+    else if(idx<curIdx && curIdx<=4) li.classList.add('done');
+    else if(curIdx>=6 && idx<6) li.classList.add('done');
+    if(idx===5 && total>1 && state.pi>0 && state.expect!=='done' && state.expect!=='backsub') li.classList.add('done');
+  });
+  const sl=$('stageLine');
+  if(state.singular){ sl.textContent='machine idle — system is singular'; }
+  else if(state.expect==='done'){ sl.textContent='procedure complete — solution verified'; }
+  else if(state.expect==='backsub'){ sl.textContent='all eliminations punched — to the desk!'; }
+  else if(item){
+    const kv=state.vars[item.k];
+    const src = item.caSrc.type==='eq' ? 'equation '+CIRCLED[item.caSrc.i] : 'card '+state.plan[item.caSrc.i].label;
+    sl.innerHTML='Elimination <b>'+(state.pi+1)+' / '+total+'</b> — kill the <span style="color:'+VARCOLORS[item.k]+'">'+kv+'</span> coefficient of '+src+
+      (item.caSrc.type==='card'?' (stage 2: cards fed back!)':'');
+  }
+}
+function updateButtons(){
+  $('fireBtn').disabled  = state.expect!=='fire'  || state.queue.length>0;
+  $('punchBtn').disabled = state.expect!=='punch' || state.queue.length>0;
+  $('solveBtn').disabled = state.expect!=='backsub' || state.queue.length>0;
+  $('stepBtn').disabled  = state.expect==='done';
+}
+
+/* ============================== actions ============================== */
+function srcRow(src){ return src.type==='eq' ? state.A[src.i] : state.cards[src.i].v; }
+function srcLabel(src){ return src.type==='eq' ? 'equation '+CIRCLED[src.i] : 'card '+state.cards[src.i].label; }
+
+function attemptLoad(type,i){
+  if(state.queue.length||state.expect==='done') return;
+  const item=state.plan[state.pi];
+  if(!item) return;
+  const want = state.expect==='loadKA' ? item.kaSrc : state.expect==='loadCA' ? item.caSrc : null;
+  if(!want){ setStatus('Not now — the checklist says: <b>'+stepText()+'</b>.'); return; }
+  if(want.type!==type || want.i!==i){
+    setStatus('Berry coughs politely. For this elimination, load <b>'+srcLabel(want)+'</b> onto drum <b>'+(state.expect==='loadKA'?'KA':'CA')+'</b> — the pulsing one.');
+    return;
+  }
+  doLoad(state.expect==='loadKA'?'ka':'ca', want, type==='card');
+}
+function stepText(){
+  return {loadKA:'load the pivot onto KA',loadCA:'load the target onto CA',selectVar:'click the coefficient to eliminate on drum CA',fire:'fire the add–subtract mechanism',punch:'punch the result to a card',backsub:'back-substitute',done:'done'}[state.expect];
+}
+function doLoad(drum,src,isCard){
+  addStep(); addTime(isCard?COST.feedCard:COST.loadEq);
+  const v=srcRow(src).slice();
+  const label = src.type==='eq'?CIRCLED[src.i]:'card '+state.cards[src.i].label;
+  pushAnim('load',0.9,{drum,v,label,src,fromRight:isCard},()=>{
+    state[drum]={v,label,src};
+    if(drum==='ka'){
+      state.expect='loadCA';
+      /* pivot may already sit on CA?? no — advance normally */
+      setStatus('Card fed to drum <b>KA</b> — '+srcLabel(src)+' now circulating at 60 rpm. Next: load the target equation onto <b>CA</b>.');
+    }else{
+      state.expect='selectVar';
+      const item=state.plan[state.pi];
+      setStatus(srcLabel(src)+' standing on drum <b>CA</b>. Now <b>click the '+
+        '<span style="color:'+VARCOLORS[item.k]+'">'+state.vars[item.k]+'</span> coefficient on CA</b> — the one to be driven to zero.');
+    }
+    renderProblem(); renderRack(); renderChecklist(); updateButtons();
+  });
+}
+function attemptSelect(k){
+  if(state.queue.length||state.expect!=='selectVar') return;
+  const item=state.plan[state.pi];
+  if(k!==item.k){
+    setStatus('Tempting — but this pass is set up to eliminate <b><span style="color:'+VARCOLORS[item.k]+'">'+state.vars[item.k]+'</span></b>. Click that coefficient.');
+    return;
+  }
+  addStep(); addTime(COST.select);
+  state.selVar=k;
+  pushAnim('select',0.45,{k},()=>{
+    state.expect='fire';
+    setStatus('Switches set: eliminate <b><span style="color:'+VARCOLORS[k]+'">'+state.vars[k]+'</span></b>. Now <b>⚡ fire the add–subtract mechanism</b> — all '+(state.n+1)+' coefficients (30 on the real machine) combine in parallel on every drum turn.');
+    renderChecklist(); updateButtons();
+  });
+}
+function doFire(){
+  if(state.queue.length||state.expect!=='fire') return;
+  addStep(); addTime(COST.fire);
+  const item=state.plan[state.pi];
+  const ka=state.ka.v, ca=state.ca.v, k=item.k;
+  if(Math.abs(ka[k])<1e-12){ setStatus('⚠ The pivot coefficient is zero — the machine jams. Reset and reorder.','warn'); return; }
+  const result=elimRow(ka,ca,k);
+  pushAnim('fire',PASSES*0.55,{from:ca.slice(),to:result,k,passes:PASSES},()=>{
+    state.ca={v:result,label:'result',src:{type:'result',i:-1}};
+    state.selVar=-1;
+    state.expect='punch';
+    setStatus('Coefficient of <b><span style="color:'+VARCOLORS[k]+'">'+state.vars[k]+'</span></b> driven to <b>zero</b> after '+PASSES+' shift–subtract passes. The reduced equation stands on CA. <b>⇥ Punch it</b> before the capacitors forget!');
+    renderProblem(); renderChecklist(); updateButtons();
+  });
+  setStatus('Add–subtract mechanisms firing — nonrestoring shift &amp; subtract, one pass per drum revolution…');
+  renderChecklist(); updateButtons();
+}
+function doPunch(){
+  if(state.queue.length||state.expect!=='punch') return;
+  addStep(); addTime(COST.punch);
+  const item=state.plan[state.pi];
+  const card={v:state.ca.v.slice(), label:item.label,
+    fromLabel:(item.kaSrc.type==='eq'?CIRCLED[item.kaSrc.i]:'card '+state.plan[item.kaSrc.i].label)+'▸'+
+              (item.caSrc.type==='eq'?CIRCLED[item.caSrc.i]:'card '+state.plan[item.caSrc.i].label)};
+  pushAnim('punch',0.9,{v:card.v,label:card.label},()=>{
+    state.cards.push(card);
+    state.ca=null;
+    state.pi++;
+    if(state.pi<state.plan.length){
+      const next=state.plan[state.pi];
+      /* pivot reuse: if KA already holds the next pivot, skip step 1 */
+      if(state.ka && state.ka.src.type===next.kaSrc.type && state.ka.src.i===next.kaSrc.i){
+        state.expect='loadCA';
+        setStatus('Result punched to <b>binary card '+card.label+'</b>. Handy — the pivot is still spinning on KA. Load the next target onto <b>CA</b>.','good');
+      }else{
+        state.ka=null;
+        state.expect='loadKA';
+        const stage2 = next.kaSrc.type==='card';
+        setStatus('Result punched to <b>binary card '+card.label+'</b>. '+(stage2?
+          '<b>Stage 2:</b> the punched cards themselves become the new system — feed <b>card '+state.plan[next.kaSrc.i].label+'</b> back onto KA (click it in the rack).':
+          'Load the next pivot onto KA.'),'good');
+      }
+    }else{
+      state.expect='backsub';
+      setStatus('All eliminations punched — the rack now holds a <b>triangular system</b>. The machine’s work is done; back-substitution was pencil work at the desk. Press <b>✎ Back-substitute</b>.','good');
+    }
+    renderProblem(); renderRack(); renderChecklist(); updateButtons();
+  });
+}
+
+/* ---------- back substitution ---------- */
+function doBacksub(){
+  if(state.queue.length||state.expect!=='backsub') return;
+  addStep(); addTime(COST.backsub);
+  state.expect='done';
+  const {A,n,vars,cards,bsMeta}=state;
+  const sol=new Array(n);
+  const lines=[];
+  if(n===2){
+    const c=cards[bsMeta.lastCard].v;                        /* [0, b, r] */
+    sol[1]=c[2]/c[1];
+    lines.push('Card A:&nbsp; '+fmt(c[1])+'·'+vars[1]+' = '+fmt(c[2])+
+      ' &nbsp;⟹&nbsp; <span class="res">'+vars[1]+' = '+fmt(sol[1])+'</span>');
+    const p=A[bsMeta.pivotEq];
+    sol[0]=(p[2]-p[1]*sol[1])/p[0];
+    lines.push('Equation '+CIRCLED[bsMeta.pivotEq]+':&nbsp; '+fmt(p[0])+'·'+vars[0]+' + '+fmt(p[1])+'·('+fmt(sol[1])+') = '+fmt(p[2])+
+      ' &nbsp;⟹&nbsp; <span class="res">'+vars[0]+' = '+fmt(sol[0])+'</span>');
+  }else{
+    const cC=cards[bsMeta.lastCard].v;                       /* [0,0,c,r] */
+    sol[2]=cC[3]/cC[2];
+    lines.push('Card C:&nbsp; '+fmt(cC[2])+'·'+vars[2]+' = '+fmt(cC[3])+
+      ' &nbsp;⟹&nbsp; <span class="res">'+vars[2]+' = '+fmt(sol[2])+'</span>');
+    const cY=cards[bsMeta.yCard].v;                          /* [0,b,c,r] */
+    sol[1]=(cY[3]-cY[2]*sol[2])/cY[1];
+    lines.push('Card '+cards[bsMeta.yCard].label+':&nbsp; '+fmt(cY[1])+'·'+vars[1]+' + '+fmt(cY[2])+'·('+fmt(sol[2])+') = '+fmt(cY[3])+
+      ' &nbsp;⟹&nbsp; <span class="res">'+vars[1]+' = '+fmt(sol[1])+'</span>');
+    const p=A[bsMeta.pivotEq];
+    sol[0]=(p[3]-p[1]*sol[1]-p[2]*sol[2])/p[0];
+    lines.push('Equation '+CIRCLED[bsMeta.pivotEq]+':&nbsp; '+fmt(p[0])+'·'+vars[0]+' + '+fmt(p[1])+'·('+fmt(sol[1])+') + '+fmt(p[2])+'·('+fmt(sol[2])+') = '+fmt(p[3])+
+      ' &nbsp;⟹&nbsp; <span class="res">'+vars[0]+' = '+fmt(sol[0])+'</span>');
+  }
+  $('backsub').classList.add('open');
+  const bsBox=$('bsLines');
+  const els=lines.map(h=>{const d=document.createElement('div');d.className='bsline';d.innerHTML=h;bsBox.appendChild(d);return d;});
+  els.forEach((el,i)=>pushAnim('reveal',0.8,{},()=>el.classList.add('show')));
+  pushAnim('reveal',0.6,{},()=>{
+    const band=$('solutionBand');
+    band.innerHTML='Solution:&nbsp; '+sol.map((v,i)=>'<span style="color:'+VARCOLORS[i]+'">'+vars[i]+' = '+fmt(v)+'</span>').join(' ,&nbsp; ');
+    band.classList.add('show');
+  });
+  /* verification */
+  pushAnim('reveal',0.5,{},()=>$('verify').classList.add('show'));
+  const vBox=$('vLines');
+  A.forEach((row,i)=>{
+    pushAnim('reveal',0.6,{},()=>{
+      let lhs=0; const parts=[];
+      for(let j=0;j<n;j++){ lhs+=row[j]*sol[j]; parts.push(fmt(row[j])+'·'+fmt(sol[j])); }
+      const resid=Math.abs(lhs-row[n]);
+      const d=document.createElement('div'); d.className='vline';
+      d.innerHTML=CIRCLED[i]+'&nbsp; '+parts.join(' + ')+' = '+fmt(lhs)+' &nbsp;(target '+fmt(row[n])+') &nbsp;'+
+        '<span class="ok">✓</span> <span style="font-size:12px">residual '+resid.toExponential(1)+'</span>';
+      vBox.appendChild(d);
+      requestAnimationFrame(()=>d.classList.add('show'));
+    });
+  });
+  pushAnim('reveal',0.4,{},()=>{
+    setStatus('<b>System solved and verified.</b> Total: '+state.steps+' operator actions ≈ '+fmtTime(state.opSec)+' at the real machine (back-substitution done by pencil). The rack of cards was your program — <b>you were the control unit</b>. That, precisely, is what the next machines automated.','good');
+    state.auto=false; $('autoBtn').classList.remove('active');
+    $('autoBtn').textContent='▶ Ghost of Berry (auto)';
+    renderChecklist(); updateButtons();
+    $('backsub').scrollIntoView({behavior:'smooth',block:'nearest'});
+  });
+  renderChecklist(); updateButtons();
+}
+
+/* ============================== animation queue ============================== */
+function pushAnim(type,dur,data,onDone){
+  state.queue.push({type,dur,data,onDone,t:0});
+}
+function finishQueueInstant(){
+  while(state.queue.length){
+    const a=state.queue.shift();
+    if(a.onDone)a.onDone();
+  }
+}
+/* perform next expected operator action (Step / auto) */
+function performExpected(){
+  const item=state.plan[state.pi];
+  switch(state.expect){
+    case 'loadKA': if(item) doLoad('ka',item.kaSrc,item.kaSrc.type==='card'); break;
+    case 'loadCA': if(item) doLoad('ca',item.caSrc,item.caSrc.type==='card'); break;
+    case 'selectVar': attemptSelect(item.k); break;
+    case 'fire': doFire(); break;
+    case 'punch': doPunch(); break;
+    case 'backsub': doBacksub(); break;
+  }
+}
+
+/* ============================== canvas ============================== */
+const cv=$('machine'), ctx=cv.getContext('2d');
+let W=800,H=440,DPR=1;
+function resize(){
+  DPR=window.devicePixelRatio||1;
+  const r=cv.getBoundingClientRect();
+  W=r.width; H=r.height;
+  cv.width=Math.round(W*DPR); cv.height=Math.round(H*DPR);
+}
+window.addEventListener('resize',resize);
+if(window.ResizeObserver) new ResizeObserver(resize).observe(cv);
+
+function layout(){
+  const drumH=Math.min(96,(H-190)/2);
+  const kaTop=46;
+  const asmH=64;
+  const asmTop=kaTop+drumH+22;
+  const caTop=asmTop+asmH+22;
+  const narrow=W<620;
+  return {drumH,kaTop,asmTop,asmH,caTop, x0:narrow?34:64, x1:W-(narrow?22:42), endR:narrow?12:20, narrow};
+}
+function roundRect(x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();
+}
+function drawDrum(L,top,label,sub,content,drumName,anim){
+  const {x0,x1,endR,drumH}=L;
+  const bw=x1-x0;
+  /* body */
+  const g=ctx.createLinearGradient(0,top,0,top+drumH);
+  g.addColorStop(0,'#141926');g.addColorStop(.45,'#232c40');g.addColorStop(.55,'#232c40');g.addColorStop(1,'#10141f');
+  ctx.fillStyle=g;
+  ctx.fillRect(x0,top,bw,drumH);
+  /* rotating capacitor bands (rotation about the horizontal axis → stripes scroll vertically) */
+  ctx.save();
+  ctx.beginPath();ctx.rect(x0,top,bw,drumH);ctx.clip();
+  const nb=9;
+  for(let i=0;i<nb;i++){
+    const fr=((i/nb)+state.rot)%1;
+    const y=top+fr*drumH;
+    const a=Math.sin(Math.PI*fr);
+    ctx.strokeStyle='rgba(88,196,221,'+(0.05+0.12*a)+')';
+    ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(x0,y);ctx.lineTo(x1,y);ctx.stroke();
+  }
+  /* 30 slot separators */
+  ctx.strokeStyle='rgba(74,85,104,.30)';
+  for(let s=1;s<30;s++){
+    const x=x0+bw*s/30;
+    ctx.beginPath();ctx.moveTo(x,top+3);ctx.lineTo(x,top+drumH-3);ctx.stroke();
+  }
+  ctx.restore();
+  /* outline + elliptical ends */
+  ctx.strokeStyle='#3a4560';ctx.lineWidth=1.5;
+  ctx.strokeRect(x0,top,bw,drumH);
+  [[x0],[x1]].forEach(([ex],idx)=>{
+    ctx.beginPath();
+    ctx.ellipse(ex,top+drumH/2,endR*0.55,drumH/2,0,0,Math.PI*2);
+    ctx.fillStyle= idx===0 ? '#1a2133':'#151b2a';
+    ctx.fill();ctx.stroke();
+    /* axle dot */
+    ctx.beginPath();ctx.arc(ex,top+drumH/2,3,0,Math.PI*2);
+    ctx.fillStyle='#4a5568';ctx.fill();
+  });
+  /* labels */
+  ctx.fillStyle='#8b94a7';ctx.font='11px "Segoe UI",sans-serif';ctx.textAlign='left';
+  ctx.fillText(L.narrow?label.split(' — ')[0]+' — '+(drumName==='ka'?'PIVOT':'TARGET'):label,x0,top-8);
+  if(!L.narrow){
+    ctx.fillStyle='#4a5568';
+    ctx.textAlign='right'; ctx.fillText(sub,x1,top-8); ctx.textAlign='left';
+  }
+  /* content */
+  if(content){
+    drawEquationOnDrum(L,top,content,drumName,anim);
+  }else{
+    ctx.fillStyle='rgba(139,148,167,.55)';
+    ctx.font='italic 13px Georgia,serif';ctx.textAlign='center';
+    ctx.fillText(drumName==='ka'?'— empty — load the pivot equation —':'— empty — load the target equation —',(x0+x1)/2,top+drumH/2+4);
+    ctx.textAlign='left';
+  }
+}
+function drumChipRects(L,top){
+  const {x0,x1,drumH}=L;
+  const m=state.n+1;
+  const pad=L.narrow?8:26;
+  const gap=L.narrow?5:10;
+  const cw=Math.min(190,(x1-x0-pad*2)/m - gap);
+  const totalW=m*cw+(m-1)*gap;
+  const startX=(x0+x1)/2-totalW/2;
+  const rects=[];
+  for(let j=0;j<m;j++) rects.push({x:startX+j*(cw+gap),y:top+drumH/2-21,w:cw,h:42,j});
+  return rects;
+}
+function drawEquationOnDrum(L,top,content,drumName,anim){
+  const rects=drumChipRects(L,top);
+  const item=state.plan[state.pi];
+  let vals=content.v;
+  let sweepBit=-1;
+  if(anim&&anim.type==='fire'&&drumName==='ca'){
+    const p=anim.t/anim.dur;
+    const passF=p*anim.data.passes;
+    const passIdx=Math.min(anim.data.passes-1,Math.floor(passF));
+    const inPass=passF-passIdx;
+    vals=anim.data.from.map((f,j)=>{
+      const t=ease(p);
+      if(j===anim.data.k){
+        /* target counts down in visible chunks per pass */
+        const stepT=(passIdx+ease(inPass))/anim.data.passes;
+        return f*(1-stepT);
+      }
+      return f+(anim.data.to[j]-f)*t;
+    });
+    sweepBit=15-Math.floor(inPass*16);
+  }
+  rects.forEach(rc=>{
+    const j=rc.j;
+    const col=j<state.n?VARCOLORS[j]:RHSCOLOR;
+    const isSelTarget = drumName==='ca' && state.expect==='selectVar' && item && j===item.k;
+    const isSelected  = drumName==='ca' && state.selVar===j;
+    const firing = anim&&anim.type==='fire'&&j===anim.data.k;
+    /* chip background */
+    roundRect(rc.x,rc.y,rc.w,rc.h,8);
+    ctx.fillStyle='rgba(10,13,19,.78)';
+    ctx.fill();
+    ctx.lineWidth=isSelected||firing?2.2:1.4;
+    ctx.strokeStyle=col;
+    if(isSelTarget){
+      const pulse=0.5+0.5*Math.sin(performance.now()/300);
+      ctx.save();
+      ctx.shadowColor=col;ctx.shadowBlur=8+10*pulse;
+      ctx.stroke();
+      ctx.restore();
+      /* halo hint */
+      ctx.save();ctx.globalAlpha=.35+.3*pulse;ctx.lineWidth=1;
+      roundRect(rc.x-4,rc.y-4,rc.w+8,rc.h+8,10);ctx.strokeStyle=col;ctx.stroke();ctx.restore();
+    }else ctx.stroke();
+    const v=vals[j];
+    if(state.binary){
+      /* 16-bit strip */
+      const bits=bits16(v);
+      const bw2=(rc.w-12)/16;
+      const by=rc.y+rc.h-14;
+      for(let b=0;b<16;b++){
+        const bx=rc.x+6+b*bw2;
+        ctx.fillStyle = bits[b] ? col : 'rgba(74,85,104,.35)';
+        if(sweepBit===b && firing) ctx.fillStyle='#ffffff';
+        ctx.fillRect(bx,by,bw2-1.5,9);
+      }
+      ctx.fillStyle=col;ctx.font='italic 12px Georgia,serif';ctx.textAlign='center';
+      ctx.fillText((j<state.n?fmt(v)+'·'+state.vars[j]:'= '+fmt(v)),rc.x+rc.w/2,rc.y+13);
+    }else{
+      ctx.fillStyle=col;
+      const label=j<state.n ? fmt(v)+' '+state.vars[j] : '= '+fmt(v);
+      const fs=Math.max(11,Math.min(17,1.9*rc.w/Math.max(6,label.length)));
+      ctx.font='italic '+fs+'px Georgia,serif';ctx.textAlign='center';
+      ctx.fillText(label,rc.x+rc.w/2,rc.y+rc.h/2+6);
+    }
+    ctx.textAlign='left';
+    /* firing sweep line across chip */
+    if(firing&&sweepBit>=0){
+      const sx=rc.x+6+((15-sweepBit)/16)*(rc.w-12);
+      ctx.strokeStyle='rgba(255,255,255,.75)';ctx.lineWidth=1.5;
+      ctx.beginPath();ctx.moveTo(sx,rc.y+2);ctx.lineTo(sx,rc.y+rc.h-2);ctx.stroke();
+    }
+    /* register hit region for select */
+    if(drumName==='ca'&&state.expect==='selectVar'&&j<state.n){
+      state.hits.push({x:rc.x,y:rc.y,w:rc.w,h:rc.h,act:'select',k:j});
+    }
+  });
+  /* source label on the left end */
+  ctx.fillStyle='rgba(230,233,240,.6)';ctx.font='12px "Segoe UI",sans-serif';
+  ctx.fillText(content.label==='result'?'result':content.label,L.x0+12,top+16);
+}
+function drawASM(L,anim){
+  const {asmTop,asmH,x0,x1}=L;
+  const w=Math.min(430,(x1-x0)*0.62);
+  const cx=(x0+x1)/2;
+  const bx=cx-w/2;
+  const firing=anim&&anim.type==='fire';
+  roundRect(bx,asmTop,w,asmH,10);
+  ctx.fillStyle=firing?'rgba(252,98,85,.10)':'#141a28';
+  ctx.fill();
+  ctx.strokeStyle=firing?'#fc6255':'#3a4560';ctx.lineWidth=1.5;ctx.stroke();
+  /* vacuum tubes */
+  const nt=7;
+  for(let i=0;i<nt;i++){
+    const tx=bx+w*(i+1)/(nt+1);
+    const glow=firing?(0.5+0.5*Math.sin(performance.now()/90+i)):0.12;
+    ctx.beginPath();ctx.arc(tx,asmTop+asmH/2+7,7,0,Math.PI*2);
+    ctx.fillStyle='rgba(255,159,75,'+(0.15+0.75*glow)+')';
+    ctx.fill();
+    ctx.strokeStyle='rgba(255,159,75,.5)';ctx.lineWidth=1;ctx.stroke();
+    ctx.beginPath();ctx.moveTo(tx-3,asmTop+asmH/2+7);ctx.lineTo(tx+3,asmTop+asmH/2+7);
+    ctx.strokeStyle='rgba(255,220,180,'+(0.2+0.7*glow)+')';ctx.stroke();
+  }
+  ctx.fillStyle=firing?'#fc6255':'#8b94a7';
+  ctx.font='11px "Segoe UI",sans-serif';ctx.textAlign='center';
+  ctx.fillText(L.narrow?'ADD–SUBTRACT ×30 IN PARALLEL':'ADD–SUBTRACT MECHANISMS  ·  ×30 IN PARALLEL — ONE PER COEFFICIENT',cx,asmTop+16);
+  if(firing){
+    const passF=(anim.t/anim.dur)*anim.data.passes;
+    const passIdx=Math.min(anim.data.passes,Math.floor(passF)+1);
+    ctx.fillStyle='#ffd35a';ctx.font='italic 13px Georgia,serif';
+    ctx.fillText('shift–subtract pass '+passIdx+' / '+anim.data.passes,cx,asmTop+asmH+16);
+  }else if(state.expect==='fire'){
+    ctx.fillStyle='rgba(252,98,85,.9)';ctx.font='12px "Segoe UI",sans-serif';
+    ctx.fillText('▸ ready — press ⚡ FIRE (or click this box)',cx,asmTop+asmH+16);
+    state.hits.push({x:bx,y:asmTop,w:w,h:asmH,act:'fire'});
+  }
+  ctx.textAlign='left';
+  /* data lanes KA→ASM→CA while firing */
+  if(firing){
+    const t=(performance.now()/500)%1;
+    const rectsK=drumChipRects(L,L.kaTop), rectsC=drumChipRects(L,L.caTop);
+    rectsK.forEach((rk,j)=>{
+      const rc=rectsC[j];
+      const xK=rk.x+rk.w/2, xC=rc.x+rc.w/2;
+      ctx.strokeStyle='rgba(88,196,221,.28)';ctx.lineWidth=1;
+      ctx.beginPath();ctx.moveTo(xK,L.kaTop+L.drumH);ctx.lineTo(xC,L.caTop);ctx.stroke();
+      const py1=L.kaTop+L.drumH+(L.caTop-L.kaTop-L.drumH)*t;
+      const px=xK+(xC-xK)*t;
+      ctx.beginPath();ctx.arc(px,py1,2.4,0,Math.PI*2);
+      ctx.fillStyle='#58c4dd';ctx.fill();
+    });
+  }
+}
+function drawFlyingCard(L,anim){
+  const p=ease(anim.t/anim.dur);
+  let x,y;
+  const {kaTop,caTop,drumH,x0,x1}=L;
+  const midX=(x0+x1)/2;
+  if(anim.type==='load'){
+    const ty=(anim.data.drum==='ka'?kaTop:caTop)+drumH/2;
+    const fx=anim.data.fromRight? W+60 : -60;
+    x=fx+(midX-fx)*p; y=ty-40*Math.sin(Math.PI*p);
+  }else{ /* punch: CA -> right edge */
+    x=midX+(W+80-midX)*p; y=caTop+drumH/2-46*Math.sin(Math.PI*p);
+  }
+  const cw=120,ch=64;
+  ctx.save();
+  ctx.translate(x,y);ctx.rotate((p-0.5)*0.12);
+  roundRect(-cw/2,-ch/2,cw,ch,5);
+  ctx.fillStyle='#e8dcc0';ctx.fill();
+  ctx.strokeStyle='#c9b98f';ctx.stroke();
+  ctx.fillStyle='#2a2418';ctx.font='bold 9px "Segoe UI",sans-serif';ctx.textAlign='left';
+  ctx.fillText(anim.type==='punch'?'CARD '+anim.data.label:String(anim.data.label),-cw/2+8,-ch/2+14);
+  /* mini holes */
+  const v=anim.data.v;
+  for(let r=0;r<=state.n;r++){
+    const bits=bits16(v[r]);
+    for(let b=0;b<16;b++){
+      ctx.fillStyle=bits[b]?'#181206':'#d6c8a4';
+      ctx.fillRect(-cw/2+8+b*6.4,-ch/2+20+r*9,4.6,6);
+    }
+  }
+  ctx.restore();
+}
+function draw(){
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  ctx.clearRect(0,0,W,H);
+  state.hits=[];
+  /* faint grid backdrop */
+  ctx.strokeStyle='#151b28';ctx.lineWidth=1;
+  for(let x=0;x<W;x+=44){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+  for(let y=0;y<H;y+=44){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+  const L=layout();
+  const anim=state.queue[0]||null;
+  ctx.fillStyle='#4a5568';ctx.font='11px "Segoe UI",sans-serif';ctx.textAlign='right';
+  ctx.fillText('60 rpm · 50-bit words · regenerative capacitor memory',W-14,H-12);
+  ctx.textAlign='left';
+  drawDrum(L,L.kaTop,'DRUM KA — “keyboard abacus” · holds the PIVOT equation','30 slots · one word each',state.ka,'ka',anim);
+  drawASM(L,anim);
+  drawDrum(L,L.caTop,'DRUM CA — “counter abacus” · holds the TARGET equation','result forms here',state.ca,'ca',anim);
+  if(state.expect==='punch'&&!anim){
+    ctx.fillStyle='rgba(131,193,103,.9)';ctx.font='12px "Segoe UI",sans-serif';ctx.textAlign='center';
+    ctx.fillText('▸ reduced equation standing on CA — press ⇥ PUNCH (or click the drum)',(L.x0+L.x1)/2,L.caTop+L.drumH+18);
+    ctx.textAlign='left';
+    state.hits.push({x:L.x0,y:L.caTop,w:L.x1-L.x0,h:L.drumH,act:'punch'});
+  }
+  if(anim&&(anim.type==='load'||anim.type==='punch')) drawFlyingCard(L,anim);
+  if(state.paused){
+    ctx.fillStyle='rgba(230,233,240,.5)';ctx.font='12px "Segoe UI",sans-serif';
+    ctx.fillText('⏸ paused — Space to step',12,18);
+  }
+}
+
+/* canvas pointer */
+cv.addEventListener('pointerdown',e=>{
+  const r=cv.getBoundingClientRect();
+  const x=e.clientX-r.left, y=e.clientY-r.top;
+  for(const h of state.hits){
+    if(x>=h.x-8&&x<=h.x+h.w+8&&y>=h.y-8&&y<=h.y+h.h+8){
+      if(h.act==='select') attemptSelect(h.k);
+      else if(h.act==='fire') doFire();
+      else if(h.act==='punch') doPunch();
+      return;
+    }
+  }
+});
+cv.addEventListener('pointermove',e=>{
+  const r=cv.getBoundingClientRect();
+  const x=e.clientX-r.left, y=e.clientY-r.top;
+  let over=false;
+  for(const h of state.hits) if(x>=h.x-8&&x<=h.x+h.w+8&&y>=h.y-8&&y<=h.y+h.h+8) over=true;
+  cv.style.cursor=over?'pointer':'default';
+});
+
+/* ============================== main loop ============================== */
+function tick(ts){
+  const dt=Math.min(0.05,(ts-state.lastTs)/1000||0);
+  state.lastTs=ts;
+  if(!state.paused){
+    state.rot=(state.rot+dt*1.0)%1;   /* ~1 rotation / second = 60 rpm */
+    const a=state.queue[0];
+    if(a){
+      a.t+=dt/speedFactor();
+      if(a.t>=a.dur){
+        state.queue.shift();
+        if(a.onDone)a.onDone();
+      }
+    }else if(state.auto&&state.expect!=='done'){
+      state.autoWait+=dt;
+      if(state.autoWait>0.45*speedFactor()){
+        state.autoWait=0;
+        performExpected();
+      }
+    }
+  }
+  draw();
+  requestAnimationFrame(tick);
+}
+
+/* ============================== editor ============================== */
+function buildEditor(){
+  $('n2').classList.toggle('active',state.n===2);
+  $('n3').classList.toggle('active',state.n===3);
+  const t=$('editGrid'); t.innerHTML='';
+  for(let i=0;i<state.n;i++){
+    const tr=document.createElement('tr');
+    let h='';
+    for(let j=0;j<state.n;j++){
+      h+='<td><input type="number" step="any" data-i="'+i+'" data-j="'+j+'" value="'+state.A[i][j]+'"></td>'+
+         '<td class="vlab'+j+'">'+state.vars[j]+(j<state.n-1?' +':'')+'</td>';
+    }
+    h+='<td>=</td><td><input type="number" step="any" data-i="'+i+'" data-j="'+state.n+'" value="'+state.A[i][state.n]+'"></td>';
+    tr.innerHTML=h; t.appendChild(tr);
+  }
+}
+function setN(n){
+  if(n===state.n){buildEditor();return;}
+  state.n=n;
+  state.vars = n===2?['x','y']:['x','y','z'];
+  state.A = n===2 ? [[3,2,8],[2,5,9]] : [[2,1,1,7],[1,3,2,13],[1,1,4,15]];
+  document.querySelectorAll('#presetRow .preset').forEach(b=>b.classList.remove('active'));
+  $('presetCaption').innerHTML='<b>Custom system</b> — your own '+n+'×'+n+' problem. Keep the determinant away from zero, or the drums will spin in vain.';
+  buildEditor(); resetProcedure();
+}
+$('n2').addEventListener('click',()=>setN(2));
+$('n3').addEventListener('click',()=>setN(3));
+$('applyEdit').addEventListener('click',()=>{
+  document.querySelectorAll('#editGrid input').forEach(inp=>{
+    const i=+inp.dataset.i, j=+inp.dataset.j;
+    const v=parseFloat(inp.value);
+    state.A[i][j]=isFinite(v)?clamp(v,-127,127):0;
+    inp.value=state.A[i][j];
+  });
+  document.querySelectorAll('#presetRow .preset').forEach(b=>b.classList.remove('active'));
+  $('presetCaption').innerHTML='<b>Custom system</b> — machine reset with your coefficients.';
+  resetProcedure();
+});
+$('editToggle').addEventListener('click',()=>{
+  $('editor').classList.toggle('open');
+  $('editToggle').classList.toggle('active');
+  buildEditor();
+});
+
+/* ============================== controls ============================== */
+document.querySelectorAll('#presetRow .preset').forEach(b=>{
+  b.addEventListener('click',()=>setPreset(+b.dataset.p));
+});
+$('binToggle').addEventListener('click',()=>{
+  state.binary=!state.binary;
+  $('binToggle').classList.toggle('active',state.binary);
+});
+$('autoBtn').addEventListener('click',()=>{
+  if(state.expect==='done'){ resetProcedure(true); }
+  state.auto=!state.auto;
+  state.paused=false;
+  $('pauseBtn').classList.remove('active');$('pauseBtn').textContent='⏸ Pause';
+  $('autoBtn').classList.toggle('active',state.auto);
+  $('autoBtn').textContent=state.auto?'👻 Berry is operating…':'▶ Ghost of Berry (auto)';
+  if(state.auto) setStatus('The ghost of Clifford Berry takes the chair — watch the full procedure. Press <b>Pause</b> then <b>Step</b> to take over at any point.');
+});
+$('pauseBtn').addEventListener('click',()=>{
+  state.paused=!state.paused;
+  $('pauseBtn').classList.toggle('active',state.paused);
+  $('pauseBtn').textContent=state.paused?'▶ Resume':'⏸ Pause';
+});
+$('stepBtn').addEventListener('click',stepOnce);
+function stepOnce(){
+  if(state.expect==='done') return;
+  if(state.queue.length){ finishQueueInstant(); draw(); return; }
+  performExpected();
+}
+$('resetBtn').addEventListener('click',()=>{
+  finishQueueInstant();
+  resetProcedure();
+});
+$('fireBtn').addEventListener('click',doFire);
+$('punchBtn').addEventListener('click',doPunch);
+$('solveBtn').addEventListener('click',doBacksub);
+$('speed').addEventListener('input',()=>{ $('speedVal').textContent=speedSec().toFixed(1)+'s'; });
+window.addEventListener('keydown',e=>{
+  if(e.code==='Space'&&state.paused){
+    e.preventDefault();
+    /* step even while paused: run pending anim instantly, else act */
+    if(state.queue.length){ finishQueueInstant(); draw(); }
+    else performExpected();
+  }
+});
+
+/* ============================== boot ============================== */
+resize();
+setPreset(0);
+requestAnimationFrame(tick);
+})();
+</script>
+</body>
+</html>

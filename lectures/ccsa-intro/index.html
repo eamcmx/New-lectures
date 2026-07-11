@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Intro to Computer Systems Architecture — Interactive Explorations</title>
+<style>
+:root{
+  --bg:#0e1117; --panel:#161b26; --panel2:#1c2230;
+  --ink:#e6e9f0; --muted:#8b94a7;
+  --grid:#232b3b; --axis:#4a5568;
+  --blue:#58c4dd; --yellow:#ffd35a; --red:#fc6255; --green:#83c167;
+  --purple:#c688eb; --orange:#ff9f4b; --line:#2a3347;
+}
+*{box-sizing:border-box; margin:0; padding:0;}
+body{
+  background:var(--bg); color:var(--ink);
+  font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
+  line-height:1.55;
+}
+.math{font-family:Georgia,'Times New Roman',serif; font-style:italic;}
+.wrap{max-width:1100px; margin:0 auto; padding:32px 24px 48px;}
+header .eyebrow{color:var(--muted); font-size:.85rem; letter-spacing:.14em; text-transform:uppercase;}
+h1{font-size:2rem; margin:.35em 0 .3em; line-height:1.2;}
+h1 .accent{color:var(--yellow);}
+.sub{color:var(--muted); max-width:780px; font-size:1.02rem;}
+.hero{
+  position:relative; margin:26px 0 30px;
+  background:var(--panel); border:1px solid var(--line); border-radius:14px;
+  overflow:hidden;
+}
+.hero canvas{display:block; width:100%; height:180px;}
+.hero .caption{
+  position:absolute; right:14px; bottom:10px; color:var(--muted);
+  font-size:.78rem; background:rgba(14,17,23,.65); padding:3px 9px; border-radius:7px;
+}
+.section-head{margin:34px 0 6px; display:flex; align-items:baseline; gap:12px; flex-wrap:wrap;}
+.section-head h2{font-size:1.35rem;}
+.section-head .tag{
+  font-size:.72rem; letter-spacing:.08em; text-transform:uppercase;
+  border-radius:999px; padding:3px 10px; opacity:.9; white-space:nowrap;
+}
+.tag.ctx{color:var(--blue); border:1px solid var(--blue);}
+.tag.sim{color:var(--green); border:1px solid var(--green);}
+.section-sub{color:var(--muted); max-width:780px; font-size:.95rem; margin-bottom:20px;}
+.grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(320px,1fr)); gap:16px;}
+a.card{
+  display:block; text-decoration:none; color:var(--ink);
+  background:var(--panel); border:1px solid var(--line); border-radius:14px;
+  padding:18px 20px; transition:border-color .18s, transform .18s;
+}
+a.card:hover{border-color:var(--yellow); transform:translateY(-2px);}
+.card .num{
+  display:inline-flex; align-items:center; justify-content:center;
+  min-width:30px; height:30px; padding:0 8px; border-radius:15px; font-weight:700; font-size:.85rem;
+  margin-bottom:10px; color:#0e1117;
+}
+.card h2{font-size:1.08rem; margin-bottom:6px;}
+.card p{color:var(--muted); font-size:.92rem;}
+.card .go{display:inline-block; margin-top:10px; font-size:.86rem; color:var(--yellow);}
+.card .yr{float:right; font-size:.78rem; color:var(--muted); font-family:Georgia,serif; font-style:italic; margin-top:4px;}
+.c1{background:var(--blue);} .c2{background:var(--yellow);} .c3{background:var(--green);}
+.c4{background:var(--purple);} .c5{background:var(--red);} .c6{background:var(--orange);}
+.c7{background:#7ee3c3;} .c8{background:#e08fd0;} .c9{background:#9db8ff;} .c10{background:#ffd0a1;}
+.simlink{
+  margin:26px 0 0; background:var(--panel); border:1px solid var(--line);
+  border-radius:14px; padding:18px 20px;
+}
+.simlink h3{font-size:1rem; margin-bottom:8px; color:var(--green);}
+.simlink p{color:var(--muted); font-size:.93rem;}
+.simlink a{color:var(--blue);}
+footer{margin-top:34px; color:var(--muted); font-size:.85rem; border-top:1px solid var(--line); padding-top:16px;}
+footer a{color:var(--muted);} footer a:hover{color:var(--yellow);}
+@media (max-width:520px){ h1{font-size:1.5rem;} .hero canvas{height:130px;} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Computer Systems Architecture · Topic 1 · Interactive companion</div>
+    <h1>How we got to <span class="accent">computers</span> — by using the machines ourselves</h1>
+    <p class="sub">Ten hands-on explorations for the introduction lecture. First the context — timeline,
+    abacus, slide rule, punch cards — then the main event: <strong>working simulators of the first
+    computers</strong>. Punch a Z3 tape, plug ENIAC's cables, run Lovelace-style card chains — and feel
+    why every next machine had to be invented.</p>
+  </header>
+
+  <div class="hero">
+    <canvas id="hero"></canvas>
+    <div class="caption">4,500 years of computing, accelerating</div>
+  </div>
+
+  <div class="section-head">
+    <h2>Part A — the road to computing</h2>
+    <span class="tag ctx">context &amp; devices</span>
+  </div>
+  <p class="section-sub">Where calculation lived before electronics: beads, brass, logarithms and
+  holes in cardboard — each one already carrying an idea your CPU still uses.</p>
+
+  <div class="grid">
+    <a class="card" href="timeline.html">
+      <span class="num c1">1</span><span class="yr">2500 BCE → 2025</span>
+      <h2>The Grand Timeline</h2>
+      <p>Every device and idea from the lecture on one explorable line — with a time-warp toggle
+      that shows why history keeps accelerating.</p>
+      <span class="go">Explore →</span>
+    </a>
+    <a class="card" href="abacus.html">
+      <span class="num c2">2</span><span class="yr">~2500 BCE</span>
+      <h2>The Abacus</h2>
+      <p>A fully working soroban: drag the beads, watch the carries ripple, and see why a frame of
+      beads is a register file in older packaging.</p>
+      <span class="go">Calculate →</span>
+    </a>
+    <a class="card" href="slide-rule.html">
+      <span class="num c3">3</span><span class="yr">1600s</span>
+      <h2>The Slide Rule</h2>
+      <p>Slide real log scales to multiply — distances literally add logarithms. The analog computer
+      that went to the Moon in an engineer's pocket.</p>
+      <span class="go">Slide →</span>
+    </a>
+    <a class="card" href="punch-card.html">
+      <span class="num c4">4</span><span class="yr">1801 · 1890</span>
+      <h2>Punch Cards</h2>
+      <p>Punch a Jacquard card chain and weave its pattern, then feed a census deck through a
+      Hollerith tabulator — binary programs before electricity.</p>
+      <span class="go">Punch →</span>
+    </a>
+  </div>
+
+  <div class="section-head">
+    <h2>Part B — programming the first computers</h2>
+    <span class="tag sim">working simulators</span>
+  </div>
+  <p class="section-sub">Six machines, six programming experiences — card chains, rule tables,
+  operator procedures, punched film, paper tape loops and plugboard cables. Each simulator ships
+  with the real class of problems the machine was built to solve.</p>
+
+  <div class="grid">
+    <a class="card" href="analytical-engine.html">
+      <span class="num c5">5</span><span class="yr">1837</span>
+      <h2>The Analytical Engine</h2>
+      <p>Program Babbage's brass computer with chains of operation and variable cards — including a
+      Lovelace-style loop and his prime-generating table x²+x+41.</p>
+      <span class="go">Program it →</span>
+    </a>
+    <a class="card" href="turing-machine.html">
+      <span class="num c6">6</span><span class="yr">1936</span>
+      <h2>The Turing Machine</h2>
+      <p>Write state-transition rules and watch the tape run — Turing's own first example, unary
+      addition, and the unknowable busy beaver.</p>
+      <span class="go">Program it →</span>
+    </a>
+    <a class="card" href="abc.html">
+      <span class="num c7">7</span><span class="yr">1939</span>
+      <h2>The Atanasoff–Berry Computer</h2>
+      <p>The first electronic digital computer couldn't be programmed — so you operate it: eliminate
+      coefficients drum by drum and punch the intermediate cards yourself.</p>
+      <span class="go">Operate it →</span>
+    </a>
+    <a class="card" href="z3.html">
+      <span class="num c8">8</span><span class="yr">1941</span>
+      <h2>The Zuse Z3</h2>
+      <p>Punch the real 9-instruction film tape, run relay floating point, and glue the tape into a
+      loop — Zuse's answer to a world without branches.</p>
+      <span class="go">Program it →</span>
+    </a>
+    <a class="card" href="mark1.html">
+      <span class="num c9">9</span><span class="yr">1944</span>
+      <h2>The Harvard Mark I</h2>
+      <p>Feed sequential paper tape to fifty feet of clockwork: grind out mathematical tables like
+      "Bessie" did for the Navy — and feel the real cost of a multiply.</p>
+      <span class="go">Program it →</span>
+    </a>
+    <a class="card" href="eniac.html">
+      <span class="num c10">10</span><span class="yr">1945</span>
+      <h2>ENIAC</h2>
+      <p>Plug program cables between accumulator racks and watch ring counters spin at electronic
+      speed — including its actual job: artillery trajectory integration.</p>
+      <span class="go">Wire it →</span>
+    </a>
+  </div>
+
+  <div class="simlink">
+    <h3>Go further: the course CPU simulators</h3>
+    <p>Once you've felt the plugboards and tapes, jump to the course's full architecture simulators —
+    the <a href="../../sim/vnmsim.html">Von Neumann machine</a>, the
+    <a href="../../sim/harvard.html">Harvard machine</a>, and the
+    <a href="../../sim/compare.html">side-by-side comparison</a> — and see the stored-program idea
+    those first machines were groping toward.</p>
+  </div>
+
+  <footer>
+    Interactive companion to the lecture <em>Introduction to Computers &amp; Computer Systems
+    Architecture</em> · CCSA T1 &nbsp;·&nbsp; <a href="../../hub/">All lectures</a>
+  </footer>
+</div>
+
+<script>
+(function(){
+  const cv = document.getElementById('hero');
+  const ctx = cv.getContext('2d');
+  let W=0,H=0;
+  function resize(){
+    const dpr = window.devicePixelRatio||1;
+    W = cv.clientWidth; H = cv.clientHeight;
+    cv.width = W*dpr; cv.height = H*dpr;
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+  }
+  window.addEventListener('resize', resize); resize();
+  const css = s=>getComputedStyle(document.documentElement).getPropertyValue(s).trim();
+  const COLORS=[css('--yellow'),css('--orange'),css('--red'),css('--blue'),css('--green'),css('--purple')];
+  const MUTED=css('--muted'), GRID=css('--grid');
+  // pulse dots travelling along a timeline that accelerates (log spacing)
+  const events=[0.03,0.10,0.16,0.22,0.34,0.40,0.46,0.52,0.60,0.66,0.72,0.78,0.83,0.87,0.905,0.93,0.95,0.965,0.978,0.99];
+  let t0=null;
+  function frame(ts){
+    if(t0===null)t0=ts;
+    const t=(ts-t0)/1000;
+    ctx.clearRect(0,0,W,H);
+    const y=H*0.58, x0=30, x1=W-30;
+    // grid
+    ctx.strokeStyle=GRID; ctx.lineWidth=1;
+    for(let x=0;x<W;x+=34){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+    // line
+    ctx.strokeStyle=MUTED; ctx.lineWidth=1.6;
+    ctx.beginPath(); ctx.moveTo(x0,y); ctx.lineTo(x1,y); ctx.stroke();
+    // era ticks + labels
+    ctx.font='10px sans-serif'; ctx.fillStyle=MUTED; ctx.textAlign='center';
+    ctx.fillText('abacus', x0+(x1-x0)*0.03, y+22);
+    ctx.fillText('Babbage', x0+(x1-x0)*0.40, y+22);
+    ctx.fillText('ENIAC', x0+(x1-x0)*0.72, y+22);
+    ctx.fillText('4004', x0+(x1-x0)*0.87, y+22);
+    ctx.fillText('quantum', x0+(x1-x0)*0.978, y+22);
+    // events
+    events.forEach((e,i)=>{
+      const x=x0+(x1-x0)*e;
+      const c=COLORS[Math.min(5,Math.floor(e*6.2))];
+      ctx.fillStyle=c;
+      ctx.beginPath(); ctx.arc(x,y,3.2,0,Math.PI*2); ctx.fill();
+    });
+    // travelling pulse (accelerating: quadratic ease so it lingers early, races late)
+    const cycle=(t%6)/6;
+    const p=cycle*cycle;
+    const px=x0+(x1-x0)*p;
+    ctx.fillStyle='#fff';
+    ctx.globalAlpha=0.9;
+    ctx.beginPath(); ctx.arc(px,y,5,0,Math.PI*2); ctx.fill();
+    ctx.globalAlpha=0.25;
+    ctx.beginPath(); ctx.arc(px,y,11,0,Math.PI*2); ctx.fill();
+    ctx.globalAlpha=1;
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
