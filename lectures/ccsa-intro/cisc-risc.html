@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CISC vs RISC — Intro to Computer Systems Architecture</title>
+<style>
+:root{
+  --bg:#0e1117; --panel:#161b26; --panel2:#1c2230; --ink:#e6e9f0; --muted:#8b94a7;
+  --grid:#232b3b; --axis:#4a5568; --blue:#58c4dd; --yellow:#ffd35a; --red:#fc6255;
+  --green:#83c167; --purple:#c688eb; --orange:#ff9f4b; --line:#2a3347;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:'Segoe UI',system-ui,-apple-system,sans-serif;line-height:1.55}
+.wrap{max-width:1100px;margin:0 auto;padding:24px}
+a{color:var(--blue);text-decoration:none}
+a:hover{text-decoration:underline}
+header a.crumb{color:var(--muted);font-size:14px}
+header a.crumb:hover{color:var(--blue);text-decoration:none}
+h1{margin:10px 0 6px;font-size:32px;letter-spacing:.3px}
+.subtitle{color:var(--muted);max-width:75ch;margin:0 0 22px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin-bottom:22px}
+.math{font-family:Georgia,'Times New Roman',serif;font-style:italic}
+.mono{font-family:ui-monospace,'Cascadia Mono',Consolas,monospace}
+h2{font-size:15px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);margin:0 0 12px}
+h2 .accent{color:var(--yellow)}
+.lede{color:var(--muted);font-size:14px;max-width:80ch;margin:0 0 14px}
+.lede b{color:var(--ink);font-weight:600}
+
+/* controls */
+.controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:0 0 16px}
+button{background:var(--panel2);border:1px solid var(--line);color:var(--ink);border-radius:9px;padding:8px 14px;cursor:pointer;font-size:14px;font-family:inherit}
+button:hover{border-color:var(--blue)}
+button.on{border-color:var(--blue);color:var(--blue);background:rgba(88,196,221,.08)}
+button.go{border-color:rgba(131,193,103,.5);color:var(--green);font-weight:600}
+button.go:hover{border-color:var(--green)}
+button:disabled{opacity:.45;cursor:default}
+input[type=range]{accent-color:var(--blue)}
+label.sld{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:13px}
+.cycbox{margin-left:auto;background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:6px 14px;font-size:13px;color:var(--muted);white-space:nowrap}
+.cycbox b{font-family:ui-monospace,Consolas,monospace;font-size:20px;color:var(--yellow);font-weight:600;margin-left:6px}
+
+/* race lanes */
+.lanes{display:grid;grid-template-columns:1fr 1.35fr;gap:14px}
+@media(max-width:880px){.lanes{grid-template-columns:1fr}}
+.lane{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:14px 15px;position:relative}
+.lane h3{margin:0 0 2px;font-size:16px}
+.lane .phil{font-size:12.5px;color:var(--muted);margin:0 0 12px}
+.lane.cisc h3{color:var(--red)} .lane.risc h3{color:var(--blue)}
+.flag{position:absolute;top:12px;right:14px;font-size:12.5px;color:var(--muted);opacity:0;transition:opacity .3s}
+.flag.done{opacity:1;color:var(--green);font-weight:600}
+
+/* program listings */
+.prog{list-style:none;margin:0 0 12px;padding:0;font-family:ui-monospace,'Cascadia Mono',Consolas,monospace;font-size:13px}
+.prog li{display:flex;align-items:baseline;gap:8px;padding:3px 8px;border-left:3px solid transparent;border-radius:4px;color:var(--muted);transition:background .15s}
+.prog li .op{min-width:150px;color:var(--ink)}
+.prog li .cyc{font-size:11px;color:var(--muted)}
+.prog li.active{background:rgba(255,211,90,.09);border-left-color:var(--yellow)}
+.prog li.active .op{color:var(--yellow)}
+.prog li.done{opacity:.55}
+.prog li.done .op::after{content:" ✓";color:var(--green)}
+.prog.risc li .op{color:var(--c)}
+.prog.risc li.active{background:rgba(255,255,255,.05);border-left-color:var(--c)}
+.prog.risc li.active .op{color:var(--c)}
+
+/* CISC execution unit */
+.execwrap{margin:6px 0 4px}
+.execlabel{font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:5px}
+.execbox{position:relative;height:64px;background:#0b0f16;border:1px solid var(--axis);border-radius:10px;overflow:hidden}
+.execbox .zone{position:absolute;inset:0;display:flex;align-items:center;justify-content:space-between;padding:0 10px;font-size:10px;letter-spacing:.08em;color:var(--axis);text-transform:uppercase}
+.crawler{position:absolute;top:14px;left:0;height:36px;display:flex;align-items:center;padding:0 12px;border-radius:8px;background:rgba(252,98,85,.15);border:1px solid var(--red);color:var(--red);font-family:ui-monospace,Consolas,monospace;font-size:12.5px;white-space:nowrap;transition:transform .28s ease;will-change:transform;opacity:0}
+.crawler.show{opacity:1}
+.pips{display:flex;gap:5px;margin-top:8px;align-items:center;min-height:14px}
+.pips .pip{width:11px;height:11px;border-radius:50%;border:1px solid var(--axis);background:transparent;transition:background .2s}
+.pips .pip.fill{background:var(--red);border-color:var(--red)}
+.pips .lbl{font-size:11px;color:var(--muted);margin-left:6px}
+
+/* RISC pipeline stage boxes */
+.stages{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin:6px 0 4px}
+.stage{background:#0b0f16;border:1px solid var(--axis);border-radius:8px;min-height:64px;padding:5px 6px;text-align:center}
+.stage .sname{font-size:10px;letter-spacing:.1em;color:var(--axis);text-transform:uppercase;margin-bottom:5px}
+.stage .occ{height:30px;display:flex;align-items:center;justify-content:center;border-radius:6px;font-family:ui-monospace,Consolas,monospace;font-size:11px;color:transparent}
+.stage .occ.has{color:#0b0f16;font-weight:700}
+.stage .occ.stall{outline:2px dashed var(--red);outline-offset:-2px}
+.stage .occ.bubble{color:var(--red);background:rgba(252,98,85,.08);border:1px dashed rgba(252,98,85,.5);font-weight:600}
+.stage.lit{border-color:var(--blue)}
+.stagecap{font-size:11px;color:var(--muted);margin:4px 0 10px}
+
+/* pipeline diagram grid */
+.pdwrap{overflow-x:auto;margin-top:6px}
+.pd{display:grid;gap:2px;font-family:ui-monospace,Consolas,monospace;font-size:10px}
+.pd .hd{color:var(--muted);text-align:center;padding:2px 0}
+.pd .hd.now{color:var(--yellow);font-weight:700}
+.pd .rowlbl{color:var(--c,#8b94a7);text-align:right;padding-right:7px;white-space:nowrap;font-size:10.5px;align-self:center}
+.pd .cell{height:19px;border-radius:3px;background:rgba(255,255,255,.025);display:flex;align-items:center;justify-content:center;color:transparent}
+.pd .cell.fill{background:var(--c);color:#0b0f16;font-weight:700}
+.pd .cell.fill.st{background:transparent;border:1px dashed var(--red);color:var(--red)}
+.pd .cell.nowcol{outline:1px solid rgba(255,211,90,.45)}
+.pdcap{font-size:11px;color:var(--muted);margin-top:6px}
+
+/* math readouts */
+.mathline{margin-top:12px;background:rgba(0,0,0,.25);border:1px solid var(--line);border-radius:8px;padding:8px 12px;font-size:13.5px}
+.mathline .f{font-family:Georgia,'Times New Roman',serif;font-style:italic}
+.lane.cisc .mathline b{color:var(--red)} .lane.risc .mathline b{color:var(--blue)}
+.mathline b{font-size:16px}
+#verdict{margin-top:14px;padding:10px 14px;border-radius:9px;background:var(--panel2);border:1px solid var(--line);font-size:14px;color:var(--muted);min-height:22px;transition:border-color .3s}
+#verdict.win{color:var(--green);border-color:rgba(131,193,103,.4)}
+.footnote{font-size:12px;color:var(--muted);margin-top:10px;font-style:italic}
+
+/* hazard panel */
+.hzrow{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-start}
+.hzrow .hztext{flex:1 1 380px;font-size:14px;color:var(--muted);margin:0}
+.hzrow .hztext b{color:var(--ink)}
+#hazardBtn{flex:0 0 auto}
+#hazardBtn.on{border-color:var(--red);color:var(--red);background:rgba(252,98,85,.08)}
+#hzcap{margin-top:12px;font-size:13.5px;color:var(--muted);border-left:3px solid var(--line);padding-left:12px}
+#hzcap b{color:var(--ink)}
+#hzcap.hot{border-left-color:var(--red)}
+#hzcap .kw{color:var(--red);font-weight:600}
+
+/* philosophy table */
+table.phil{width:100%;border-collapse:collapse;font-size:13.5px}
+table.phil th{font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);text-align:left;padding:6px 10px;border-bottom:1px solid var(--line)}
+table.phil th.cisc{color:var(--red)} table.phil th.risc{color:var(--blue)}
+table.phil td{padding:8px 10px;border-bottom:1px solid rgba(42,51,71,.55);vertical-align:top}
+table.phil td:first-child{color:var(--muted);width:26%}
+table.phil td.cv{color:var(--ink)}
+table.phil tr.dim td{opacity:.45}
+table.phil tbody tr{cursor:default;transition:background .12s}
+table.phil tbody tr:hover td, table.phil tbody tr.sel td{background:rgba(88,196,221,.06);opacity:1}
+table.phil tbody tr:hover td:first-child, table.phil tbody tr.sel td:first-child{color:var(--yellow)}
+#philcap{margin-top:10px;font-size:13.5px;color:var(--muted);border-left:3px solid var(--yellow);padding-left:12px;min-height:22px}
+.tblwrap{overflow-x:auto}
+
+/* who won / decoder animation */
+.wonGrid{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
+@media(max-width:880px){.wonGrid{grid-template-columns:1fr}}
+.wonGrid p{font-size:14px;color:var(--muted);margin:0 0 10px}
+.wonGrid p b{color:var(--ink)}
+.wonGrid p .cx{color:var(--red)} .wonGrid p .rx{color:var(--blue)}
+#decoderBox{position:relative;height:190px;background:#0b0f16;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+#decoderBox .dbox{position:absolute;border:1px solid var(--axis);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);background:rgba(255,255,255,.02);transition:box-shadow .2s,border-color .2s}
+#decoderBox .dbox.glow{border-color:var(--yellow);color:var(--yellow);box-shadow:0 0 14px rgba(255,211,90,.25)}
+#decoderBox .dbox.hot{border-color:var(--blue);color:var(--blue)}
+#decoderBox .chip{position:absolute;padding:3px 8px;border-radius:6px;font-family:ui-monospace,Consolas,monospace;font-size:10.5px;white-space:nowrap;will-change:transform,opacity;transform:translate(-50%,-50%)}
+#decoderBox .chip.cisc{background:rgba(252,98,85,.15);border:1px solid var(--red);color:var(--red)}
+#decoderBox .chip.uop{border:1px solid;background:rgba(0,0,0,.4)}
+.deccap{font-size:12px;color:var(--muted);margin-top:8px}
+.deccap b{color:var(--ink)}
+
+/* insights */
+.insights{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin-bottom:22px}
+.insights .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px}
+.insights .card h3{margin:0 0 8px;font-size:14px}
+.insights .card p{margin:0;font-size:14px;color:var(--muted)}
+footer{color:var(--muted);font-size:13px;border-top:1px solid var(--line);padding-top:16px;margin-top:8px}
+.navrow{display:flex;justify-content:space-between;gap:12px;margin-top:8px;flex-wrap:wrap}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <a class="crumb" href="./index.html">← Intro to Computer Systems Architecture</a>
+  <h1>CISC vs RISC — two philosophies race</h1>
+  <p class="subtitle">By the 1980s the field had split. <span style="color:var(--red)">CISC</span> (Complex
+  Instruction Set Computing — Intel's x86) said: make each instruction do <i>a lot</i>, even whole string
+  searches, so programs are short. <span style="color:var(--blue)">RISC</span> (Reduced Instruction Set
+  Computing — ARM, SPARC, PowerPC; Patterson &amp; Ditzel's 1980 <i>“The Case for the Reduced Instruction Set
+  Computer”</i>) said: make each instruction do <i>almost nothing</i>, so the hardware can pipeline them and the
+  compiler can schedule them. Press <b style="color:var(--green)">▶ Race</b> and watch the same job compiled
+  both ways.</p>
+</header>
+
+<!-- ==================== 1. THE RACE ==================== -->
+<section class="panel">
+  <h2><span class="accent">The race</span> — one task, two compilers</h2>
+  <p class="lede">The task: <b>load two numbers, multiply them, add a third, store the result</b> —
+  <span class="math">d = a·b + c</span>. The CISC compiler emits 3 fat instructions; the RISC compiler emits 6
+  skinny ones. More instructions… yet watch who finishes first.</p>
+
+  <div class="controls">
+    <button id="raceBtn" class="go">▶ Race</button>
+    <button id="stepBtn">Step cycle</button>
+    <button id="resetBtn">Reset</button>
+    <label class="sld">speed <input type="range" id="speed" min="0.5" max="4" step="0.1" value="1.4"> <span id="speedVal">1.4 cyc/s</span></label>
+    <div class="cycbox">cycle <b id="cycNum">0</b></div>
+  </div>
+
+  <div class="lanes">
+    <!-- CISC lane -->
+    <div class="lane cisc">
+      <h3>CISC</h3>
+      <p class="phil">“x86-flavored” — one execution unit chews each instruction for several cycles.
+      (<span class="mono">MAC</span> is a fantasy complex op standing in for x86's memory-operand,
+      multi-step instructions.)</p>
+      <div class="flag" id="ciscFlag">🏁 finished — cycle <span></span></div>
+      <ul class="prog" id="ciscProg"></ul>
+      <div class="execwrap">
+        <div class="execlabel">single execution unit — fetch · decode · execute (microcode)</div>
+        <div class="execbox">
+          <div class="zone"><span>fetch</span><span>decode</span><span>execute…</span><span>done</span></div>
+          <div class="crawler" id="crawler"></div>
+        </div>
+        <div class="pips" id="ciscPips"></div>
+      </div>
+      <div class="mathline" id="ciscMath"></div>
+    </div>
+
+    <!-- RISC lane -->
+    <div class="lane risc">
+      <h3>RISC</h3>
+      <p class="phil">“ARM/MIPS-flavored” — every instruction is 1 cycle per stage; a new one enters the
+      5-stage pipeline every cycle.</p>
+      <div class="flag" id="riscFlag">🏁 finished — cycle <span></span></div>
+      <ul class="prog risc" id="riscProg"></ul>
+      <div class="stages" id="stages"></div>
+      <div class="stagecap">the pipeline right now — five instructions can be in flight at once</div>
+      <div class="pdwrap"><div class="pd" id="pd"></div></div>
+      <div class="pdcap">the classic pipeline diagram, drawing itself: rows = instructions, columns = cycles.
+      Look down any column — up to 5 stages busy at once.</div>
+      <div class="mathline" id="riscMath"></div>
+    </div>
+  </div>
+
+  <div id="verdict">Press ▶ Race, or step cycle by cycle.</div>
+  <p class="footnote">First-order model, on purpose: real x86 timings vary wildly per instruction, and real
+  pipelines have caches, branch predictors and deeper stages. The shape of the result — pipelining turns
+  “more instructions” into “fewer total cycles” — is the honest part.</p>
+</section>
+
+<!-- ==================== 2. HAZARD ==================== -->
+<section class="panel">
+  <h2>Pipelines aren't free — <span class="accent">the data hazard</span></h2>
+  <div class="hzrow">
+    <p class="hztext">There's a catch the race hid from you. An instruction may need a value that the
+    instruction <b>right in front of it</b> hasn't produced yet. Toggle the naive instruction order:
+    <span class="mono" style="color:var(--purple)">ADD r5,r3,r4</span> ends up needing
+    <span class="mono" style="color:var(--green)">r4</span> the very cycle after
+    <span class="mono" style="color:var(--green)">LW r4,c</span> loads it — and loaded data only arrives after
+    the MEM stage. The pipeline must insert a <b>bubble</b> (a stall). Watch the race above change.</p>
+    <button id="hazardBtn">⚠ add a data hazard (naive order)</button>
+  </div>
+  <div id="hzcap"><b>Hazard off — compiler-scheduled order.</b> The compiler hoisted
+  <span class="mono">LW r4,c</span> up above the <span class="mono">MUL</span>, so nothing needs a loaded value
+  on the very next cycle. Even the back-to-back <span class="mono">MUL → ADD</span> dependency is fine: forwarding
+  wires pass the multiplier's output straight into the adder's input without waiting for write-back.
+  Total: <b>10 cycles, zero stalls</b>.</div>
+</section>
+
+<!-- ==================== 3. PHILOSOPHY TABLE ==================== -->
+<section class="panel">
+  <h2>Two philosophies, <span class="accent">side by side</span></h2>
+  <div class="tblwrap">
+  <table class="phil" id="philTable">
+    <thead><tr><th></th><th class="cisc">CISC</th><th class="risc">RISC</th></tr></thead>
+    <tbody>
+      <tr data-x="The same one-liner compiled to 3 CISC instructions but 6 RISC instructions in the race — RISC programs are bigger, and that's a deliberate trade.">
+        <td>Instructions per program</td><td class="cv">Fewer — each does a lot</td><td class="cv">More — each does one small thing</td></tr>
+      <tr data-x="A complex CISC instruction is really a little subroutine baked into hardware (microcode). RISC instructions are cut to exactly pipeline-stage size, so one can finish every cycle.">
+        <td>Cycles per instruction</td><td class="cv">Many (multi-cycle, microcoded)</td><td class="cv">≈ 1 (single-cycle stages, pipelined)</td></tr>
+      <tr data-x="Somebody must interpret a fancy instruction. CISC pays in silicon: a big decoder plus a microcode ROM. RISC decoders are small and regular — freeing transistors for registers and pipelines.">
+        <td>Hardware complexity</td><td class="cv">Complex decoder + microcode ROM</td><td class="cv">Simple, regular decoder</td></tr>
+      <tr data-x="A pipeline's clock can only tick as fast as its slowest stage. Short, uniform RISC operations mean short stages — which is exactly what let RISC designs push clock rates higher.">
+        <td>Clock speed potential</td><td class="cv">Lower — long, uneven steps</td><td class="cv">Higher — short, uniform stages</td></tr>
+      <tr data-x="RISC moved the cleverness from silicon to compile time: the compiler picks registers, reorders instructions, and hides hazards — you toggled exactly that in the hazard demo.">
+        <td>Compiler burden</td><td class="cv">Light — hardware does the heavy lifting</td><td class="cv">Heavy — compiler schedules &amp; optimizes</td></tr>
+      <tr data-x="x86 won the PC through software compatibility; RISC won workstations, then embedded systems, then every phone in your pocket — and lately laptops and cloud servers too.">
+        <td>Examples</td><td class="cv">Intel x86, VAX, Motorola 68k</td><td class="cv">ARM, SPARC, PowerPC, MIPS, RISC-V</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <div id="philcap">Hover (or tap) a row for the one-line story behind it.</div>
+</section>
+
+<!-- ==================== 4. WHO WON ==================== -->
+<section class="panel">
+  <h2><span class="accent">Who won?</span> — both, in a strange way</h2>
+  <div class="wonGrid">
+    <div>
+      <p><b class="cx">x86 won the PC.</b> Not because CISC was faster — because forty years of software already
+      spoke x86, and compatibility is worth more than elegance.</p>
+      <p><b class="rx">RISC won everything with a battery.</b> ARM owns phones and embedded devices, and lately
+      Apple's Macs and a growing share of cloud servers — simple instructions per joule is a winning currency.</p>
+      <p>And inside a modern x86 chip? <b>Both at once.</b> The decoder takes each complex x86 instruction and
+      chops it into RISC-like <b>micro-ops</b>, which flow into a pipeline just like the one that won the race.
+      Watch it happen on the right.</p>
+      <p class="deccap"><b>The resolution:</b> the industry kept the CISC <i>contract</i> (your old software still
+      runs) and swapped in a RISC <i>engine</i> (the speed). That's the very first distinction this lecture drew —
+      <b>architecture</b> (the instruction set you promise) versus <b>organization</b> (the machinery underneath) —
+      quietly ending a war.</p>
+    </div>
+    <div>
+      <div id="decoderBox"></div>
+      <div class="deccap">A modern x86 core: one <span class="mono" style="color:var(--red)">MAC</span>-style
+      instruction enters the <b>decoder</b>, splits into three micro-ops, and streams through the same 5-stage
+      pipeline. CISC on the outside, RISC on the inside.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== 5. INSIGHTS ==================== -->
+<section class="insights">
+  <div class="card">
+    <h3 style="color:var(--yellow)">The real fight: where does complexity live?</h3>
+    <p>CISC put the cleverness in silicon (a microcoded decoder); RISC pushed it into the compiler. Notice how
+    the hazard vanished when the <i>compiler</i> reordered two instructions — no new hardware needed. Moving work
+    to compile time is a trick architecture keeps rediscovering: VLIW machines, GPU shader compilers, and today's
+    ML compilers all replay the same bet.</p>
+  </div>
+  <div class="card">
+    <h3 style="color:var(--blue)">Pipelining is the assembly line: throughput ≠ latency</h3>
+    <p>Look at any single row of the pipeline diagram: one instruction still takes all 5 stages — its
+    <i>latency</i> never improved. But look down a column: five instructions in flight, one <i>finishing</i> every
+    cycle. That's why 6 RISC instructions beat 3 CISC ones — you don't ship cars faster by building each car
+    faster, you ship faster by never letting a station sit idle.</p>
+  </div>
+  <div class="card">
+    <h3 style="color:var(--green)">An ISA is a contract, not an engine</h3>
+    <p>x86 <i>the contract</i> has survived some 45 years while the machinery beneath it changed completely —
+    today it's a RISC-style micro-op engine wearing a CISC costume. This is why architecture (the promise to
+    software) and organization (the implementation) are taught as different subjects: contracts must last decades;
+    engines get replaced every few years.</p>
+  </div>
+</section>
+
+<footer>
+  <div>Interactive companion to the lecture <i>Introduction to Computers &amp; Computer Systems Architecture</i> · CCSA T1</div>
+  <div class="navrow">
+    <a href="./moore.html">← Moore's Law</a>
+    <a href="./index.html">All explorations</a>
+    <a href="./timeline.html">↺ back to start: The Grand Timeline</a>
+  </div>
+</footer>
+</div>
+
+<script>
+'use strict';
+/* ============================================================
+   Model (first-order, but internally consistent):
+   CISC: 3 instructions on one unit, 4 + 7 + 4 = 15 cycles.
+   RISC: 6 instructions, 5-stage pipeline, 1 issued per cycle,
+         full forwarding. Scheduled order: 5 + (6-1) = 10 cycles.
+         Naive order: load-use hazard on ADD -> 1 stall bubble -> 11.
+   ============================================================ */
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const COL = {blue:css('--blue'),yellow:css('--yellow'),red:css('--red'),green:css('--green'),purple:css('--purple'),orange:css('--orange')};
+
+/* ---------- CISC program ---------- */
+const CISC = [
+  {op:'MOV AX,[a]',      note:'load a',                     cycles:4},
+  {op:'MAC AX,[b],[c]',  note:'AX = AX×[b] + [c]',          cycles:7},
+  {op:'MOV [d],AX',      note:'store result',               cycles:4},
+];
+let acc=0; CISC.forEach(i=>{ i.start=acc+1; acc+=i.cycles; i.end=acc; });
+const CISC_DONE = acc; // 15
+
+/* ---------- RISC programs ---------- */
+const STAGES = ['IF','ID','EX','MEM','WB'];
+// instructions carry identity + color regardless of order
+const RI = {
+  lwa:{op:'LW  r1,a',   note:'load a',        c:COL.blue},
+  lwb:{op:'LW  r2,b',   note:'load b',        c:COL.yellow},
+  lwc:{op:'LW  r4,c',   note:'load c',        c:COL.green},
+  mul:{op:'MUL r3,r1,r2',note:'r3 = a×b',     c:COL.red},
+  add:{op:'ADD r5,r3,r4',note:'r5 = r3 + r4', c:COL.purple},
+  sw :{op:'SW  r5,d',   note:'store d',       c:COL.orange},
+};
+const ORDER_SCHED = ['lwa','lwb','lwc','mul','add','sw'];   // compiler-scheduled: 0 stalls
+const ORDER_NAIVE = ['lwa','lwb','mul','lwc','add','sw'];   // source order: load-use hazard on ADD
+
+/* Build a pipeline schedule: per instruction, a list of {cyc, st, stall}.
+   stallAfterIdx: index of the instruction that stalls 1 cycle in ID (load-use). */
+function buildSchedule(order, stallIdx){
+  const sched = [];
+  let extra = 0;                       // cycles of stall accumulated so far
+  order.forEach((key,i)=>{
+    const entry = i+1+extra;           // IF cycle
+    const rows = [];
+    if(i===stallIdx){
+      rows.push({cyc:entry,st:0});             // IF
+      rows.push({cyc:entry+1,st:1});           // ID
+      rows.push({cyc:entry+2,st:1,stall:true}); // ID repeated = stall
+      for(let s=2;s<5;s++) rows.push({cyc:entry+1+s,st:s});
+      extra += 1;
+    } else if(stallIdx>=0 && i===stallIdx+1){
+      // the instruction behind the stalled one is held in IF one extra cycle
+      rows.push({cyc:entry-1+0,st:0});          // IF (entry already includes extra)
+      rows.push({cyc:entry-1,st:0});            // dummy, replaced below
+      rows.length=0;
+      const f = i+1;                            // its natural IF cycle (before stall counted)
+      rows.push({cyc:f,st:0});
+      rows.push({cyc:f+1,st:0,stall:true});     // IF repeated = held
+      for(let s=1;s<5;s++) rows.push({cyc:f+1+s,st:s});
+    } else {
+      for(let s=0;s<5;s++) rows.push({cyc:entry+s,st:s});
+    }
+    sched.push({key, rows});
+  });
+  const done = Math.max(...sched.map(s=>s.rows[s.rows.length-1].cyc));
+  // bubbles: stages EX/MEM/WB empty inside the busy window
+  const bubbles = [];
+  if(stallIdx>=0){
+    const stallRow = sched[stallIdx].rows.find(r=>r.stall);
+    const c0 = stallRow.cyc;                    // cycle the bubble is born in EX
+    bubbles.push({cyc:c0+1,st:2},{cyc:c0+2,st:3},{cyc:c0+3,st:4});
+  }
+  return {sched, done, bubbles};
+}
+const SCHED_OK  = buildSchedule(ORDER_SCHED,-1);          // done = 10
+const SCHED_HAZ = buildSchedule(ORDER_NAIVE, ORDER_NAIVE.indexOf('add')); // done = 11
+
+/* ---------- state ---------- */
+const state = { cycle:0, running:false, hazard:false, speed:1.4, accum:0, last:0 };
+const cur = () => state.hazard ? SCHED_HAZ : SCHED_OK;
+
+/* ---------- static DOM builds ---------- */
+const $ = id => document.getElementById(id);
+
+// CISC listing
+$('ciscProg').innerHTML = CISC.map((i,k)=>
+  `<li id="cI${k}"><span class="op">${i.op}</span><span class="cyc">${i.cycles} cyc · ${i.note}</span></li>`).join('');
+
+// RISC stage boxes
+$('stages').innerHTML = STAGES.map((s,k)=>
+  `<div class="stage" id="stg${k}"><div class="sname">${s}</div><div class="occ" id="occ${k}">·</div></div>`).join('');
+
+function buildRiscDom(){
+  const {sched, done} = cur();
+  // program listing
+  $('riscProg').innerHTML = sched.map((s,k)=>{
+    const I = RI[s.key];
+    return `<li id="rI${k}" style="--c:${I.c}"><span class="op">${I.op}</span><span class="cyc">${I.note}</span></li>`;
+  }).join('');
+  // pipeline diagram grid
+  const pd = $('pd');
+  pd.style.gridTemplateColumns = `max-content repeat(${done}, minmax(22px,1fr))`;
+  let h = `<div class="hd"></div>`;
+  for(let c=1;c<=done;c++) h += `<div class="hd" id="pdh${c}">${c}</div>`;
+  sched.forEach((s,k)=>{
+    const I = RI[s.key];
+    h += `<div class="rowlbl" style="--c:${I.c}">${I.op}</div>`;
+    for(let c=1;c<=done;c++){
+      const r = s.rows.find(r=>r.cyc===c);
+      const txt = r ? (r.stall ? '✕' : STAGES[r.st]) : '';
+      h += `<div class="cell${r?'':''}" style="--c:${I.c}" data-cyc="${c}" data-txt="${txt}" data-st="${r&&r.stall?1:0}" id="pd_${k}_${c}">${txt}</div>`;
+    }
+  });
+  pd.innerHTML = h;
+}
+
+// CISC pips container filled per render
+function easeLabel(){ }
+
+/* ---------- render ---------- */
+function render(){
+  const c = state.cycle;
+  $('cycNum').textContent = c;
+
+  /* ----- CISC lane ----- */
+  let active=-1;
+  CISC.forEach((i,k)=>{
+    const li=$('cI'+k);
+    li.classList.toggle('done', c>=i.end);
+    const isAct = c>=i.start && c<i.end || (c===i.end && false);
+    li.classList.toggle('active', c>=i.start && c<=i.end && c<CISC_DONE+1 && c>=1 && c<=i.end && !(c>=i.end&&c>i.end));
+    if(c>=i.start && c<=i.end) active=k;
+    if(c>=i.end) li.classList.remove('active');
+  });
+  const crawler=$('crawler');
+  if(active>=0 && c<=CISC_DONE){
+    const I=CISC[active];
+    const prog=(c-I.start+1)/I.cycles;               // 1/n .. 1
+    crawler.textContent=I.op;
+    crawler.classList.add('show');
+    const box=crawler.parentElement.getBoundingClientRect();
+    const w=crawler.getBoundingClientRect().width||120;
+    const x=8+(box.width-w-16)*Math.min(1,prog);
+    crawler.style.transform=`translateX(${x}px)`;
+    // pips
+    let pips='';
+    for(let p=0;p<I.cycles;p++) pips+=`<span class="pip${p<(c-I.start+1)?' fill':''}"></span>`;
+    pips+=`<span class="lbl">cycle ${c-I.start+1} of ${I.cycles} for this instruction</span>`;
+    $('ciscPips').innerHTML=pips;
+  } else {
+    crawler.classList.toggle('show', false);
+    $('ciscPips').innerHTML = c>CISC_DONE||c>=CISC_DONE ? `<span class="lbl">${c>=CISC_DONE?'retired all 3 instructions':''}</span>` : `<span class="lbl">waiting…</span>`;
+  }
+  const cf=$('ciscFlag');
+  cf.classList.toggle('done', c>=CISC_DONE);
+  cf.querySelector('span').textContent=CISC_DONE;
+  $('ciscMath').innerHTML =
+    `<span class="f">3 instructions × 5 cycles avg (4+7+4)</span> = <b>15 cycles</b>` +
+    (c>0?` &nbsp;·&nbsp; <span style="color:var(--muted)">${Math.min(c,CISC_DONE)}/15 elapsed</span>`:'');
+
+  /* ----- RISC lane ----- */
+  const {sched, done, bubbles} = cur();
+  // stage boxes
+  for(let s=0;s<5;s++){ const o=$('occ'+s); o.className='occ'; o.style.background='transparent'; o.textContent='·'; $('stg'+s).classList.remove('lit'); }
+  sched.forEach((sc,k)=>{
+    const r=sc.rows.find(r=>r.cyc===c);
+    const li=$('rI'+k);
+    const last=sc.rows[sc.rows.length-1].cyc;
+    li.classList.toggle('done', c>=last);
+    li.classList.toggle('active', !!r && c<last+1 && !(c>=last&&false));
+    if(c>=last) li.classList.remove('active');
+    if(r){
+      const I=RI[sc.key], o=$('occ'+r.st);
+      o.classList.add('has'); if(r.stall) o.classList.add('stall');
+      o.style.background=I.c; o.textContent=I.op.split(/\s+/)[0]+(r.stall?' ⏸':'');
+      $('stg'+r.st).classList.add('lit');
+    }
+  });
+  bubbles.forEach(b=>{ if(b.cyc===c){ const o=$('occ'+b.st); o.className='occ bubble'; o.style.background=''; o.textContent='○ bubble'; }});
+  // diagram cells
+  for(let cc=1;cc<=done;cc++){ const h=$('pdh'+cc); if(h) h.classList.toggle('now', cc===c); }
+  sched.forEach((sc,k)=>{
+    for(let cc=1;cc<=done;cc++){
+      const cell=$(`pd_${k}_${cc}`); if(!cell) continue;
+      const has=cell.dataset.txt!=='';
+      cell.classList.toggle('fill', has && cc<=c);
+      cell.classList.toggle('st', has && cc<=c && cell.dataset.st==='1');
+      cell.classList.toggle('nowcol', cc===c);
+    }
+  });
+  const rf=$('riscFlag');
+  rf.classList.toggle('done', c>=done);
+  rf.querySelector('span').textContent=done;
+  $('riscMath').innerHTML = state.hazard
+    ? `<span class="f">6 instructions: 5 (fill) + 5 + <span style="color:var(--red)">1 stall</span></span> = <b>11 cycles</b>`+(c>0?` &nbsp;·&nbsp; <span style="color:var(--muted)">${Math.min(c,done)}/${done} elapsed</span>`:'')
+    : `<span class="f">6 instructions, pipelined: 5 (fill) + (6−1)</span> = <b>10 cycles</b>`+(c>0?` &nbsp;·&nbsp; <span style="color:var(--muted)">${Math.min(c,done)}/${done} elapsed</span>`:'');
+
+  /* ----- verdict ----- */
+  const v=$('verdict'); const maxC=Math.max(CISC_DONE, done);
+  if(c===0){ v.className=''; v.textContent='Press ▶ Race, or step cycle by cycle.'; }
+  else if(c>=done && c<CISC_DONE){ v.className=''; v.innerHTML=`<span style="color:var(--blue)">RISC crossed the line at cycle ${done}</span> — CISC is still executing…`; }
+  else if(c>=maxC){ v.className='win'; v.innerHTML=`RISC ran <b>2× the instructions</b> (6 vs 3) and still won by <b>${CISC_DONE-done} cycles</b> (${done} vs 15). Work per instruction lost to <b>throughput</b> — one instruction finishing every cycle.`; stop(); $('raceBtn').textContent='▶ Race'; }
+  else { v.className=''; v.textContent=`Racing… cycle ${c}.`; }
+}
+
+/* ---------- run loop ---------- */
+function maxCycle(){ return Math.max(CISC_DONE, cur().done); }
+function tickTo(c){ state.cycle=Math.min(c, maxCycle()); render(); }
+function stop(){ state.running=false; }
+function frame(t){
+  if(state.running){
+    if(!state.last) state.last=t;
+    state.accum += (t-state.last)/1000*state.speed;
+    while(state.accum>=1 && state.running){ state.accum-=1; tickTo(state.cycle+1); if(state.cycle>=maxCycle()) stop(); }
+  }
+  state.last=t;
+  decoderFrame(t);
+  requestAnimationFrame(frame);
+}
+
+$('raceBtn').addEventListener('click', ()=>{
+  if(state.running){ stop(); $('raceBtn').textContent='▶ Race'; }
+  else {
+    if(state.cycle>=maxCycle()) { state.cycle=0; render(); }
+    state.running=true; state.accum=0; $('raceBtn').textContent='⏸ Pause';
+  }
+});
+$('stepBtn').addEventListener('click', ()=>{ stop(); $('raceBtn').textContent='▶ Race'; tickTo(state.cycle+1); });
+$('resetBtn').addEventListener('click', ()=>{ stop(); $('raceBtn').textContent='▶ Race'; state.cycle=0; render(); });
+$('speed').addEventListener('input', e=>{ state.speed=+e.target.value; $('speedVal').textContent=state.speed.toFixed(1)+' cyc/s'; });
+
+/* ---------- hazard toggle ---------- */
+$('hazardBtn').addEventListener('click', ()=>{
+  state.hazard=!state.hazard;
+  const b=$('hazardBtn');
+  b.classList.toggle('on', state.hazard);
+  b.textContent = state.hazard ? '⚠ hazard on — remove it (let the compiler reorder)' : '⚠ add a data hazard (naive order)';
+  const cap=$('hzcap');
+  cap.classList.toggle('hot', state.hazard);
+  cap.innerHTML = state.hazard
+    ? `<b>Hazard on — naive source order.</b> Now <span class="mono">ADD r5,r3,r4</span> sits right behind
+       <span class="mono">LW r4,c</span>. Loaded data only arrives after MEM, one cycle too late for the ADD —
+       so the pipeline holds ADD in decode and lets a <span class="kw">bubble ✕</span> drift through EX→MEM→WB.
+       Total rises to <b>11 cycles</b>. Pipelines aren't free: dependencies stall them. The fix costs nothing at
+       runtime — <b>the compiler reorders instructions</b> to put useful work in that slot. Toggle back to see it.`
+    : `<b>Hazard off — compiler-scheduled order.</b> The compiler hoisted <span class="mono">LW r4,c</span> up above
+       the <span class="mono">MUL</span>, so nothing needs a loaded value on the very next cycle. Even the
+       back-to-back <span class="mono">MUL → ADD</span> dependency is fine: forwarding wires pass the multiplier's
+       output straight into the adder's input without waiting for write-back. Total: <b>10 cycles, zero stalls</b>.`;
+  stop(); $('raceBtn').textContent='▶ Race'; state.cycle=0;
+  buildRiscDom(); render();
+});
+
+/* ---------- philosophy table ---------- */
+{
+  const cap=$('philcap'), deflt=cap.textContent;
+  const rows=[...document.querySelectorAll('#philTable tbody tr')];
+  rows.forEach(tr=>{
+    const show=()=>{ rows.forEach(r=>r.classList.remove('sel')); tr.classList.add('sel'); cap.textContent=tr.dataset.x; };
+    tr.addEventListener('mouseenter',show);
+    tr.addEventListener('click',show);
+    tr.addEventListener('mouseleave',()=>{ tr.classList.remove('sel'); cap.textContent=deflt; });
+  });
+}
+
+/* ---------- decoder animation (WHO WON) ---------- */
+const dbox=$('decoderBox');
+let dEls=null, dRect=null;
+function buildDecoder(){
+  dbox.innerHTML='';
+  const mk=(cls,html)=>{ const d=document.createElement('div'); d.className=cls; d.innerHTML=html; dbox.appendChild(d); return d; };
+  const dec=mk('dbox','DECODER');
+  const stages=STAGES.map(s=>mk('dbox tiny',s));
+  const chip=mk('chip cisc','MAC AX,[b],[c]');
+  const uops=[['µ-load',COL.blue],['µ-mul',COL.yellow],['µ-add',COL.green]].map(([t,c])=>{
+    const u=mk('chip uop',t); u.style.borderColor=c; u.style.color=c; return u;
+  });
+  dEls={dec,stages,chip,uops};
+  layoutDecoder();
+}
+function layoutDecoder(){
+  dRect=dbox.getBoundingClientRect();
+  const W=dRect.width,H=dRect.height;
+  const d=dEls.dec;
+  d.style.left=(W*0.24-42)+'px'; d.style.top=(H/2-26)+'px'; d.style.width='84px'; d.style.height='52px';
+  const x0=W*0.52, x1=W-10, bw=(x1-x0)/5-5;
+  dEls.stages.forEach((s,k)=>{
+    s.style.left=(x0+k*((x1-x0)/5))+'px'; s.style.top=(H/2-20)+'px';
+    s.style.width=bw+'px'; s.style.height='40px'; s.style.fontSize='9px';
+  });
+}
+const smooth=t=>t<0?0:t>1?1:t*t*(3-2*t);
+function decoderFrame(t){
+  if(!dEls||!dRect) return;
+  const W=dRect.width,H=dRect.height;
+  const D=7000, p=(t%D)/D;
+  const decX=W*0.24, midY=H/2;
+  // CISC chip: slide in [0,.18], sit & fade [.18,.30]
+  const c=dEls.chip;
+  if(p<0.30){
+    const tt=smooth(p/0.18);
+    c.style.opacity = p<0.18 ? 1 : String(1-(p-0.18)/0.12);
+    c.style.transform=`translate(-50%,-50%) translate(${20+(decX-20)*tt}px,${midY}px)`;
+  } else c.style.opacity=0;
+  dEls.dec.classList.toggle('glow', p>=0.14 && p<0.34);
+  // micro-ops
+  const x0=W*0.52, x1=W-14, span=(x1-x0);
+  dEls.uops.forEach((u,k)=>{
+    const born=0.28+k*0.02, fan=smooth((p-born)/0.14);
+    const go=0.46+k*0.09, tr=smooth((p-go)/0.30);
+    const fadeStart = go+0.30;
+    let op=0,x=decX+46,y=midY+(k-1)*44;
+    if(p>=born){ op=1; x=decX+46+(x0-8-(decX+46))*fan*0 + fan*(x0-20-(decX+46)); }
+    if(p>=go){ x=(x0-20)+(span+30)*tr; y=midY+(k-1)*44*(1-tr); }
+    if(p>=fadeStart) op=Math.max(0,1-(p-fadeStart)/0.06);
+    if(p<born) op=0;
+    u.style.opacity=op;
+    u.style.transform=`translate(-50%,-50%) translate(${x}px,${y}px)`;
+    // light up the stage box under a travelling uop
+    if(p>=go&&p<fadeStart){
+      const idx=Math.floor(((x-x0)/span)*5);
+      if(idx>=0&&idx<5) dEls.stages[idx].dataset.hot='1';
+    }
+  });
+  dEls.stages.forEach(s=>{ s.classList.toggle('hot', s.dataset.hot==='1'); s.dataset.hot='0'; });
+}
+window.addEventListener('resize', ()=>{ if(dEls) layoutDecoder(); });
+
+/* ---------- init ---------- */
+buildRiscDom();
+buildDecoder();
+render();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

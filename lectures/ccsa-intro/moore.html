@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Moore's Law — Intro to Computer Systems Architecture</title>
+<style>
+:root{
+  --bg:#0e1117; --panel:#161b26; --panel2:#1c2230; --ink:#e6e9f0; --muted:#8b94a7;
+  --grid:#232b3b; --axis:#4a5568; --blue:#58c4dd; --yellow:#ffd35a; --red:#fc6255;
+  --green:#83c167; --purple:#c688eb; --orange:#ff9f4b; --line:#2a3347;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:'Segoe UI',system-ui,-apple-system,sans-serif;line-height:1.55}
+.wrap{max-width:1100px;margin:0 auto;padding:24px}
+a{color:var(--blue);text-decoration:none}
+a:hover{text-decoration:underline}
+header a.crumb{color:var(--muted);font-size:14px}
+header a.crumb:hover{color:var(--blue);text-decoration:none}
+h1{margin:10px 0 6px;font-size:32px;letter-spacing:.3px}
+.subtitle{color:var(--muted);max-width:75ch;margin:0 0 22px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin-bottom:22px}
+h2{font-size:15px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);margin:0 0 12px}
+.math{font-family:Georgia,'Times New Roman',serif;font-style:italic}
+canvas{display:block;width:100%;touch-action:none}
+#chart{height:520px;cursor:crosshair}
+#clock{height:330px;cursor:crosshair}
+@media(max-width:640px){#chart{height:410px}#clock{height:280px}h1{font-size:26px}}
+.controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:14px}
+button{background:var(--panel2);border:1px solid var(--line);color:var(--ink);border-radius:9px;padding:8px 14px;cursor:pointer;font-size:14px;font-family:inherit}
+button:hover{border-color:var(--blue)}
+button.on{border-color:var(--blue);color:var(--blue);background:rgba(88,196,221,.08)}
+input[type=range]{accent-color:var(--blue)}
+label.sld{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:13px;flex-wrap:wrap}
+.scale-toggle{display:flex;gap:0;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.scale-toggle button{border:none;border-radius:0;padding:9px 20px;font-weight:600;font-size:15px}
+.scale-toggle button+button{border-left:1px solid var(--line)}
+.scale-toggle button.on{color:var(--blue);background:rgba(88,196,221,.12)}
+#btnLog.hint{animation:pulseGlow 1.6s ease-in-out infinite}
+@keyframes pulseGlow{0%,100%{box-shadow:0 0 0 0 rgba(255,211,90,0)}50%{box-shadow:0 0 0 5px rgba(255,211,90,.25);color:var(--yellow)}}
+.caption{margin-top:12px;padding:10px 14px;border-radius:9px;background:var(--panel2);border:1px solid var(--line);font-size:14px;color:var(--muted)}
+.caption b{color:var(--yellow);font-weight:600}
+.readout{margin-top:12px;padding:11px 14px;border-radius:9px;background:var(--panel2);border:1px solid var(--line);font-size:14.5px}
+.readout .p{color:var(--yellow)} .readout .a{color:var(--blue)} .readout .v{color:var(--green)}
+.readout .v.bad{color:var(--red)}
+.nlab{color:var(--yellow);font-weight:600}
+/* doubling panel */
+.dbl-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;margin-top:6px}
+.dbl-stat{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.dbl-stat .k{font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:5px}
+.dbl-stat .num{font-size:22px;font-weight:700;line-height:1.2}
+.dbl-stat .ctx{font-size:12.5px;color:var(--muted);margin-top:4px;min-height:2.6em}
+.dbl-stat.c-blue .num{color:var(--blue)} .dbl-stat.c-green .num{color:var(--green)} .dbl-stat.c-yellow .num{color:var(--yellow)}
+#dblSquares{display:flex;flex-wrap:wrap;gap:3px;margin-top:14px}
+#dblSquares i{width:13px;height:13px;border-radius:3px;background:var(--green);opacity:0;animation:sq .3s ease forwards}
+@keyframes sq{from{opacity:0;transform:scale(.3)}to{opacity:.9;transform:scale(1)}}
+.sq-note{font-size:12.5px;color:var(--muted);margin-top:8px}
+/* pre-history strip */
+.strip{display:flex;gap:10px;align-items:stretch;overflow-x:auto;padding:4px 2px 12px}
+.strip .arrow{align-self:center;color:var(--muted);font-size:20px;flex:0 0 auto}
+.dev{flex:1 1 0;min-width:168px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:12px 12px 10px}
+.dev h3{margin:0 0 2px;font-size:14px}
+.dev .meta{font-size:11.5px;color:var(--muted);margin-bottom:8px}
+.dev .pic{position:relative;height:86px;background:#0b0f16;border:1px solid var(--line);border-radius:8px;margin-bottom:8px;overflow:hidden}
+.dev p{margin:0;font-size:12.5px;color:var(--muted)}
+.dev p b{color:var(--ink);font-weight:600}
+.dev .fail{display:block;margin-top:5px;font-size:11.5px;color:var(--red)}
+.dev .fix{color:var(--green)}
+/* CSS drawings */
+.pic>div{position:absolute}
+.d-relay .coil{left:50%;top:20px;width:40px;height:28px;margin-left:-32px;border-radius:4px;background:repeating-linear-gradient(90deg,#b06a2c 0 4px,#e0904a 4px 8px);border:1px solid #6b4a25}
+.d-relay .core{left:50%;top:50px;width:52px;height:5px;margin-left:-38px;background:#4a5568;border-radius:2px}
+.d-relay .arm{left:50%;top:34px;width:52px;height:4px;margin-left:-8px;background:#8b94a7;border-radius:2px;transform-origin:left center;animation:relayClack 1.2s steps(1) infinite}
+@keyframes relayClack{0%,49%{transform:rotate(-16deg)}50%,100%{transform:rotate(4deg)}}
+.d-relay .contact{left:50%;top:52px;width:6px;height:6px;margin-left:38px;border-radius:50%;background:var(--yellow)}
+.d-tube .glass{left:50%;top:12px;width:28px;height:56px;margin-left:-14px;border-radius:14px 14px 5px 5px;border:1.5px solid rgba(230,233,240,.4);background:linear-gradient(rgba(255,159,75,.12),rgba(255,159,75,.03))}
+.d-tube .fil{left:50%;top:26px;width:3px;height:22px;margin-left:-1.5px;background:var(--orange);border-radius:2px;box-shadow:0 0 10px 3px rgba(255,159,75,.65);animation:flick 2.6s linear infinite}
+@keyframes flick{0%,84%,90%,100%{opacity:1}87%{opacity:.25}}
+.d-tube .base{left:50%;top:68px;width:22px;height:9px;margin-left:-11px;background:#2a3347;border-radius:0 0 4px 4px}
+.d-tr .can{left:50%;top:26px;width:26px;height:24px;margin-left:-13px;border-radius:13px 13px 3px 3px;background:linear-gradient(#9aa4b5,#5b6472);border:1px solid #3a4354}
+.d-tr .tab{left:50%;top:44px;width:8px;height:5px;margin-left:12px;background:#9aa4b5}
+.d-tr .leg{top:50px;width:2.5px;height:16px;background:#c0c7d4}
+.d-tr .l1{left:calc(50% - 9px)} .d-tr .l2{left:calc(50% - 1px)} .d-tr .l3{left:calc(50% + 7px)}
+.d-ic .body{left:50%;top:30px;width:56px;height:24px;margin-left:-28px;background:#20242e;border:1px solid #3a4354;border-radius:3px}
+.d-ic .notch{left:50%;top:38px;width:7px;height:7px;margin-left:-28px;border-radius:50%;background:#0b0f16;border:1px solid #3a4354}
+.d-ic .pins{left:50%;width:52px;height:7px;margin-left:-26px;background:repeating-linear-gradient(90deg,#c0c7d4 0 4px,transparent 4px 10px)}
+.d-ic .pt{top:23px} .d-ic .pb{top:54px}
+.d-ic .die{left:50%;top:36px;width:12px;height:12px;margin-left:2px;background:rgba(88,196,221,.5);border-radius:2px;animation:dieGlow 2s ease-in-out infinite}
+@keyframes dieGlow{0%,100%{box-shadow:0 0 3px rgba(88,196,221,.3)}50%{box-shadow:0 0 10px rgba(88,196,221,.8)}}
+.d-fin .fin{top:24px;width:5px;height:38px;background:linear-gradient(var(--blue),#2b7d92);border-radius:2px}
+.d-fin .f1{left:calc(50% - 18px)} .d-fin .f2{left:calc(50% - 2.5px)} .d-fin .f3{left:calc(50% + 13px)}
+.d-fin .gate{left:50%;top:38px;width:52px;height:10px;margin-left:-26px;background:linear-gradient(var(--yellow),#c9a238);border-radius:3px;opacity:.92}
+.d-fin .nm{left:0;right:0;top:66px;text-align:center;font-size:10px;color:var(--muted);letter-spacing:.05em}
+/* plateau layout */
+.plateau-foot{display:flex;gap:16px;align-items:center;margin-top:12px;flex-wrap:wrap}
+.plateau-foot .caption{flex:1 1 320px;margin-top:0}
+#cores{width:120px;height:132px;flex:0 0 auto}
+#coreCv{width:120px;height:110px}
+#coreLbl{text-align:center;font-size:12px;color:var(--green);margin-top:2px}
+/* insights */
+.insights{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin-bottom:22px}
+.insights .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px}
+.insights .card b.t{display:block;font-size:12px;text-transform:uppercase;letter-spacing:.1em;margin-bottom:7px}
+.insights .card p{margin:0;font-size:14px;color:var(--ink)}
+.t.blue{color:var(--blue)} .t.yellow{color:var(--yellow)} .t.green{color:var(--green)} .t.red{color:var(--red)}
+footer{color:var(--muted);font-size:13px;margin-top:26px;border-top:1px solid var(--line);padding-top:16px}
+footer .nav{display:flex;justify-content:space-between;gap:12px;margin-top:8px;flex-wrap:wrap}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <a class="crumb" href="./index.html">← Intro to Computer Systems Architecture</a>
+  <h1>Moore's Law — the exponential that built the modern world</h1>
+  <p class="subtitle">In 1965 Gordon Moore noticed that the number of components engineers could squeeze onto a chip was doubling <em>every year</em> (revised in 1975 to every two years). Below is 52 years of real chips, from the Intel 4004 to the Apple M2&nbsp;Ultra. <b style="color:var(--ink)">Start on the Linear scale, stare at the absurdity, then hit Log.</b> Drag the yellow slider to test different doubling rates against history.</p>
+</header>
+
+<!-- ============ MAIN CHART ============ -->
+<section class="panel">
+  <h2>Transistors per chip, 1971 – 2023</h2>
+  <canvas id="chart"></canvas>
+  <div class="controls">
+    <div class="scale-toggle" role="group" aria-label="axis scale">
+      <button id="btnLin" class="on">Linear</button>
+      <button id="btnLog" class="hint">Log</button>
+    </div>
+    <label class="sld">ideal line: doubling every
+      <input id="nSlider" type="range" min="1" max="3" step="0.25" value="2" style="width:160px">
+      <span class="math nlab" id="nVal">2.0</span> years
+    </label>
+  </div>
+  <div class="caption" id="scaleCaption"></div>
+  <div class="readout" id="predReadout"></div>
+</section>
+
+<!-- ============ WHAT DOUBLING MEANS ============ -->
+<section class="panel">
+  <h2>What doubling actually means</h2>
+  <p style="margin:0 0 12px;font-size:14px;color:var(--muted)">The old parable: a grain of rice on the first chessboard square, doubled on each next square, bankrupts the emperor by square 64. Chips played the same game. <b style="color:var(--ink)">If every transistor were one millimetre long and we laid them end to end:</b></p>
+  <div class="dbl-grid">
+    <div class="dbl-stat c-blue">
+      <div class="k">1971 · Intel 4004 (2,300)</div>
+      <div class="num">2.3 m</div>
+      <div class="ctx">a short hallway. You could step over the entire chip industry.</div>
+    </div>
+    <div class="dbl-stat c-green">
+      <div class="k">2023 · Apple M2 Ultra (134 B)</div>
+      <div class="num">134,000 km</div>
+      <div class="ctx">more than <b>3.3× around the Earth</b> — from 52 years of doubling.</div>
+    </div>
+    <div class="dbl-stat c-yellow">
+      <div class="k" id="predK">your slider's prediction for 2023</div>
+      <div class="num" id="predNum">—</div>
+      <div class="ctx" id="predCtx">—</div>
+    </div>
+  </div>
+  <div id="dblSquares"></div>
+  <div class="sq-note" id="sqNote"></div>
+</section>
+
+<!-- ============ PRE-HISTORY STRIP ============ -->
+<section class="panel">
+  <h2>Before the curve: five generations of switch</h2>
+  <p style="margin:0 0 12px;font-size:14px;color:var(--muted)">Moore's Law only became possible because the <em>switch itself</em> kept being reinvented. Each step below fixed the failure mode of the one before it. The transistor arrived in 1947 at Bell Labs (Bardeen, Brattain &amp; Shockley); the integrated circuit in 1958–59 (Kilby at TI, Noyce at Fairchild) — and from there, the doubling began.</p>
+  <div class="strip">
+    <div class="dev">
+      <div class="pic d-relay"><div class="coil"></div><div class="core"></div><div class="arm"></div><div class="contact"></div></div>
+      <h3 style="color:var(--orange)">Electromechanical relay</h3>
+      <div class="meta">Zuse Z3, 1941 · ~10 Hz · centimetre-scale</div>
+      <p>A literal metal arm clacking open and shut. <b>Reliable-ish, but glacial</b> — physics limits a moving part to a few switches per second.<span class="fail">Failure mode: too slow, wears out.</span></p>
+    </div>
+    <div class="arrow">→</div>
+    <div class="dev">
+      <div class="pic d-tube"><div class="glass"></div><div class="fil"></div><div class="base"></div></div>
+      <h3 style="color:var(--red)">Vacuum tube</h3>
+      <div class="meta">ENIAC, 1945 · ~100 kHz switching · thumb-sized, hot</div>
+      <p>No moving parts — <b>10,000× faster</b>. But a tube burns out like the light bulb it resembles: ENIAC ran 17,468 of them, and technicians replaced failed tubes daily.<span class="fail">Failure mode: burns out, guzzles power.</span></p>
+    </div>
+    <div class="arrow">→</div>
+    <div class="dev">
+      <div class="pic d-tr"><div class="can"></div><div class="tab"></div><div class="leg l1"></div><div class="leg l2"></div><div class="leg l3"></div></div>
+      <h3 style="color:var(--blue)">Transistor</h3>
+      <div class="meta">Bell Labs 1947 · TRADIC 1954 · millimetre-scale, cool</div>
+      <p>Solid state: nothing to burn out. <b>Faster, smaller, cheaper, reliable.</b> TRADIC (1954), the first transistorized computer, used just 800 transistors vs ENIAC's 17,468 tubes.<span class="fail">Failure mode: wiring thousands by hand.</span></p>
+    </div>
+    <div class="arrow">→</div>
+    <div class="dev">
+      <div class="pic d-ic"><div class="body"></div><div class="pins pt"></div><div class="pins pb"></div><div class="notch"></div><div class="die"></div></div>
+      <h3 style="color:var(--green)">Integrated circuit</h3>
+      <div class="meta">Kilby &amp; Noyce, 1958–59 · many switches per chip</div>
+      <p>Print the transistors <b>and their wiring</b> onto one sliver of silicon. Now shrinking the process shrinks everything at once — the ratchet Moore observed in 1965.<span class="fail">Failure mode: none fatal — just "how many can we fit?"</span></p>
+    </div>
+    <div class="arrow">→</div>
+    <div class="dev">
+      <div class="pic d-fin"><div class="fin f1"></div><div class="fin f2"></div><div class="fin f3"></div><div class="gate"></div><div class="nm">fins ≈ 5 nm wide</div></div>
+      <h3 style="color:var(--purple)">Modern FinFET</h3>
+      <div class="meta">~5 nm class · billions per chip</div>
+      <p>The transistor went 3-D: a fin of silicon wrapped by its gate, thousands of times thinner than a hair. <b>134 billion</b> of these fit in an M2 Ultra.<span class="fail">Failure mode: atoms are only so small…</span></p>
+    </div>
+  </div>
+  <p style="margin:4px 0 0;font-size:13px;color:var(--muted)">This ratchet is what powered the microprocessor (Intel 4004, 1971) and then the PC era — Altair 8800 (1975), Apple II (1977) — each generation cheaper <em>and</em> faster than the last.</p>
+</section>
+
+<!-- ============ PLATEAU PANEL ============ -->
+<section class="panel">
+  <h2>The plateau: clock speed hit a wall in ~2004</h2>
+  <canvas id="clock"></canvas>
+  <div class="plateau-foot">
+    <div class="caption">Transistor counts kept doubling right through this chart — but around 2004, clock frequency slammed into the <b style="color:var(--red)">power wall</b>: switching billions of transistors at ever-higher GHz produced more heat per mm² than could be pulled out of the chip. The grey dashed line is the trend that <em>didn't</em> happen. The free lunch ended, and the industry's answer was <b>multicore parallelism</b>: spend the still-doubling transistors on more cores side by side instead of one faster core. That story — pipelines, parallelism, and doing more per tick — continues in <a href="./cisc-risc.html">CISC vs RISC →</a></div>
+    <div id="cores"><canvas id="coreCv"></canvas><div id="coreLbl">1 core</div></div>
+  </div>
+</section>
+
+<!-- ============ INSIGHTS ============ -->
+<section class="insights">
+  <div class="card">
+    <b class="t yellow">It was never physics</b>
+    <p>Moore's Law is not a law of nature — it's an <em>observation that became a promise</em>. Fabs, toolmakers, and chip designers all planned their roadmaps around the next doubling, so the doubling happened: a self-fulfilling economic contract the whole industry signed. When you plan around an exponential, you build one.</p>
+  </div>
+  <div class="card">
+    <b class="t blue">Exponentials break intuition</b>
+    <p>Notice how the linear chart hid fifty years of history on the floor — 26 doublings turned a calculator chip into a data center, and your eyes couldn't see 25 of them. Before trusting any tech chart, ask: <em>linear or log?</em> A "hockey stick" and a straight log line are the same curve wearing different axes.</p>
+  </div>
+  <div class="card">
+    <b class="t green">Architecture is what you do when physics says no</b>
+    <p>When one exponential stalled (clock speed, 2004), another took over: multicore CPUs, then GPUs, then dedicated accelerators. Same transistor budget, spent smarter. This is why the rest of this course is about <em>architecture</em> — the art of getting more computing out of the switches physics gives you.</p>
+  </div>
+</section>
+
+<footer>
+  Interactive companion to the lecture <em>Introduction to Computers &amp; Computer Systems Architecture</em> · CCSA T1
+  <div class="nav">
+    <a href="./stored-program.html">← The Stored-Program Machine</a>
+    <a href="./index.html">All explorations</a>
+    <a href="./cisc-risc.html">CISC vs RISC →</a>
+  </div>
+</footer>
+
+</div>
+<script>
+'use strict';
+/* ---------------- data ---------------- */
+const CHIPS = [
+  ['Intel 4004',1971,2300],
+  ['Intel 8080',1974,6000],
+  ['Intel 8086',1978,29000],
+  ['Intel 286',1982,134000],
+  ['Intel 386',1985,275000],
+  ['Intel 486',1989,1.2e6],
+  ['Pentium',1993,3.1e6],
+  ['Pentium II',1997,7.5e6],
+  ['Pentium 4',2000,42e6],
+  ['Core 2 Duo',2006,291e6],
+  ['Core i7',2008,731e6],
+  ['Core i7 (6-core)',2011,2.27e9],
+  ['Apple A7',2013,1e9],
+  ['Apple A12',2018,6.9e9],
+  ['AMD Epyc Rome',2019,39.5e9],
+  ['Apple M1 Ultra',2022,114e9],
+  ['Apple M2 Ultra',2023,134e9]
+];
+const CLOCKS = [ // MHz
+  ['Intel 4004',1971,0.74],
+  ['Intel 8086',1978,5],
+  ['Intel 486',1989,25],
+  ['Pentium',1993,60],
+  ['Pentium III',1999,500],
+  ['Pentium 4',2001,2000],
+  ['Pentium 4 "Prescott"',2004,3800],
+  ['Core i7',2008,3200],
+  ['Core i7',2013,3900],
+  ['Core i9',2018,4700],
+  ['Core i9 (boost)',2023,5000]
+];
+const Y0=1970, Y1=2025;
+const ACTUAL_2023 = 134e9, BASE = 2300, SPAN = 2023-1971; // 52 years
+
+/* ---------------- helpers ---------------- */
+const $ = id => document.getElementById(id);
+const lerp=(a,b,t)=>a+(b-a)*t;
+const smooth=t=>t*t*(3-2*t);
+const log10=Math.log10;
+const SUP='⁰¹²³⁴⁵⁶⁷⁸⁹';
+const sup=n=>String(n).split('').map(c=>SUP[+c]).join('');
+function fmtCount(v){
+  if(v<1e3) return Math.round(v).toLocaleString('en-US');
+  if(v<1e6) return trim(v/1e3)+'K';
+  if(v<1e9) return trim(v/1e6)+'M';
+  if(v<1e12) return trim(v/1e9)+'B';
+  if(v<1e15) return trim(v/1e12)+'T';
+  const e=Math.floor(log10(v));
+  return (v/Math.pow(10,e)).toFixed(1)+'×10'+sup(e);
+}
+function trim(x){ return x>=100?Math.round(x).toLocaleString('en-US'):(x>=10?x.toFixed(1):x.toFixed(2)).replace(/\.?0+$/,''); }
+function fmtMHz(v){ return v<1000 ? trim(v)+' MHz' : trim(v/1000)+' GHz'; }
+/* distance: v transistors × 1 mm each */
+const EARTH=40075, MOON=384400, AU=1.496e8, LY=9.4607e12; // km
+function distParts(v){
+  const mm=v, km=mm/1e6;
+  let main, ctx;
+  if(mm<1e6){ main=trim(mm/1000)+' m'; ctx = mm<10000 ? 'a hallway.' : 'a long walk down the street.'; }
+  else if(km<1000){ main=trim(km)+' km'; ctx='a decent road trip.'; }
+  else if(km<EARTH){ main=Math.round(km).toLocaleString('en-US')+' km'; ctx=trim(km/EARTH*100)+'% of the way around the Earth.'; }
+  else if(km<MOON*2){ main=Math.round(km).toLocaleString('en-US')+' km'; ctx=trim(km/EARTH)+'× around the Earth.'; }
+  else if(km<AU*2){ main=fmtCount(km)+' km'; ctx=trim(km/MOON)+'× the Earth→Moon distance.'; }
+  else if(km<LY){ main=fmtCount(km)+' km'; ctx=trim(km/AU)+' AU — '+trim(km/AU)+'× the Earth→Sun distance.'; }
+  else { main=fmtCount(km)+' km'; ctx=trim(km/LY)+' light-years. Out of the solar system entirely.'; }
+  return {main,ctx};
+}
+function predAt(N,year){ return BASE*Math.pow(2,(year-1971)/N); }
+
+/* ---------------- state ---------------- */
+const state = {
+  scale:'linear',      // target scale
+  s:0, sFrom:0, sTo:0, sT0:0, sDur:1200, animating:false,
+  N:2,
+  hover:null,          // {set:'chips'|'clocks', i}
+  predDisp:log10(predAt(2,2023)) // animated (log-space) displayed prediction
+};
+
+/* ---------------- canvas plumbing ---------------- */
+function setupCanvas(cv){
+  const o={cv,ctx:cv.getContext('2d'),w:0,h:0,dpr:1};
+  function size(){
+    const r=cv.getBoundingClientRect();
+    o.dpr=Math.max(1,window.devicePixelRatio||1);
+    o.w=r.width; o.h=r.height;
+    cv.width=Math.round(r.width*o.dpr); cv.height=Math.round(r.height*o.dpr);
+  }
+  size();
+  new ResizeObserver(size).observe(cv);
+  return o;
+}
+const main=setupCanvas($('chart'));
+const clk =setupCanvas($('clock'));
+const cor =setupCanvas($('coreCv'));
+
+/* ---------------- main chart ---------------- */
+const LOG_LO=3, LOG_HI=11.35, LIN_MAX=140e9;
+function mainGeom(){
+  const small=main.w<560;
+  return {L:small?52:74, R:16, T:26, B:small?34:40};
+}
+function draw(now){
+  const {ctx,w,h,dpr}=main;
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,w,h);
+  ctx.fillStyle='#0b0f16'; ctx.fillRect(0,0,w,h);
+
+  // scale animation
+  if(state.animating){
+    const t=Math.min(1,(now-state.sT0)/state.sDur);
+    state.s=lerp(state.sFrom,state.sTo,smooth(t));
+    if(t>=1) state.animating=false;
+  }
+  const s=state.s;
+  const g=mainGeom();
+  const pL=g.L, pR=w-g.R, pT=g.T, pB=h-g.B, pW=pR-pL, pH=pB-pT;
+  const x=yr=>pL+(yr-Y0)/(Y1-Y0)*pW;
+  const yLin=v=>pB-(v/LIN_MAX)*pH;
+  const yLog=v=>pB-((log10(Math.max(v,1))-LOG_LO)/(LOG_HI-LOG_LO))*pH;
+  const y=v=>lerp(yLin(v),yLog(v),s);
+  const small=w<560;
+
+  // x grid + labels
+  ctx.font='11px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='top';
+  const step=small?10:5;
+  for(let yr=Y0;yr<=Y1;yr+=5){
+    ctx.strokeStyle='#232b3b'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(x(yr)+.5,pT); ctx.lineTo(x(yr)+.5,pB); ctx.stroke();
+    if(yr%step===0){ ctx.fillStyle='#8b94a7'; ctx.fillText(String(yr),x(yr),pB+8); }
+  }
+  // y grids (crossfade)
+  ctx.textAlign='right'; ctx.textBaseline='middle';
+  if(s<1){ // linear ticks 0..140B
+    ctx.globalAlpha=1-s;
+    for(let v=0;v<=LIN_MAX;v+=20e9){
+      const yy=yLin(v);
+      ctx.strokeStyle='#232b3b'; ctx.beginPath(); ctx.moveTo(pL,yy+.5); ctx.lineTo(pR,yy+.5); ctx.stroke();
+      ctx.fillStyle='#8b94a7'; ctx.fillText(v===0?'0':fmtCount(v),pL-7,yy);
+    }
+    ctx.globalAlpha=1;
+  }
+  if(s>0){ // log ticks 1e3..1e11
+    ctx.globalAlpha=s;
+    for(let e=3;e<=11;e++){
+      const v=Math.pow(10,e);
+      const yc=lerp(yLin(v),yLog(v),s);
+      ctx.strokeStyle='#232b3b'; ctx.beginPath(); ctx.moveTo(pL,yc+.5); ctx.lineTo(pR,yc+.5); ctx.stroke();
+      ctx.fillStyle='#8b94a7'; ctx.fillText(fmtCount(v),pL-7,yc);
+    }
+    ctx.globalAlpha=1;
+  }
+  // axes
+  ctx.strokeStyle='#4a5568'; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.moveTo(pL,pT); ctx.lineTo(pL,pB); ctx.lineTo(pR,pB); ctx.stroke();
+  // axis titles
+  ctx.save();
+  ctx.fillStyle='#8b94a7'; ctx.font='11px sans-serif'; ctx.textAlign='center';
+  ctx.translate(small?12:16,(pT+pB)/2); ctx.rotate(-Math.PI/2); ctx.textBaseline='middle';
+  ctx.fillText('transistors per chip'+(s>.5?'  (log scale)':'  (linear scale)'),0,0);
+  ctx.restore();
+
+  ctx.save();
+  ctx.beginPath(); ctx.rect(pL,pT-1,pW,pH+2); ctx.clip();
+
+  // ideal doubling line (yellow dashed), anchored at 4004
+  ctx.strokeStyle='#ffd35a'; ctx.lineWidth=2; ctx.setLineDash([7,6]); ctx.globalAlpha=.9;
+  ctx.beginPath();
+  let started=false;
+  for(let yr=1971;yr<=Y1;yr+=0.25){
+    const v=predAt(state.N,yr), yy=y(v);
+    if(yy<pT-200) break;
+    if(!started){ctx.moveTo(x(yr),yy);started=true;} else ctx.lineTo(x(yr),yy);
+  }
+  ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha=1;
+
+  // actual data polyline (blue)
+  ctx.strokeStyle='#58c4dd'; ctx.lineWidth=2.5;
+  ctx.beginPath();
+  CHIPS.forEach((c,i)=>{ const px=x(c[1]),py=y(c[2]); i?ctx.lineTo(px,py):ctx.moveTo(px,py); });
+  ctx.stroke();
+  // points
+  CHIPS.forEach((c,i)=>{
+    const px=x(c[1]),py=y(c[2]);
+    const hov=state.hover&&state.hover.set==='chips'&&state.hover.i===i;
+    if(hov){ ctx.fillStyle='rgba(255,255,255,.25)'; ctx.beginPath(); ctx.arc(px,py,11,0,7); ctx.fill(); }
+    ctx.fillStyle='#58c4dd'; ctx.beginPath(); ctx.arc(px,py,hov?6:4.5,0,7); ctx.fill();
+    ctx.strokeStyle='#0b0f16'; ctx.lineWidth=1.5; ctx.stroke();
+  });
+  // permanent end labels in log view
+  if(s>0.6&&!small){
+    ctx.globalAlpha=(s-0.6)/0.4;
+    ctx.fillStyle='#8b94a7'; ctx.font='12px sans-serif'; ctx.textAlign='left'; ctx.textBaseline='bottom';
+    ctx.fillText('Intel 4004 · 2,300', x(1971)+9, y(2300)-4);
+    ctx.textAlign='right';
+    ctx.fillText('M2 Ultra · 134B', x(2023)-9, y(134e9)+4);
+    ctx.globalAlpha=1;
+  }
+  ctx.restore();
+
+  // legend
+  ctx.font='12px sans-serif'; ctx.textBaseline='middle'; ctx.textAlign='left';
+  const lx=pL+12, ly=pT+12;
+  ctx.strokeStyle='#58c4dd'; ctx.lineWidth=2.5; ctx.beginPath(); ctx.moveTo(lx,ly); ctx.lineTo(lx+22,ly); ctx.stroke();
+  ctx.fillStyle='#e6e9f0'; ctx.fillText('real chips',lx+28,ly);
+  ctx.strokeStyle='#ffd35a'; ctx.lineWidth=2; ctx.setLineDash([6,5]);
+  ctx.beginPath(); ctx.moveTo(lx,ly+18); ctx.lineTo(lx+22,ly+18); ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillText('doubling every '+state.N.toFixed(2).replace(/\.?0+$/,'')+' yrs',lx+28,ly+18);
+
+  // tooltip
+  if(state.hover&&state.hover.set==='chips'){
+    const c=CHIPS[state.hover.i];
+    drawTip(ctx,x(c[1]),y(c[2]),pL,pR,pT,
+      [c[0]+' · '+c[1], fmtCount(c[2])+' transistors']);
+  }
+}
+
+function drawTip(ctx,px,py,pL,pR,pT,lines){
+  ctx.font='12.5px sans-serif';
+  let tw=0; lines.forEach(t=>tw=Math.max(tw,ctx.measureText(t).width));
+  const bw=tw+20, bh=lines.length*18+12;
+  let bx=px+12, by=py-bh-10;
+  if(bx+bw>pR) bx=px-bw-12;
+  if(by<pT) by=py+12;
+  if(bx<pL) bx=pL;
+  ctx.fillStyle='rgba(28,34,48,.96)'; ctx.strokeStyle='#58c4dd'; ctx.lineWidth=1;
+  ctx.beginPath();
+  ctx.roundRect ? ctx.roundRect(bx,by,bw,bh,7) : ctx.rect(bx,by,bw,bh);
+  ctx.fill(); ctx.stroke();
+  ctx.textAlign='left'; ctx.textBaseline='top';
+  lines.forEach((t,i)=>{ ctx.fillStyle=i?'#8b94a7':'#e6e9f0'; if(i===1)ctx.fillStyle='#58c4dd'; ctx.fillText(t,bx+10,by+7+i*18); });
+}
+
+/* ---------------- clock chart ---------------- */
+const CLO=-0.5, CHI=4.0; // log10 MHz range: ~0.3 MHz .. 10 GHz
+function drawClock(){
+  const {ctx,w,h,dpr}=clk;
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,w,h);
+  ctx.fillStyle='#0b0f16'; ctx.fillRect(0,0,w,h);
+  const small=w<560;
+  const pL=small?52:70, pR=w-14, pT=22, pB=h-34, pW=pR-pL, pH=pB-pT;
+  const x=yr=>pL+(yr-Y0)/(Y1-Y0)*pW;
+  const y=v=>pB-((log10(v)-CLO)/(CHI-CLO))*pH;
+
+  ctx.font='11px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='top';
+  const step=small?10:5;
+  for(let yr=Y0;yr<=Y1;yr+=5){
+    ctx.strokeStyle='#232b3b'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(x(yr)+.5,pT); ctx.lineTo(x(yr)+.5,pB); ctx.stroke();
+    if(yr%step===0){ ctx.fillStyle='#8b94a7'; ctx.fillText(String(yr),x(yr),pB+7); }
+  }
+  ctx.textAlign='right'; ctx.textBaseline='middle';
+  [[1,'1 MHz'],[10,'10 MHz'],[100,'100 MHz'],[1000,'1 GHz'],[10000,'10 GHz']].forEach(([v,lab])=>{
+    const yy=y(v);
+    ctx.strokeStyle='#232b3b'; ctx.beginPath(); ctx.moveTo(pL,yy+.5); ctx.lineTo(pR,yy+.5); ctx.stroke();
+    ctx.fillStyle='#8b94a7'; ctx.fillText(lab,pL-7,yy);
+  });
+  ctx.strokeStyle='#4a5568'; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.moveTo(pL,pT); ctx.lineTo(pL,pB); ctx.lineTo(pR,pB); ctx.stroke();
+
+  // power-wall shading + line at 2004
+  const xw=x(2004);
+  ctx.fillStyle='rgba(252,98,85,.05)'; ctx.fillRect(xw,pT,pR-xw,pH);
+  ctx.strokeStyle='#fc6255'; ctx.lineWidth=1.5; ctx.setLineDash([5,5]);
+  ctx.beginPath(); ctx.moveTo(xw,pT); ctx.lineTo(xw,pB); ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle='#fc6255'; ctx.font='12px sans-serif'; ctx.textAlign='left'; ctx.textBaseline='top';
+  ctx.fillText('the power wall (~2004)',Math.min(xw+8,pR-150),pT+4);
+
+  ctx.save(); ctx.beginPath(); ctx.rect(pL,pT,pW,pH); ctx.clip();
+  // ghost: pre-2004 trend continued (~doubling every 1.84 yrs from Prescott)
+  ctx.strokeStyle='#8b94a7'; ctx.lineWidth=1.5; ctx.setLineDash([3,5]); ctx.globalAlpha=.6;
+  ctx.beginPath();
+  for(let yr=2004;yr<=Y1;yr+=0.25){
+    const v=3800*Math.pow(2,(yr-2004)/1.84);
+    yr===2004?ctx.moveTo(x(yr),y(v)):ctx.lineTo(x(yr),y(v));
+    if(y(v)<pT) break;
+  }
+  ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha=1;
+  ctx.fillStyle='#8b94a7'; ctx.font='italic 11.5px Georgia,serif'; ctx.textAlign='left';
+  ctx.fillText('the trend that didn’t happen',x(2004.6),pT+34);
+
+  // data
+  ctx.strokeStyle='#83c167'; ctx.lineWidth=2.5;
+  ctx.beginPath();
+  CLOCKS.forEach((c,i)=>{ const px=x(c[1]),py=y(c[2]); i?ctx.lineTo(px,py):ctx.moveTo(px,py); });
+  ctx.stroke();
+  CLOCKS.forEach((c,i)=>{
+    const px=x(c[1]),py=y(c[2]);
+    const hov=state.hover&&state.hover.set==='clocks'&&state.hover.i===i;
+    if(hov){ ctx.fillStyle='rgba(255,255,255,.25)'; ctx.beginPath(); ctx.arc(px,py,10,0,7); ctx.fill(); }
+    ctx.fillStyle='#83c167'; ctx.beginPath(); ctx.arc(px,py,hov?5.5:4,0,7); ctx.fill();
+    ctx.strokeStyle='#0b0f16'; ctx.lineWidth=1.5; ctx.stroke();
+  });
+  ctx.restore();
+
+  ctx.save();
+  ctx.fillStyle='#8b94a7'; ctx.font='11px sans-serif'; ctx.textAlign='center';
+  ctx.translate(small?12:16,(pT+pB)/2); ctx.rotate(-Math.PI/2); ctx.textBaseline='middle';
+  ctx.fillText('clock speed (log)',0,0); ctx.restore();
+
+  if(state.hover&&state.hover.set==='clocks'){
+    const c=CLOCKS[state.hover.i];
+    drawTip(ctx,x(c[1]),y(c[2]),pL,pR,pT,[c[0]+' · '+c[1],fmtMHz(c[2])]);
+  }
+}
+
+/* ---------------- multicore icon ---------------- */
+function drawCores(now){
+  const {ctx,w,h,dpr}=cor;
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,w,h);
+  const S=Math.min(w,h)-16, ox=(w-S)/2, oy=(h-S)/2;
+  const cyc=(now/1700)%3, stage=Math.floor(cyc), f=smooth(Math.min(1,(cyc-stage)*2.2));
+  // chip outline
+  ctx.strokeStyle='#4a5568'; ctx.lineWidth=1.5;
+  ctx.strokeRect(ox,oy,S,S);
+  ctx.fillStyle='rgba(131,193,103,.10)'; ctx.fillRect(ox,oy,S,S);
+  const line=(x1,y1,x2,y2,a)=>{ctx.strokeStyle='rgba(131,193,103,'+a+')';ctx.lineWidth=2;
+    ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();};
+  const mid=oy+S/2, cx=ox+S/2;
+  let n;
+  if(stage===0){ // 1 -> vertical divider growing
+    n = f<1?1:1;
+    line(cx,mid-S/2*f,cx,mid+S/2*f,f*.9);
+    n = f>0.98?2:1;
+  } else if(stage===1){ // 2 -> horizontal divider growing
+    line(cx,oy,cx,oy+S,.9);
+    line(ox+S/2-S/2*f,mid,ox+S/2+S/2*f,mid,f*.9);
+    n = f>0.98?4:2;
+  } else { // 4 shown, then fade back
+    const a=1-f;
+    line(cx,oy,cx,oy+S,.9*a);
+    line(ox,mid,ox+S,mid,.9*a);
+    n = f>0.98?1:4;
+  }
+  // little core dots
+  ctx.fillStyle='rgba(131,193,103,.85)';
+  const dots = n===1?[[.5,.5]] : n===2?[[.25,.5],[.75,.5]] : [[.25,.25],[.75,.25],[.25,.75],[.75,.75]];
+  dots.forEach(([dx,dy])=>{ ctx.beginPath(); ctx.arc(ox+S*dx,oy+S*dy,4,0,7); ctx.fill(); });
+  $('coreLbl').textContent = n+(n===1?' core':' cores')+' · same silicon';
+}
+
+/* ---------------- readouts ---------------- */
+function verdict(pred){
+  const r=pred/ACTUAL_2023;
+  if(r>=0.5&&r<=2) return ['Moore aged remarkably well.',false];
+  if(r>2) return ['overshoots reality by '+fmtCount(r)+'× — that pace was too hot to sustain.',true];
+  return ['undershoots by '+fmtCount(1/r)+'× — the industry beat that pace.',true];
+}
+function updateReadouts(){
+  const N=state.N, d=SPAN/N, pred=predAt(N,2023);
+  $('nVal').textContent=N.toFixed(2).replace(/\.?0+$/,'').replace(/\.$/,'');
+  const [v,bad]=verdict(pred);
+  $('predReadout').innerHTML =
+    'Doubling every <span class="nlab">'+N+'</span> years since 1971 → '
+    +'<span class="math">2,300 × 2<sup>'+d.toFixed(1)+'</sup></span> ≈ '
+    +'<b class="p">'+fmtCount(pred)+'</b> transistors predicted for 2023 · '
+    +'actual <b class="a">Apple M2 Ultra: 134B</b> — '
+    +'<span class="v'+(bad?' bad':'')+'">'+v+'</span>'
+    +(Math.abs(N-2)<0.01?' <span style="color:var(--muted)">(2,300 × 2²⁶ ≈ 154B vs 134B — off by only 15% after half a century.)</span>':'');
+  // doubling squares
+  const nd=Math.floor(d), sq=$('dblSquares');
+  sq.innerHTML='';
+  for(let i=0;i<nd;i++){ const el=document.createElement('i'); el.style.animationDelay=(i*28)+'ms'; sq.appendChild(el); }
+  $('sqNote').textContent='One square per doubling: at every '+N+' years, that’s '+d.toFixed(1)
+    +' doublings between 1971 and 2023 — each square means "everything so far, again."';
+  $('predK').textContent='2023 at one doubling every '+N+' yrs';
+}
+function updatePredCounter(){
+  // ease displayed prediction in log space
+  const target=log10(predAt(state.N,2023));
+  const diff=target-state.predDisp;
+  if(Math.abs(diff)>1e-4){
+    state.predDisp+=diff*0.12;
+    if(Math.abs(target-state.predDisp)<1e-4) state.predDisp=target;
+    const v=Math.pow(10,state.predDisp), dp=distParts(v);
+    $('predNum').textContent=dp.main;
+    $('predCtx').innerHTML=fmtCount(v)+' transistors → '+dp.ctx;
+  }
+}
+
+/* ---------------- captions / toggle ---------------- */
+const CAP_LIN='Something’s wrong with this chart… or with linear thinking. One point towers over everything while fifty years of history flatlines on the floor — yet every one of those "flat" chips was a revolution. Hit <b>Log</b>.';
+const CAP_LOG='There it is: the famous straight line. On a log axis, "double every 2 years" is a constant slope, and 52 years of chips march right along it. <b>Exponentials look like hockey sticks on linear axes and straight lines on log axes</b> — same data, different glasses.';
+function setScale(sc){
+  if(sc===state.scale) return;
+  state.scale=sc;
+  state.sFrom=state.s; state.sTo=sc==='log'?1:0;
+  state.sT0=performance.now(); state.animating=true;
+  $('btnLin').classList.toggle('on',sc==='linear');
+  $('btnLog').classList.toggle('on',sc==='log');
+  $('btnLog').classList.remove('hint');
+  $('scaleCaption').innerHTML = sc==='log'?CAP_LOG:CAP_LIN;
+}
+$('btnLin').addEventListener('click',()=>setScale('linear'));
+$('btnLog').addEventListener('click',()=>setScale('log'));
+$('scaleCaption').innerHTML=CAP_LIN;
+
+$('nSlider').addEventListener('input',e=>{
+  state.N=parseFloat(e.target.value);
+  updateReadouts();
+});
+
+/* ---------------- hover / tap ---------------- */
+function attachHover(obj,setName,data,getGeom){
+  const find=(mx,my)=>{
+    const {x,y}=getGeom();
+    let best=null,bd=20*20;
+    data.forEach((c,i)=>{
+      const dx=mx-x(c[1]),dy=my-y(c);
+      const d=dx*dx+dy*dy;
+      if(d<bd){bd=d;best=i;}
+    });
+    return best;
+  };
+  const handle=e=>{
+    const r=obj.cv.getBoundingClientRect();
+    const i=find(e.clientX-r.left,e.clientY-r.top);
+    state.hover = i==null ? (state.hover&&state.hover.set===setName?null:state.hover) : {set:setName,i};
+  };
+  obj.cv.addEventListener('pointermove',handle);
+  obj.cv.addEventListener('pointerdown',handle);
+  obj.cv.addEventListener('pointerleave',()=>{ if(state.hover&&state.hover.set===setName) state.hover=null; });
+}
+attachHover(main,'chips',CHIPS,()=>{
+  const g=mainGeom();
+  const pL=g.L,pR=main.w-g.R,pT=g.T,pB=main.h-g.B,pW=pR-pL,pH=pB-pT;
+  return {
+    x:yr=>pL+(yr-Y0)/(Y1-Y0)*pW,
+    y:c=>lerp(pB-(c[2]/LIN_MAX)*pH, pB-((log10(c[2])-LOG_LO)/(LOG_HI-LOG_LO))*pH, state.s)
+  };
+});
+attachHover(clk,'clocks',CLOCKS,()=>{
+  const small=clk.w<560;
+  const pL=small?52:70,pR=clk.w-14,pT=22,pB=clk.h-34,pW=pR-pL,pH=pB-pT;
+  return {
+    x:yr=>pL+(yr-Y0)/(Y1-Y0)*pW,
+    y:c=>pB-((log10(c[2])-CLO)/(CHI-CLO))*pH
+  };
+});
+
+/* ---------------- main loop ---------------- */
+updateReadouts();
+state.predDisp=log10(predAt(2,2023))-0.6; // start slightly off so counter animates in
+function frame(now){
+  draw(now);
+  drawClock();
+  drawCores(now);
+  updatePredCounter();
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
