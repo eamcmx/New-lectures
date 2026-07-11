@@ -776,6 +776,7 @@ function doBacksub(){
   pushAnim('reveal',0.4,{},()=>{
     setStatus('<b>System solved and verified.</b> Total: '+state.steps+' operator actions ≈ '+fmtTime(state.opSec)+' at the real machine (back-substitution done by pencil). The rack of cards was your program — <b>you were the control unit</b>. That, precisely, is what the next machines automated.','good');
     state.auto=false; $('autoBtn').classList.remove('active');
+    $('autoBtn').textContent='▶ Ghost of Berry (auto)';
     renderChecklist(); updateButtons();
     $('backsub').scrollIntoView({behavior:'smooth',block:'nearest'});
   });
@@ -823,7 +824,8 @@ function layout(){
   const asmH=64;
   const asmTop=kaTop+drumH+22;
   const caTop=asmTop+asmH+22;
-  return {drumH,kaTop,asmTop,asmH,caTop, x0:64, x1:W-42, endR:20};
+  const narrow=W<620;
+  return {drumH,kaTop,asmTop,asmH,caTop, x0:narrow?34:64, x1:W-(narrow?22:42), endR:narrow?12:20, narrow};
 }
 function roundRect(x,y,w,h,r){
   ctx.beginPath();
@@ -871,9 +873,11 @@ function drawDrum(L,top,label,sub,content,drumName,anim){
   });
   /* labels */
   ctx.fillStyle='#8b94a7';ctx.font='11px "Segoe UI",sans-serif';ctx.textAlign='left';
-  ctx.fillText(label,x0,top-8);
-  ctx.fillStyle='#4a5568';
-  ctx.textAlign='right'; ctx.fillText(sub,x1,top-8); ctx.textAlign='left';
+  ctx.fillText(L.narrow?label.split(' — ')[0]+' — '+(drumName==='ka'?'PIVOT':'TARGET'):label,x0,top-8);
+  if(!L.narrow){
+    ctx.fillStyle='#4a5568';
+    ctx.textAlign='right'; ctx.fillText(sub,x1,top-8); ctx.textAlign='left';
+  }
   /* content */
   if(content){
     drawEquationOnDrum(L,top,content,drumName,anim);
@@ -887,12 +891,13 @@ function drawDrum(L,top,label,sub,content,drumName,anim){
 function drumChipRects(L,top){
   const {x0,x1,drumH}=L;
   const m=state.n+1;
-  const pad=26;
-  const cw=Math.min(190,(x1-x0-pad*2)/m - 10);
-  const totalW=m*cw+(m-1)*10;
+  const pad=L.narrow?8:26;
+  const gap=L.narrow?5:10;
+  const cw=Math.min(190,(x1-x0-pad*2)/m - gap);
+  const totalW=m*cw+(m-1)*gap;
   const startX=(x0+x1)/2-totalW/2;
   const rects=[];
-  for(let j=0;j<m;j++) rects.push({x:startX+j*(cw+10),y:top+drumH/2-21,w:cw,h:42,j});
+  for(let j=0;j<m;j++) rects.push({x:startX+j*(cw+gap),y:top+drumH/2-21,w:cw,h:42,j});
   return rects;
 }
 function drawEquationOnDrum(L,top,content,drumName,anim){
@@ -954,8 +959,9 @@ function drawEquationOnDrum(L,top,content,drumName,anim){
       ctx.fillText((j<state.n?fmt(v)+'·'+state.vars[j]:'= '+fmt(v)),rc.x+rc.w/2,rc.y+13);
     }else{
       ctx.fillStyle=col;
-      ctx.font='italic 17px Georgia,serif';ctx.textAlign='center';
       const label=j<state.n ? fmt(v)+' '+state.vars[j] : '= '+fmt(v);
+      const fs=Math.max(11,Math.min(17,1.9*rc.w/Math.max(6,label.length)));
+      ctx.font='italic '+fs+'px Georgia,serif';ctx.textAlign='center';
       ctx.fillText(label,rc.x+rc.w/2,rc.y+rc.h/2+6);
     }
     ctx.textAlign='left';
@@ -998,7 +1004,7 @@ function drawASM(L,anim){
   }
   ctx.fillStyle=firing?'#fc6255':'#8b94a7';
   ctx.font='11px "Segoe UI",sans-serif';ctx.textAlign='center';
-  ctx.fillText('ADD–SUBTRACT MECHANISMS  ·  ×30 IN PARALLEL — ONE PER COEFFICIENT',cx,asmTop+16);
+  ctx.fillText(L.narrow?'ADD–SUBTRACT ×30 IN PARALLEL':'ADD–SUBTRACT MECHANISMS  ·  ×30 IN PARALLEL — ONE PER COEFFICIENT',cx,asmTop+16);
   if(firing){
     const passF=(anim.t/anim.dur)*anim.data.passes;
     const passIdx=Math.min(anim.data.passes,Math.floor(passF)+1);

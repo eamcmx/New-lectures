@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ENIAC — Intro to Computer Systems Architecture</title>
+<style>
+:root{
+  --bg:#0e1117; --panel:#161b26; --panel2:#1c2230; --ink:#e6e9f0; --muted:#8b94a7;
+  --grid:#232b3b; --axis:#4a5568; --blue:#58c4dd; --yellow:#ffd35a; --red:#fc6255;
+  --green:#83c167; --purple:#c688eb; --orange:#ff9f4b; --line:#2a3347;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:'Segoe UI',system-ui,-apple-system,sans-serif;line-height:1.55}
+.wrap{max-width:1100px;margin:0 auto;padding:24px}
+a{color:var(--blue);text-decoration:none}
+a:hover{text-decoration:underline}
+header a.crumb{color:var(--muted);font-size:14px}
+header a.crumb:hover{color:var(--blue);text-decoration:none}
+h1{margin:10px 0 6px;font-size:32px;letter-spacing:.3px}
+.subtitle{color:var(--muted);max-width:70ch;margin:0 0 22px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin-bottom:22px}
+.math{font-family:Georgia,'Times New Roman',serif;font-style:italic}
+.mono{font-family:ui-monospace,'Cascadia Mono',Consolas,monospace}
+h2{font-size:15px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);margin:0 0 12px}
+.hist{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+.hist .blk{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:12px 14px;font-size:14px}
+.hist .blk b.t{display:block;font-size:12px;text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px}
+.hist .blk p{margin:0;color:var(--ink)}
+.hist .blk .dim{color:var(--muted)}
+.canvas-scroller{overflow-x:auto;border-radius:10px;background:#0b0f16;border:1px solid var(--line)}
+canvas#machine{display:block;width:100%;min-width:900px;touch-action:none}
+.controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:14px}
+button{background:var(--panel2);border:1px solid var(--line);color:var(--ink);border-radius:9px;padding:8px 14px;cursor:pointer;font-size:14px;font-family:inherit}
+button:hover{border-color:var(--blue)}
+button.on{border-color:var(--blue);color:var(--blue);background:rgba(88,196,221,.08)}
+button.go{border-color:rgba(131,193,103,.5);color:var(--green);font-weight:600}
+button.go:hover{border-color:var(--green)}
+button:disabled{opacity:.45;cursor:default}
+input[type=range]{accent-color:var(--blue)}
+label.sld{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:13px}
+select{background:var(--panel2);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:6px 8px;font-family:inherit}
+.timing{margin-left:auto;font-size:13px;color:var(--muted);white-space:nowrap}
+.timing b{color:var(--yellow);font-weight:600}
+.timing .en{color:var(--green)} .timing .hu{color:var(--red)}
+#status{margin-top:12px;padding:9px 13px;border-radius:9px;background:var(--panel2);border:1px solid var(--line);font-size:14px;min-height:20px;color:var(--muted)}
+#status.ok{color:var(--green);border-color:rgba(131,193,103,.4)}
+#status.err{color:var(--red);border-color:rgba(252,98,85,.4)}
+#status.run{color:var(--yellow);border-color:rgba(255,211,90,.35)}
+.below{display:grid;grid-template-columns:minmax(280px,340px) 1fr;gap:14px;margin-top:14px}
+@media(max-width:760px){.below{grid-template-columns:1fr}}
+.sheet,.outbox{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.sheet h3,.outbox h3{margin:0 0 8px;font-size:12px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted)}
+#sheetList{list-style:none;margin:0;padding:0;font-size:12.5px}
+#sheetList li{padding:4px 6px;border-left:3px solid transparent;border-radius:4px;cursor:pointer;color:var(--ink)}
+#sheetList li:hover{background:rgba(88,196,221,.07)}
+#sheetList li.active{border-left-color:var(--yellow);background:rgba(255,211,90,.08)}
+#sheetList li .tag{display:inline-block;width:44px;font-size:10px;letter-spacing:.06em;font-weight:700}
+#sheetList li .tag.p{color:var(--red)} #sheetList li .tag.d{color:var(--blue)}
+#sheetList li.empty{color:var(--muted);cursor:default;border:none}
+.sheet .note{font-size:11.5px;color:var(--muted);margin-top:10px;border-top:1px dashed var(--line);padding-top:8px}
+#outLabel{color:var(--yellow);font-size:12px;margin-bottom:6px}
+#logStrip{display:flex;flex-wrap:wrap;gap:6px;min-height:34px}
+#logStrip span{background:#10151f;border:1px solid var(--line);border-radius:6px;padding:4px 9px;font-size:14px;color:var(--green)}
+#logStrip span.new{border-color:var(--green)}
+#logStrip .none{color:var(--muted);border:none;background:none;font-size:12.5px}
+#caption{margin-top:10px;font-size:13.5px;color:var(--ink);border-top:1px dashed var(--line);padding-top:10px}
+#caption:empty{display:none}
+#nudge{display:none;margin-top:10px;padding:10px 12px;border-radius:9px;background:rgba(255,211,90,.07);border:1px solid rgba(255,211,90,.35);font-size:13.5px}
+#nudge b{color:var(--yellow)}
+.presets{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}
+.preset{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:9px}
+.preset h3{margin:0;font-size:15px;color:var(--yellow)}
+.preset p{margin:0;font-size:13.5px;color:var(--muted);flex:1}
+.preset button{align-self:flex-start}
+.simpl ul{margin:6px 0 0;padding-left:20px;font-size:13.5px;color:var(--muted)}
+.simpl li{margin-bottom:4px}
+.insights{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin-bottom:22px}
+.insights .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px}
+.insights .card h3{margin:0 0 8px;font-size:14px}
+.insights .card p{margin:0;font-size:14px;color:var(--muted)}
+footer{color:var(--muted);font-size:13px;border-top:1px solid var(--line);padding-top:16px;margin-top:8px}
+.navrow{display:flex;justify-content:space-between;gap:12px;margin-top:8px;flex-wrap:wrap}
+kbd{background:var(--panel2);border:1px solid var(--line);border-radius:4px;padding:0 5px;font-size:12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <a class="crumb" href="./index.html">← Intro to Computer Systems Architecture</a>
+  <h1>ENIAC — programming with a room full of cables</h1>
+  <p class="subtitle">The first general-purpose all-electronic computer: 17,468 vacuum tubes doing 5,000 additions
+  a second — but its “program” was the wiring itself. Below is a working plugboard machine. Drag cables between
+  jacks (<span style="color:var(--red)">thin red = program pulses</span>, <span style="color:var(--blue)">thick blue
+  = data trunks</span>), press <b style="color:var(--green)">GO</b>, and watch a pulse fly from unit to unit while
+  ring counters count at (slowed-down) electronic speed.</p>
+</header>
+
+<section class="panel">
+  <h2>The machine</h2>
+  <div class="hist">
+    <div class="blk"><b class="t" style="color:var(--blue)">1945 · 17,468 tubes · 30 tons</b>
+      <p>The <b>Electronic Numerical Integrator and Computer</b>, built at the University of Pennsylvania —
+      completed 1945, unveiled February 1946. The first <b>general-purpose, all-electronic digital</b> computer:
+      17,468 vacuum tubes, ~30 tons, 150&nbsp;kW, <b>~5,000 additions/second</b> — about
+      <b>1,000× faster</b> than the electromechanical machines before it. It was <b>decimal</b>: each digit lived
+      in a <b>ring counter</b>, a circle of ten tube stages with exactly one “on”.</p></div>
+    <div class="blk"><b class="t" style="color:var(--red)">Programmed by plugging</b>
+      <p>No stored instructions. A problem was “<b>set up</b>” by plugging cables between units and setting
+      switches — <b>days to weeks</b> per problem, planned first on paper setup diagrams. The first programmers
+      were six women: <b>Kay McNulty, Betty Jennings, Betty Snyder, Marlyn Wescoff, Fran Bilas and Ruth
+      Lichterman</b> — they worked out the setups and debugged the machine down to individual tubes.</p></div>
+    <div class="blk"><b class="t" style="color:var(--yellow)">Why it was built</b>
+      <p><b>Artillery firing tables</b> for the Army’s Ballistic Research Lab. One 60-second trajectory took a
+      human “computer” <span class="dim">~20 hours</span>; ENIAC did it in <b>~30 seconds</b> — and a table needed
+      ~3,000 trajectories. Its success led straight to the <b>stored-program idea</b>: von Neumann’s 1945
+      <i>EDVAC</i> report was written from inside this project.</p></div>
+  </div>
+</section>
+
+<section class="panel">
+  <h2>The simulator — a plugboard dataflow machine</h2>
+  <div class="canvas-scroller"><canvas id="machine"></canvas></div>
+  <div class="controls">
+    <button id="btnGo" class="go">▶ GO</button>
+    <button id="btnPause">⏸ Pause</button>
+    <button id="btnStep">Step</button>
+    <button id="btnReset">Reset</button>
+    <button id="btnClear">Unplug all</button>
+    <label class="sld">speed <input type="range" id="speed" min="0.2" max="2" step="0.05" value="0.6" style="width:110px">
+      <span id="speedVal" class="mono">0.60s</span></label>
+    <label class="sld">output <select id="outSel">
+      <option value="-1">— none —</option>
+      <option value="1">ACC 1</option><option value="2" selected>ACC 2</option>
+      <option value="3">ACC 3</option><option value="4">ACC 4</option></select></label>
+    <span class="timing"><b id="atCount">0</b> add-times · ENIAC <span class="en" id="atEn">0 ms</span> · human <span class="hu" id="atHu">0 s</span></span>
+  </div>
+  <div id="status">Idle. Plug cables by dragging jack-to-jack, pick a preset below, then press GO. <kbd>Space</kbd> steps while paused.</div>
+  <div class="below">
+    <div class="sheet">
+      <h3>Setup sheet (the wiring, as text)</h3>
+      <ul id="sheetList" class="mono"></ul>
+      <div class="note">The ENIAC women drew setup sheets exactly like this on paper first — <i>then</i> spent
+      days at the panels plugging them in. Click a line (or a cable) to unplug it.</div>
+    </div>
+    <div class="outbox">
+      <h3>Output strip</h3>
+      <div id="outLabel">logs the selected accumulator after each receive</div>
+      <div id="logStrip" class="mono"><span class="none">— no output yet —</span></div>
+      <div id="caption"></div>
+      <div id="nudge"></div>
+    </div>
+  </div>
+</section>
+
+<section class="panel">
+  <h2>Example setups — one click plugs the board</h2>
+  <div class="presets">
+    <div class="preset">
+      <h3>① Running total: 1+2+…+10 = 55</h3>
+      <p>Each loop the Constant Transmitter pushes <b>+1</b> into ACC 1 (the counter <span class="math">i</span>),
+      then ACC 2 receives ACC 1’s value. Accumulators <i>accumulate</i> — addition is free-running electronics,
+      and the whole 10-loop run is 20 add-times ≈ <b>4 ms</b> of real ENIAC time: this loop finishes faster than
+      you can blink.</p>
+      <button data-preset="0">Plug this setup</button>
+    </div>
+    <div class="preset">
+      <h3>② THE job: artillery trajectory (Euler steps)</h3>
+      <p>A simplified vertical launch: each step, altitude <span class="math">y</span> grows by
+      <span class="math">v</span> (ACC 1→ACC 2), then <span class="math">v</span> loses
+      <span class="math">g·Δt</span> = 10 via ACC 3’s <b>subtractive</b> port. Every ACC 2 value is one <b>row of a
+      firing table</b>. This integration — with drag and elevation angles — is why ENIAC exists: one 60-second
+      trajectory took a human ~20 hours, ENIAC ~30 seconds; a full table had ~3,000 trajectories.</p>
+      <button data-preset="1">Plug this setup</button>
+    </div>
+    <div class="preset">
+      <h3>③ Squares by odd numbers: 1, 4, 9, 16, 25</h3>
+      <p>Squares differ by successive odd numbers, so adding the odd-number generator (ACC 1, starting at 1,
+      fed +2 each loop) into ACC 2 logs the squares — pure addition, the same finite-difference trick
+      <a href="./analytical-engine.html">Babbage’s Difference Engine</a> used a century earlier.</p>
+      <button data-preset="2">Plug this setup</button>
+    </div>
+  </div>
+</section>
+
+<section class="panel simpl">
+  <h2>Simplifications — where this model cheats</h2>
+  <ul>
+    <li><b>4 accumulators of 6 digits</b> here vs the real <b>20 accumulators of 10 digits</b> (plus sign).</li>
+    <li>No <b>multiplier</b> or <b>divider/square-rooter</b> units — the real ENIAC had dedicated ones.</li>
+    <li>The <b>Master Programmer</b> is reduced to one loop counter; the real unit had 10 decade counters driving
+        six-stage steppers and could nest and sequence whole program branches.</li>
+    <li>Our blue trunks carry “a number”; real digit trunks carried <b>trains of 100&nbsp;kHz pulses</b>
+        (a 7 was seven pulses on that digit line), with separate carry-over circuitry.</li>
+    <li>Subtraction here steps rings <i>backward</i> for clarity; the real machine only ever advanced rings and
+        subtracted by adding <b>ten’s-complements</b> (you can still see complements when a value goes negative).</li>
+    <li>Presets preload accumulator values directly; real operators cleared and loaded them through the constant
+        transmitter and IBM card reader.</li>
+    <li>Our jacks politely refuse bad plugs; real setups were checked by hand — and still failed on dud tubes
+        and bad joints.</li>
+  </ul>
+</section>
+
+<section class="insights">
+  <div class="card"><h3 style="color:var(--blue)">Electronic speed, human-speed programming</h3>
+    <p>ENIAC <i>ran</i> at electronic speed but was <i>programmed</i> at human speed — days of plugging for seconds
+    of computing. Notice how that asymmetry is exactly what the <a href="./stored-program.html">stored-program
+    concept</a> fixed: make the program <i>data in memory</i>, and “replugging” becomes reloading in milliseconds.
+    The EDVAC memo proposing it was written from inside this very room.</p></div>
+  <div class="card"><h3 style="color:var(--yellow)">Plugboards reborn</h3>
+    <p>Wiring up dataflow is not dead. FPGAs, systolic arrays and TPU pipelines are plugboards reborn: when the
+    problem is fixed, <b>wiring beats fetching</b> — no instruction fetch, no decode, just data streaming through
+    configured hardware. ENIAC’s “setup” is a modern accelerator’s bitstream.</p></div>
+  <div class="card"><h3 style="color:var(--purple)">Programming was born hands-on — and female</h3>
+    <p>McNulty, Jennings, Snyder, Wescoff, Bilas and Lichterman invented <b>debugging at the panel</b> — tracing a
+    wrong digit through cables and steppers down to a single dead vacuum tube among 17,468. Programming was born as
+    a hands-on engineering discipline, and it was born female.</p></div>
+</section>
+
+<footer>
+  <div>Interactive companion to the lecture <i>Introduction to Computers &amp; Computer Systems Architecture</i> · CCSA T1</div>
+  <div class="navrow">
+    <a href="./mark1.html">← The Harvard Mark I</a>
+    <a href="./index.html">All explorations</a>
+    <a href="./timeline.html">↺ back to start: The Grand Timeline</a>
+  </div>
+</footer>
+</div>
+
+<script>
+'use strict';
+/* ================= geometry ================= */
+const DW=1060, DH=640;
+const RACKS=[
+  {id:'init',x:14, w:88, title:'INITIATING'},
+  {id:'ct',  x:113,w:150,title:'CONSTANT TRANSMITTER'},
+  {id:'a1',  x:274,w:150,title:'ACCUMULATOR 1'},
+  {id:'a2',  x:435,w:150,title:'ACCUMULATOR 2'},
+  {id:'a3',  x:596,w:150,title:'ACCUMULATOR 3'},
+  {id:'a4',  x:757,w:150,title:'ACCUMULATOR 4'},
+  {id:'mp',  x:918,w:128,title:'MASTER PROGRAMMER'},
+];
+const RY=14, RH=506, RB=RY+RH; // rack bottom 520; below = cable tray
+const rack=id=>RACKS.find(r=>r.id===id);
+
+/* ports: dir 'out'|'in', wire 'prog'|'data' */
+const ports={};
+function addPort(id,unit,x,y,dir,wire,label,lx,ly,hint){ports[id]={id,unit,x,y,dir,wire,label,lx,ly,hint};}
+(function buildPorts(){
+  const gi=rack('init');
+  addPort('init.go','init',gi.x+44,482,'out','prog','prog ▸',gi.x+44,466,
+    'GO output — the very first program pulse leaves here');
+  const ct=rack('ct');
+  [1,2].forEach((n,i)=>{
+    const yb=46+i*208;
+    addPort('ct.c'+n+'.o','ct',ct.x+ct.w-14,yb+56,'out','data','out',ct.x+ct.w-30,yb+40,
+      'C'+n+' data-out — a blue trunk carries this constant to an accumulator’s α jack');
+    addPort('ct.c'+n+'.t','ct',ct.x+34,yb+142,'in','prog','▸trig',ct.x+34,yb+126,
+      'C'+n+' trigger-in — a program pulse here makes the transmitter push its constant down its trunk');
+    addPort('ct.c'+n+'.d','ct',ct.x+ct.w-34,yb+142,'out','prog','done▸',ct.x+ct.w-34,yb+126,
+      'C'+n+' done-out — fires when the constant has been transmitted');
+  });
+  for(let k=1;k<=4;k++){
+    const r=rack('a'+k);
+    addPort('a'+k+'.in','a'+k,r.x+13,300,'in','data','α',r.x+26,300,
+      'ACC '+k+' α (data-in) — when this accumulator is triggered, it receives whatever is on this trunk');
+    addPort('a'+k+'.A','a'+k,r.x+r.w-13,285,'out','data','A',r.x+r.w-26,285,
+      'ACC '+k+' A (additive out) — transmits +value');
+    addPort('a'+k+'.S','a'+k,r.x+r.w-13,320,'out','data','S',r.x+r.w-26,320,
+      'ACC '+k+' S (subtractive out) — transmits −value');
+    addPort('a'+k+'.t','a'+k,r.x+36,482,'in','prog','▸trig',r.x+36,466,
+      'ACC '+k+' trigger-in — a program pulse here starts a receive (× its repeat switch)');
+    addPort('a'+k+'.d','a'+k,r.x+r.w-36,482,'out','prog','done▸',r.x+r.w-36,466,
+      'ACC '+k+' done-out — fires when its receive(s) finish');
+  }
+  const mp=rack('mp');
+  addPort('mp.t','mp',mp.x+28,482,'in','prog','▸trig',mp.x+28,466,
+    'Master Programmer trigger-in — counts a pulse each time the loop body finishes');
+  addPort('mp.loop','mp',mp.x+mp.w-28,440,'out','prog','loop▸',mp.x+mp.w-30,424,
+    'loop-back — fires N−1 times, sending the pulse around again');
+  addPort('mp.done','mp',mp.x+mp.w-28,482,'out','prog','done▸',mp.x+mp.w-30,466,
+    'done — fires after the N-th count: the loop is over');
+})();
+
+/* ================= state ================= */
+const state={
+  cables:[], nid:1,
+  acc:[0,0,0,0].map(()=>({val:0,init:0,repeat:1,flash:0})),
+  ct:[[0,0,0,1],[0,0,0,0]],           // digit switches, value = 4-digit number
+  mp:{n:10,count:0,flash:0},
+  active:false,paused:false,stepOnce:false,
+  phase:null, addTimes:0, log:[], logUnit:2,
+  speed:0.6, hover:null, drag:null,
+  plugQueue:null, plugTimer:0, activePreset:null,
+  lastActiveCable:'',
+};
+const ctVal=i=>state.ct[i].reduce((a,d)=>a*10+d,0);
+const disp=v=>((v%1000000)+1000000)%1000000;
+const pad6=v=>String(disp(v)).padStart(6,'0');
+
+/* ================= dom ================= */
+const $=id=>document.getElementById(id);
+const canvas=$('machine'), ctx=canvas.getContext('2d');
+const statusEl=$('status'), sheetEl=$('sheetList'), logEl=$('logStrip'),
+      capEl=$('caption'), nudgeEl=$('nudge'), outSel=$('outSel');
+function setStatus(msg,kind){statusEl.textContent=msg;statusEl.className=kind||'';}
+function fmtEn(at){const ms=at/5000*1000;return ms<1000?(ms<10?ms.toFixed(1):Math.round(ms))+' ms':(ms/1000).toFixed(1)+' s';}
+function fmtHu(at){const s=at*3;return s<90?Math.round(s)+' s':s<5400?(s/60).toFixed(1)+' min':(s/3600).toFixed(1)+' h';}
+function updTiming(){$('atCount').textContent=state.addTimes;$('atEn').textContent=fmtEn(state.addTimes);$('atHu').textContent='~'+fmtHu(state.addTimes);}
+function pushLog(v){
+  if(state.log.length===0)logEl.innerHTML='';
+  state.log.push(v);
+  const s=document.createElement('span');s.textContent=v;s.className='new';
+  logEl.appendChild(s);setTimeout(()=>s.classList.remove('new'),600);
+}
+function clearLog(){state.log=[];logEl.innerHTML='<span class="none">— no output yet —</span>';}
+
+/* ================= cables ================= */
+function cableFrom(pid){return state.cables.find(c=>c.from===pid);}
+function cableTo(pid){return state.cables.find(c=>c.to===pid);}
+function canConnect(a,b){
+  if(a.dir===b.dir||a.wire!==b.wire)return false;
+  const out=a.dir==='out'?a:b, inn=a.dir==='out'?b:a;
+  if(cableFrom(out.id))return false;
+  if(inn.wire==='data'&&cableTo(inn.id))return false;
+  if(inn.wire==='data'&&out.unit===inn.unit)return false;
+  return true;
+}
+function addCable(outId,inId,silent){
+  const c={id:'c'+(state.nid++),from:outId,to:inId,kind:ports[outId].wire,born:performance.now()};
+  state.cables.push(c);updateSheet();
+  if(!silent)setStatus('Plugged: '+portName(outId)+' → '+portName(inId),'');
+  return c;
+}
+function removeCable(c){
+  state.cables=state.cables.filter(x=>x!==c);updateSheet();
+  if(state.phase&&(state.phase.cable===c||state.phase.srcCable===c)){
+    jam('You unplugged a live line — the pulse dies in mid-air.');
+  }
+  setStatus('Unplugged: '+portName(c.from)+' → '+portName(c.to),'');
+}
+function portName(pid){
+  const p=ports[pid],names={init:'Initiating',ct:'CT',mp:'Master Prog.'};
+  let u=names[p.unit]||('ACC '+p.unit[1]);
+  const m=pid.match(/^ct\.c(\d)\.(\w)$/);
+  if(m)return 'CT·'+m[1]+' '+({o:'out',t:'trigger',d:'done'})[m[2]];
+  if(p.unit==='init')return 'Initiating GO';
+  if(pid==='mp.t')return 'Master Prog. trigger';
+  if(pid==='mp.loop')return 'Master Prog. loop-back';
+  if(pid==='mp.done')return 'Master Prog. done';
+  const s=pid.split('.')[1];
+  return u+' '+({in:'α in',A:'A(+) out',S:'S(−) out',t:'trigger',d:'done'})[s];
+}
+function updateSheet(){
+  sheetEl.innerHTML='';
+  if(!state.cables.length){
+    sheetEl.innerHTML='<li class="empty">— nothing plugged. Drag jack-to-jack, or use a preset. —</li>';return;
+  }
+  state.cables.forEach(c=>{
+    const li=document.createElement('li');li.dataset.cid=c.id;
+    li.innerHTML='<span class="tag '+(c.kind==='prog'?'p':'d')+'">'+(c.kind==='prog'?'PROG':'DATA')+'</span> '
+      +portName(c.from)+' → '+portName(c.to);
+    li.addEventListener('mouseenter',()=>state.hover={type:'cable',cable:c,viaSheet:true});
+    li.addEventListener('mouseleave',()=>{if(state.hover&&state.hover.cable===c)state.hover=null;});
+    li.addEventListener('click',()=>removeCable(c));
+    sheetEl.appendChild(li);
+  });
+}
+function updateSheetActive(){
+  const cur=state.phase&&(state.phase.cable||state.phase.srcCable);
+  const cid=cur?cur.id:'';
+  if(cid===state.lastActiveCable)return;
+  state.lastActiveCable=cid;
+  [...sheetEl.children].forEach(li=>li.classList.toggle('active',li.dataset&&li.dataset.cid===cid));
+}
+
+/* cable path with sag */
+function cablePath(c){
+  const a=ports[c.from],b=ports[c.to];
+  const dist=Math.hypot(b.x-a.x,b.y-a.y);
+  let sag=Math.max(16,Math.min(26+dist*0.22, 624-Math.max(a.y,b.y)));
+  return {a,b,c1:{x:a.x+(b.x-a.x)*0.2,y:a.y+sag},c2:{x:a.x+(b.x-a.x)*0.8,y:b.y+sag}};
+}
+function bez(p,t){
+  const u=1-t;
+  return {x:u*u*u*p.a.x+3*u*u*t*p.c1.x+3*u*t*t*p.c2.x+t*t*t*p.b.x,
+          y:u*u*u*p.a.y+3*u*u*t*p.c1.y+3*u*t*t*p.c2.y+t*t*t*p.b.y};
+}
+
+/* ================= execution engine ================= */
+const now=()=>performance.now();
+function pulseDur(){return state.speed*700;}
+function jam(msg){state.active=false;state.phase=null;setStatus('⚡ '+msg,'err');}
+function startRun(step){
+  if(state.plugQueue){setStatus('Still plugging the setup — one moment…','');return;}
+  if(!cableFrom('init.go')){setStatus('The GO button clicks… and nothing happens. Plug a program cable into the initiating unit’s output first.','err');return;}
+  state.acc.forEach(a=>{a.val=a.init;a.flash=0;});
+  state.mp.count=0;state.addTimes=0;clearLog();updTiming();
+  nudgeEl.style.display='none';
+  state.active=true;state.paused=false;state.stepOnce=!!step;
+  setStatus('GO — a program pulse leaves the initiating unit.','run');
+  firePort('init.go');
+}
+function firePort(pid){
+  const c=cableFrom(pid);
+  if(!c){endProgram(pid);return;}
+  state.phase={type:'pulse',cable:c,t:0,dur:pulseDur(),done:()=>deliver(c.to)};
+}
+function endProgram(pid){
+  state.active=false;state.phase=null;
+  const t=state.addTimes;
+  if(pid==='mp.done'){
+    setStatus('✔ Program complete — '+t+' add-times ≈ '+fmtEn(t)+' of real ENIAC time (a human computer: ~'+fmtHu(t)+').','ok');
+  }else{
+    setStatus('Pulse reached '+portName(pid)+' and found no cable — program over ('+t+' add-times ≈ '+fmtEn(t)+').','ok');
+  }
+  showNudge();
+}
+function showNudge(){
+  const generic='<b>Now change it:</b> unplug an <b>A</b> trunk and replug it into the same α from the <b>S</b> jack — your running total becomes a countdown. You are now doing what took ENIAC’s crew up to six days of replugging per new problem.';
+  nudgeEl.innerHTML=(state.activePreset&&state.activePreset.nudge)||generic;
+  nudgeEl.style.display='block';
+}
+function deliver(pid){
+  let m;
+  if(pid==='mp.t'){
+    state.mp.count++;state.mp.flash=now();
+    const goOn=state.mp.count<state.mp.n;
+    setStatus('Master Programmer counts '+state.mp.count+' of '+state.mp.n+(goOn?' — around again.':' — loop done.'),'run');
+    state.phase={type:'delay',t:0,dur:Math.max(120,state.speed*300),done:()=>firePort(goOn?'mp.loop':'mp.done')};
+  }else if((m=pid.match(/^a(\d)\.t$/))){
+    startReceive(+m[1],state.acc[+m[1]-1].repeat);
+  }else if((m=pid.match(/^ct\.c(\d)\.t$/))){
+    const n=+m[1],dc=cableFrom('ct.c'+n+'.o');
+    if(!dc){jam('CT·'+n+' was triggered but its data trunk isn’t plugged anywhere — the machine jams.');return;}
+    const k=+dc.to.match(/^a(\d)\.in$/)[1];
+    setStatus('CT·'+n+' transmits +'+ctVal(n-1)+' down its trunk into ACC '+k+' …','run');
+    startRingTransfer(k,ctVal(n-1),dc,()=>firePort('ct.c'+n+'.d'));
+  }
+}
+function startReceive(k,remaining){
+  const dc=cableTo('a'+k+'.in');
+  if(!dc){jam('ACC '+k+' was told to receive, but nothing is plugged into its α jack — the machine jams.');return;}
+  let delta,m;
+  if((m=dc.from.match(/^ct\.c(\d)\.o$/)))delta=ctVal(+m[1]-1);
+  else{m=dc.from.match(/^a(\d)\.(A|S)$/);const v=state.acc[+m[1]-1].val;delta=m[2]==='A'?v:-v;}
+  const rep=state.acc[k-1].repeat;
+  setStatus('ACC '+k+' receives '+(delta<0?'−':'+')+Math.abs(delta)+' from '+portName(dc.from)
+    +(rep>1?' ('+(rep-remaining+1)+'/'+rep+')':'')+' — rings counting…','run');
+  startRingTransfer(k,delta,dc,()=>{
+    if(remaining>1)startReceive(k,remaining-1);
+    else firePort('a'+k+'.d');
+  });
+}
+function startRingTransfer(k,delta,srcCable,after){
+  const a=state.acc[k-1],oldD=pad6(a.val),newVal=a.val+delta,newD=pad6(newVal);
+  const fwd=delta>=0,cols=[];
+  let maxSteps=0;
+  for(let i=0;i<6;i++){
+    const f=+oldD[i],t=+newD[i];
+    const steps=fwd?(t-f+10)%10:(f-t+10)%10;
+    cols.push({from:f,steps});maxSteps=Math.max(maxSteps,steps);
+  }
+  const tick=Math.max(35,Math.min(180,state.speed*1000/9));
+  state.phase={type:'ring',acc:k,cols,fwd,tick,t:0,dur:Math.max(1,maxSteps)*tick+140,srcCable,
+    done:()=>{
+      a.val=newVal;a.flash=now();state.addTimes++;updTiming();
+      if(state.logUnit===k)pushLog(String(newVal<0?-disp(-newVal):disp(newVal)));
+      if(state.addTimes>3000){jam('After 3,000 add-times the operators pull the plug — you seem to have a loop with no Master Programmer in it.');return;}
+      after();
+    }};
+}
+/* live digits during a ring phase */
+function accDigits(k){
+  const ph=state.phase;
+  if(ph&&ph.type==='ring'&&ph.acc===k){
+    const done=Math.floor(ph.t/ph.tick);
+    return ph.cols.map(c=>{
+      const s=Math.min(done,c.steps);
+      return ((c.from+(ph.fwd?s:-s))%10+10)%10;
+    });
+  }
+  return pad6(state.acc[k-1].val).split('').map(Number);
+}
+
+/* ================= presets ================= */
+const PRESETS=[
+ {name:'Running total 1+2+…+10',
+  ct:[[0,0,0,1],[0,0,0,0]], inits:[0,0,0,0], reps:[1,1,1,1], n:10, logUnit:2,
+  outLabel:'ACC 2 — the running total after each receive (triangle numbers → 55)',
+  caption:'<b style="color:var(--yellow)">Setup ①.</b> Loop body: CT·1 pushes +1 into ACC 1, then ACC 2 receives ACC 1. '+
+   'After loop <span class="math">k</span>: ACC 1 = <span class="math">k</span>, ACC 2 = 1+2+…+<span class="math">k</span>. '+
+   'Ten loops → <b>55</b>. That’s 20 add-times ≈ <b>4 ms</b> of real ENIAC time — the loop is over before your eyelid gets halfway down.',
+  nudge:'<b>Now change it:</b> unplug the <b>ACC1 A → ACC2 α</b> trunk and replug it from ACC 1’s <b>S</b> jack — ACC 2 now counts <i>down</i> to −55 (watch the rings wrap into the ten’s-complement 999945). One replug = a new program. On the real ENIAC a new problem meant <b>days</b> of this.',
+  cables:[['ct.c1.o','a1.in'],['a1.A','a2.in'],
+          ['init.go','ct.c1.t'],['ct.c1.d','a2.t'],['a2.d','mp.t'],['mp.loop','ct.c1.t']]},
+ {name:'Artillery trajectory',
+  ct:[[0,0,1,0],[0,0,0,0]], inits:[500,0,0,0], reps:[1,1,1,1], n:8, logUnit:2,
+  outLabel:'FIRING TABLE — altitude y (ACC 2) after each Δt step',
+  caption:'<b style="color:var(--yellow)">Setup ②.</b> First pulse loads <span class="math">g·Δt</span> = 10 from CT into ACC 3. '+
+   'Then each loop: <span class="math">y</span> += <span class="math">v</span> (ACC 1 → ACC 2), and <span class="math">v</span> −= 10 '+
+   '(ACC 3’s <b>S</b> jack → ACC 1). Eight steps print the table rows 500, 990, 1470, 1940, 2400, 2850, 3290, 3720. '+
+   'This Euler integration — with drag and elevation angle — was ENIAC’s reason to exist: <b>human ~20 h, ENIAC ~30 s</b> per 60-second trajectory, ~3,000 trajectories per table.',
+  nudge:'<b>Now change it:</b> nudge the Master Programmer to <b>N = 12</b> and GO — the table keeps printing: 4140, 4550, 4950, 5340. One switch = four more rows. Changing the <i>physics</i> (a drag term) meant re-planning the whole plugboard.',
+  cables:[['ct.c1.o','a3.in'],['a3.S','a1.in'],['a1.A','a2.in'],
+          ['init.go','a3.t'],['a3.d','a2.t'],['a2.d','a1.t'],['a1.d','mp.t'],['mp.loop','a2.t']]},
+ {name:'Squares by odd numbers',
+  ct:[[0,0,0,2],[0,0,0,0]], inits:[1,0,0,0], reps:[1,1,1,1], n:5, logUnit:2,
+  outLabel:'ACC 2 after each receive — the perfect squares',
+  caption:'<b style="color:var(--yellow)">Setup ③.</b> Order matters: first ACC 2 receives ACC 1 (the current odd number), <i>then</i> CT pushes +2 into ACC 1. '+
+   'ACC 1 walks 1, 3, 5, 7, 9 and ACC 2 logs 1, 4, 9, 16, 25 — squares from pure addition, the finite-difference trick '+
+   '<a href="./analytical-engine.html">Babbage</a> mechanized a century earlier.',
+  nudge:'<b>Now change it:</b> set the Master Programmer to <b>N = 9</b> — the strip runs on to 36, 49, 64, 81. Same wiring, one switch. Then try swapping which unit gets triggered first and watch the sequence break: on a plugboard, <i>pulse order is the program</i>.',
+  cables:[['a1.A','a2.in'],['ct.c1.o','a1.in'],
+          ['init.go','a2.t'],['a2.d','ct.c1.t'],['ct.c1.d','mp.t'],['mp.loop','a2.t']]},
+];
+function applyPreset(p){
+  state.active=false;state.phase=null;state.cables=[];state.plugQueue=null;
+  state.ct=p.ct.map(d=>d.slice());
+  state.acc.forEach((a,i)=>{a.init=p.inits[i];a.val=p.inits[i];a.repeat=p.reps[i];a.flash=0;});
+  state.mp.n=p.n;state.mp.count=0;state.addTimes=0;updTiming();clearLog();
+  state.logUnit=p.logUnit;outSel.value=String(p.logUnit);
+  $('outLabel').textContent=p.outLabel;
+  capEl.innerHTML=p.caption;nudgeEl.style.display='none';
+  state.activePreset=p;updateSheet();
+  state.plugQueue=p.cables.slice();state.plugTimer=now()+150;
+  setStatus('Reading the setup sheet… plugging '+p.cables.length+' cables.','run');
+}
+document.querySelectorAll('[data-preset]').forEach(b=>
+  b.addEventListener('click',()=>applyPreset(PRESETS[+b.dataset.preset])));
+
+/* ================= controls ================= */
+$('btnGo').addEventListener('click',()=>startRun(false));
+$('btnPause').addEventListener('click',()=>{
+  if(!state.active)return;
+  state.paused=!state.paused;
+  $('btnPause').classList.toggle('on',state.paused);
+  setStatus(state.paused?'Paused — Step (or Space) advances one pulse/operation.':'Running…','run');
+});
+$('btnStep').addEventListener('click',doStep);
+function doStep(){
+  if(state.plugQueue)return;
+  if(!state.active){startRun(true);return;}
+  state.stepOnce=true;state.paused=false;$('btnPause').classList.remove('on');
+}
+$('btnReset').addEventListener('click',()=>{
+  state.active=false;state.phase=null;state.mp.count=0;state.addTimes=0;updTiming();
+  state.acc.forEach(a=>{a.val=a.init;a.flash=0;});clearLog();nudgeEl.style.display='none';
+  setStatus('Reset — accumulators back to their preset values. Wiring kept.','');
+});
+$('btnClear').addEventListener('click',()=>{
+  state.cables=[];state.active=false;state.phase=null;state.activePreset=null;
+  capEl.innerHTML='';nudgeEl.style.display='none';updateSheet();
+  setStatus('All cables unplugged — a bare machine, like the morning a new problem arrived.','');
+});
+$('speed').addEventListener('input',e=>{
+  state.speed=+e.target.value;$('speedVal').textContent=state.speed.toFixed(2)+'s';
+});
+outSel.addEventListener('change',()=>{
+  state.logUnit=+outSel.value;
+  if(!state.activePreset)$('outLabel').textContent=state.logUnit>0?('logs ACC '+state.logUnit+' after each receive'):'output off';
+});
+document.addEventListener('keydown',e=>{
+  if(e.code==='Space'&&!/INPUT|SELECT|BUTTON|TEXTAREA/.test(document.activeElement.tagName)){
+    e.preventDefault();
+    if(!state.active||state.paused)doStep();
+  }
+});
+
+/* ================= pointer interaction ================= */
+let scaleFactor=1;
+function toDesign(e){
+  const r=canvas.getBoundingClientRect();
+  return {x:(e.clientX-r.left)*DW/r.width, y:(e.clientY-r.top)*DW/r.width};
+}
+function portAt(x,y){
+  let best=null,bd=16;
+  for(const id in ports){const p=ports[id],d=Math.hypot(p.x-x,p.y-y);if(d<bd){bd=d;best=p;}}
+  return best;
+}
+function cableAt(x,y){
+  for(const c of state.cables){
+    const p=cablePath(c);
+    for(let i=0;i<=32;i++){const q=bez(p,i/32);if(Math.hypot(q.x-x,q.y-y)<9)return c;}
+  }
+  return null;
+}
+/* clickable zones (switches, GO button) */
+const zones=[];
+(function buildZones(){
+  const gi=rack('init');
+  zones.push({x:gi.x+16,y:112,w:56,h:56,cur:'pointer',hint:'the GO button — starts the program',
+    fn:()=>startRun(false)});
+  const ct=rack('ct');
+  [0,1].forEach(ci=>{
+    const yb=46+ci*208;
+    for(let d=0;d<4;d++){
+      const bx=ct.x+18+d*26;
+      zones.push({x:bx,y:yb+40,w:22,h:14,cur:'pointer',hint:'digit switch: click top half +1',
+        fn:()=>{state.ct[ci][d]=(state.ct[ci][d]+1)%10;}});
+      zones.push({x:bx,y:yb+54,w:22,h:14,cur:'pointer',hint:'digit switch: click bottom half −1',
+        fn:()=>{state.ct[ci][d]=(state.ct[ci][d]+9)%10;}});
+    }
+  });
+  for(let k=1;k<=4;k++){
+    const r=rack('a'+k);
+    zones.push({x:r.x+30,y:358,w:90,h:24,cur:'pointer',
+      hint:'repeat switch — how many receives per trigger pulse (1–9)',
+      fn:()=>{const a=state.acc[k-1];a.repeat=a.repeat%9+1;}});
+  }
+  const mp=rack('mp');
+  zones.push({x:mp.x+14,y:168,w:26,h:26,cur:'pointer',hint:'fewer loop steps',
+    fn:()=>{state.mp.n=Math.max(1,state.mp.n-1);}});
+  zones.push({x:mp.x+mp.w-40,y:168,w:26,h:26,cur:'pointer',hint:'more loop steps',
+    fn:()=>{state.mp.n=Math.min(30,state.mp.n+1);}});
+})();
+function zoneAt(x,y){return zones.find(z=>x>=z.x&&x<=z.x+z.w&&y>=z.y&&y<=z.y+z.h);}
+
+canvas.addEventListener('pointerdown',e=>{
+  canvas.setPointerCapture(e.pointerId);
+  const {x,y}=toDesign(e);
+  const p=portAt(x,y);
+  if(p){
+    const elig=new Set();
+    for(const id in ports)if(canConnect(p,ports[id]))elig.add(id);
+    state.drag={from:p,x,y,elig};
+    if(!elig.size)setStatus(p.dir==='in'&&(p.wire==='data'?cableTo(p.id):false)?'That jack is taken — click its cable to unplug first.':'Nothing compatible free for that jack right now.','');
+    else setStatus('Plugging from '+portName(p.id)+' — compatible jacks are glowing. Release to plug.','');
+    return;
+  }
+  const z=zoneAt(x,y);
+  if(z){z.fn();return;}
+  const c=cableAt(x,y);
+  if(c)removeCable(c);
+});
+canvas.addEventListener('pointermove',e=>{
+  const {x,y}=toDesign(e);
+  if(state.drag){state.drag.x=x;state.drag.y=y;return;}
+  const p=portAt(x,y);
+  if(p){state.hover={type:'port',port:p};canvas.style.cursor='grab';setStatus(p.hint,'');return;}
+  const z=zoneAt(x,y);
+  if(z){state.hover={type:'zone',zone:z};canvas.style.cursor=z.cur;setStatus(z.hint,'');return;}
+  const c=cableAt(x,y);
+  if(c){state.hover={type:'cable',cable:c};canvas.style.cursor='pointer';
+    setStatus('['+(c.kind==='prog'?'PROGRAM':'DATA')+'] '+portName(c.from)+' → '+portName(c.to)+' — click to unplug.','');return;}
+  if(state.hover&&!state.hover.viaSheet)state.hover=null;
+  canvas.style.cursor='default';
+});
+canvas.addEventListener('pointerup',e=>{
+  if(!state.drag)return;
+  const {x,y}=toDesign(e);
+  const drop=portAt(x,y);
+  const d=state.drag;state.drag=null;
+  if(drop&&d.elig.has(drop.id)){
+    const out=d.from.dir==='out'?d.from:drop, inn=d.from.dir==='out'?drop:d.from;
+    addCable(out.id,inn.id);
+  }else if(drop&&drop!==d.from){
+    setStatus('Those jacks don’t mate — program lines (red, thin) join ▸done→▸trig; data trunks (blue, thick) join out→α.','err');
+  }
+});
+
+/* ================= drawing ================= */
+function resize(){
+  const cw=canvas.parentElement.clientWidth;
+  const w=Math.max(cw,900);
+  const dpr=window.devicePixelRatio||1;
+  canvas.style.height=(w*DH/DW)+'px';
+  canvas.width=w*dpr;canvas.height=w*DH/DW*dpr;
+  scaleFactor=w/DW*dpr;
+}
+new ResizeObserver(resize).observe(canvas.parentElement);
+resize();
+
+function roundRect(x,y,w,h,r){
+  ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();
+}
+const CSS=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const C={};['--bg','--panel','--panel2','--ink','--muted','--grid','--axis','--blue','--yellow','--red','--green','--purple','--orange','--line']
+  .forEach(k=>C[k.slice(2)]=CSS(k));
+
+function drawRacks(t){
+  for(const r of RACKS){
+    ctx.fillStyle='#141a27';roundRect(r.x,RY,r.w,RH,8);ctx.fill();
+    ctx.strokeStyle=C.line;ctx.lineWidth=1;ctx.stroke();
+    ctx.fillStyle='#10151f';roundRect(r.x,RY,r.w,26,8);ctx.fill();
+    ctx.fillStyle=C.muted;ctx.font='600 9.5px "Segoe UI",sans-serif';ctx.textAlign='center';
+    ctx.fillText(r.title,r.x+r.w/2,RY+17);
+    ctx.fillStyle='#2a3347';
+    [[6,6],[r.w-6,6],[6,RH-6],[r.w-6,RH-6]].forEach(([dx,dy])=>{
+      ctx.beginPath();ctx.arc(r.x+dx,RY+dy,1.6,0,7);ctx.fill();});
+  }
+  /* cable tray hint */
+  ctx.strokeStyle='#161d2b';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(14,RB+8);ctx.lineTo(1046,RB+8);ctx.stroke();
+}
+function drawPort(p,t){
+  const hov=state.hover&&state.hover.type==='port'&&state.hover.port===p;
+  const elig=state.drag&&state.drag.elig.has(p.id);
+  const col=p.wire==='prog'?C.red:C.blue;
+  const r=p.wire==='prog'?6:8;
+  if(elig||hov){ctx.save();ctx.shadowColor=col;ctx.shadowBlur=elig?14:9;}
+  ctx.beginPath();ctx.arc(p.x,p.y,r,0,7);
+  ctx.fillStyle=p.dir==='out'?col:'#0b0f16';ctx.fill();
+  ctx.lineWidth=1.8;ctx.strokeStyle=col;ctx.stroke();
+  if(p.dir==='in'){ctx.beginPath();ctx.arc(p.x,p.y,r*0.4,0,7);ctx.fillStyle='#050708';ctx.fill();}
+  if(elig||hov)ctx.restore();
+  if(elig){ // pulsing invite ring
+    ctx.beginPath();ctx.arc(p.x,p.y,r+4+Math.sin(t/180)*1.6,0,7);
+    ctx.strokeStyle=col;ctx.globalAlpha=.55;ctx.lineWidth=1.4;ctx.stroke();ctx.globalAlpha=1;
+  }
+  ctx.fillStyle=C.muted;ctx.font='9px "Segoe UI",sans-serif';ctx.textAlign='center';
+  ctx.fillText(p.label,p.lx,p.ly);
+}
+function drawCable(c,t){
+  const p=cablePath(c);
+  const hov=state.hover&&state.hover.type==='cable'&&state.hover.cable===c;
+  const born=Math.min(1,(t-c.born)/260);
+  const col=c.kind==='prog'?C.red:C.blue;
+  ctx.save();
+  if(hov){ctx.shadowColor=col;ctx.shadowBlur=10;}
+  ctx.strokeStyle=hov?col:(c.kind==='prog'?'rgba(252,98,85,.85)':'rgba(88,196,221,.8)');
+  ctx.lineWidth=c.kind==='prog'?2:4.5;
+  ctx.lineCap='round';
+  ctx.beginPath();
+  const n=36;
+  for(let i=0;i<=Math.floor(n*born);i++){
+    const q=bez(p,i/n);
+    i?ctx.lineTo(q.x,q.y):ctx.moveTo(q.x,q.y);
+  }
+  ctx.stroke();
+  ctx.restore();
+  if(born>=1){ /* plug bodies at both ends */
+    for(const e of [p.a,p.b]){
+      ctx.beginPath();ctx.arc(e.x,e.y,c.kind==='prog'?3:4.4,0,7);
+      ctx.fillStyle=col;ctx.fill();
+    }
+  }
+}
+function drawAcc(k,t){
+  const r=rack('a'+k),a=state.acc[k-1];
+  const digits=accDigits(k);
+  const ringing=state.phase&&state.phase.type==='ring'&&state.phase.acc===k;
+  /* value box */
+  const flash=Math.max(0,1-(t-a.flash)/500);
+  ctx.fillStyle='#0b0f16';roundRect(r.x+14,44,92,22,4);ctx.fill();
+  ctx.strokeStyle=flash>0?C.green:C.line;ctx.lineWidth=flash>0?1.6:1;ctx.stroke();
+  ctx.fillStyle=flash>0?C.green:C.ink;
+  ctx.font='600 14px ui-monospace,Consolas,monospace';ctx.textAlign='center';
+  ctx.fillText(ringing?digits.join(''):pad6(a.val),r.x+60,60);
+  /* P/M sign lamp */
+  const neg=a.val<0;
+  ctx.beginPath();ctx.arc(r.x+122,55,8,0,7);
+  ctx.fillStyle=neg?'rgba(252,98,85,.18)':'rgba(131,193,103,.15)';ctx.fill();
+  ctx.strokeStyle=neg?C.red:C.green;ctx.lineWidth=1.2;ctx.stroke();
+  ctx.fillStyle=neg?C.red:C.green;ctx.font='700 9px "Segoe UI",sans-serif';
+  ctx.fillText(neg?'M':'P',r.x+122,58.5);
+  /* ring scale 9..0 */
+  ctx.fillStyle='#3c465c';ctx.font='8px ui-monospace,monospace';ctx.textAlign='center';
+  for(let d=0;d<=9;d++)ctx.fillText(String(d),r.x+18,88+(9-d)*14.5+2.5);
+  /* ring columns */
+  for(let i=0;i<6;i++){
+    const cx=r.x+33+i*18, lit=digits[i];
+    for(let d=0;d<=9;d++){
+      const cy=88+(9-d)*14.5;
+      if(d===lit){
+        ctx.save();ctx.shadowColor=C.yellow;ctx.shadowBlur=ringing?12:6;
+        ctx.beginPath();ctx.arc(cx,cy,4.4,0,7);ctx.fillStyle=C.yellow;ctx.fill();ctx.restore();
+      }else{
+        ctx.beginPath();ctx.arc(cx,cy,3,0,7);ctx.fillStyle='#222b3d';ctx.fill();
+      }
+    }
+    ctx.fillStyle=ringing?C.yellow:C.muted;ctx.font='10px ui-monospace,monospace';
+    ctx.fillText(String(digits[i]),cx,242);
+  }
+  ctx.fillStyle='#3c465c';ctx.font='8.5px "Segoe UI",sans-serif';
+  ctx.fillText('ring counters · lit lamp = digit',r.x+r.w/2,256);
+  /* repeat switch */
+  const z={x:r.x+30,y:358,w:90,h:24};
+  ctx.fillStyle='#10151f';roundRect(z.x,z.y,z.w,z.h,5);ctx.fill();
+  ctx.strokeStyle=C.line;ctx.lineWidth=1;ctx.stroke();
+  ctx.fillStyle=a.repeat>1?C.orange:C.muted;ctx.font='600 11px "Segoe UI",sans-serif';
+  ctx.fillText('REPEAT ×'+a.repeat,r.x+75,z.y+16);
+}
+function drawCT(t){
+  const r=rack('ct');
+  [0,1].forEach(ci=>{
+    const yb=46+ci*208;
+    ctx.strokeStyle=C.line;ctx.lineWidth=1;
+    roundRect(r.x+8,yb+6,r.w-16,182,6);ctx.stroke();
+    ctx.fillStyle=C.yellow;ctx.font='700 11px "Segoe UI",sans-serif';ctx.textAlign='left';
+    ctx.fillText('C'+(ci+1),r.x+18,yb+26);
+    ctx.fillStyle=C.muted;ctx.font='10px ui-monospace,monospace';
+    ctx.fillText('= '+ctVal(ci),r.x+42,yb+26);
+    for(let d=0;d<4;d++){
+      const bx=r.x+18+d*26;
+      ctx.fillStyle='#0b0f16';roundRect(bx,yb+40,22,28,3);ctx.fill();
+      ctx.strokeStyle=C.line;ctx.stroke();
+      ctx.fillStyle=C.ink;ctx.font='600 14px ui-monospace,monospace';ctx.textAlign='center';
+      ctx.fillText(String(state.ct[ci][d]),bx+11,yb+59);
+      ctx.fillStyle='#3c465c';ctx.font='7px sans-serif';
+      ctx.fillText('▲',bx+11,yb+38);ctx.fillText('▼',bx+11,yb+76);
+    }
+    ctx.fillStyle='#3c465c';ctx.font='8.5px "Segoe UI",sans-serif';ctx.textAlign='center';
+    ctx.fillText('digit switches',r.x+r.w/2,yb+92);
+    ctx.fillText('program pair ↓',r.x+r.w/2,yb+120);
+  });
+}
+function drawMP(t){
+  const r=rack('mp'),mp=state.mp;
+  const flash=Math.max(0,1-(t-mp.flash)/500);
+  ctx.fillStyle=C.muted;ctx.font='600 10px "Segoe UI",sans-serif';ctx.textAlign='center';
+  ctx.fillText('LOOP COUNT',r.x+r.w/2,80);
+  ctx.fillStyle='#0b0f16';roundRect(r.x+18,92,r.w-36,42,6);ctx.fill();
+  ctx.strokeStyle=flash>0?C.yellow:C.line;ctx.lineWidth=flash>0?1.8:1;ctx.stroke();
+  ctx.fillStyle=flash>0?C.yellow:C.ink;ctx.font='600 20px ui-monospace,monospace';
+  ctx.fillText(mp.count+' / '+mp.n,r.x+r.w/2,121);
+  /* N switch */
+  ctx.fillStyle='#10151f';roundRect(r.x+14,168,26,26,5);ctx.fill();ctx.strokeStyle=C.line;ctx.stroke();
+  roundRect(r.x+r.w-40,168,26,26,5);ctx.fillStyle='#10151f';ctx.fill();ctx.stroke();
+  ctx.fillStyle=C.blue;ctx.font='700 13px sans-serif';
+  ctx.fillText('−',r.x+27,186);ctx.fillText('+',r.x+r.w-27,186);
+  ctx.fillStyle=C.ink;ctx.font='600 13px ui-monospace,monospace';
+  ctx.fillText('N='+mp.n,r.x+r.w/2,186);
+  ctx.fillStyle='#3c465c';ctx.font='8.5px "Segoe UI",sans-serif';
+  ctx.fillText('loop-back fires N−1×,',r.x+r.w/2,220);
+  ctx.fillText('done fires after N',r.x+r.w/2,232);
+}
+function drawInit(t){
+  const r=rack('init');
+  const cx=r.x+44,cy=140;
+  const dis=!!state.plugQueue;
+  ctx.save();
+  ctx.shadowColor=C.green;ctx.shadowBlur=state.active?16:8;
+  ctx.beginPath();ctx.arc(cx,cy,26,0,7);
+  ctx.fillStyle=dis?'#22301f':'rgba(131,193,103,.22)';ctx.fill();
+  ctx.lineWidth=2;ctx.strokeStyle=C.green;ctx.stroke();
+  ctx.restore();
+  ctx.fillStyle=C.green;ctx.font='800 15px "Segoe UI",sans-serif';ctx.textAlign='center';
+  ctx.fillText('GO',cx,cy+5);
+  ctx.fillStyle='#3c465c';ctx.font='8.5px "Segoe UI",sans-serif';
+  ctx.fillText('one pulse,',cx,cy+46);
+  ctx.fillText('one problem',cx,cy+58);
+}
+function drawPhase(t){
+  const ph=state.phase;if(!ph)return;
+  if(ph.type==='pulse'){
+    const p=cablePath(ph.cable),tt=Math.min(1,ph.t/ph.dur),q=bez(p,tt);
+    /* trail */
+    for(let i=1;i<=4;i++){
+      const q2=bez(p,Math.max(0,tt-i*0.045));
+      ctx.beginPath();ctx.arc(q2.x,q2.y,4-i*0.7,0,7);
+      ctx.fillStyle=C.yellow;ctx.globalAlpha=.30-.06*i;ctx.fill();
+    }
+    ctx.globalAlpha=1;
+    ctx.save();ctx.shadowColor=C.yellow;ctx.shadowBlur=14;
+    ctx.beginPath();ctx.arc(q.x,q.y,5,0,7);ctx.fillStyle=C.yellow;ctx.fill();ctx.restore();
+  }else if(ph.type==='ring'&&ph.srcCable){
+    /* pulse train on the data trunk */
+    const p=cablePath(ph.srcCable);
+    for(let i=0;i<3;i++){
+      const tt=((t/420)+(i/3))%1,q=bez(p,tt);
+      ctx.save();ctx.shadowColor=C.blue;ctx.shadowBlur=8;
+      ctx.beginPath();ctx.arc(q.x,q.y,3.4,0,7);ctx.fillStyle=C.blue;ctx.fill();ctx.restore();
+    }
+  }
+}
+function drawDrag(){
+  const d=state.drag;if(!d)return;
+  const col=d.from.wire==='prog'?C.red:C.blue;
+  ctx.strokeStyle=col;ctx.lineWidth=d.from.wire==='prog'?2:4;ctx.setLineDash([6,5]);
+  const sag=Math.min(40,20+Math.hypot(d.x-d.from.x,d.y-d.from.y)*0.15);
+  ctx.beginPath();ctx.moveTo(d.from.x,d.from.y);
+  ctx.quadraticCurveTo((d.from.x+d.x)/2,Math.max(d.from.y,d.y)+sag,d.x,d.y);
+  ctx.stroke();ctx.setLineDash([]);
+}
+
+/* ================= main loop ================= */
+let last=now();
+function frame(t){
+  const dt=Math.min(64,t-last);last=t;
+  /* preset plugging animation */
+  if(state.plugQueue){
+    if(t>=state.plugTimer){
+      const [f,to]=state.plugQueue.shift();
+      addCable(f,to,true);
+      state.plugTimer=t+340;
+      if(!state.plugQueue.length){
+        state.plugQueue=null;
+        setStatus('Setup sheet complete — '+state.cables.length+' cables plugged ('+
+          state.activePreset.name+'). Press GO.','ok');
+      }
+    }
+  }
+  /* engine */
+  if(state.active&&!state.paused&&state.phase){
+    state.phase.t+=dt;
+    if(state.phase.t>=state.phase.dur){
+      const ph=state.phase;state.phase=null;
+      ph.done();
+      if(state.stepOnce){state.stepOnce=false;
+        if(state.active){state.paused=true;$('btnPause').classList.add('on');
+          setStatus(statusEl.textContent+'  ⏸','run');}
+      }
+    }
+  }
+  updateSheetActive();
+  /* render */
+  ctx.setTransform(scaleFactor,0,0,scaleFactor,0,0);
+  ctx.clearRect(0,0,DW,DH);
+  ctx.fillStyle='#0b0f16';ctx.fillRect(0,0,DW,DH);
+  drawRacks(t);
+  drawInit(t);drawCT(t);
+  for(let k=1;k<=4;k++)drawAcc(k,t);
+  drawMP(t);
+  for(const c of state.cables)drawCable(c,t);
+  for(const id in ports)drawPort(ports[id],t);
+  drawPhase(t);
+  drawDrag();
+  requestAnimationFrame(frame);
+}
+updateSheet();clearLog();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
