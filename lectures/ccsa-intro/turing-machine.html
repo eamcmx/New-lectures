@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Turing Machine — Intro to Computer Systems Architecture</title>
+<style>
+:root{
+  --bg:#0e1117;
+  --panel:#161b26;
+  --panel2:#1c2230;
+  --ink:#e6e9f0;
+  --muted:#8b94a7;
+  --grid:#232b3b;
+  --axis:#4a5568;
+  --blue:#58c4dd;
+  --yellow:#ffd35a;
+  --red:#fc6255;
+  --green:#83c167;
+  --purple:#c688eb;
+  --orange:#ff9f4b;
+  --line:#2a3347;
+}
+*{box-sizing:border-box;}
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--ink);
+  font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
+  line-height:1.55;
+}
+.wrap{max-width:1100px;margin:0 auto;padding:24px;}
+.math{font-family:Georgia,'Times New Roman',serif;font-style:italic;}
+.mono{font-family:ui-monospace,'Cascadia Mono',Consolas,monospace;}
+a{color:var(--blue);text-decoration:none;}
+a:hover{text-decoration:underline;}
+header .crumb{color:var(--muted);font-size:14px;display:inline-block;margin-bottom:14px;}
+header .crumb:hover{color:var(--blue);text-decoration:none;}
+h1{margin:0 0 8px;font-size:34px;line-height:1.2;}
+.subtitle{color:var(--muted);margin:0 0 26px;max-width:820px;}
+.panel{
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:14px;
+  padding:18px 20px;
+  margin-bottom:26px;
+}
+.panel h2{margin:0 0 12px;font-size:15px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);}
+/* history */
+.hist{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;}
+.hist .block h3{margin:0 0 6px;font-size:13px;letter-spacing:.06em;text-transform:uppercase;}
+.hist .block p{margin:0;font-size:14.5px;color:var(--ink);}
+.hist .b1 h3{color:var(--blue);} .hist .b2 h3{color:var(--yellow);} .hist .b3 h3{color:var(--green);}
+/* simulator layout */
+.canvasWrap{position:relative;width:100%;}
+canvas{display:block;width:100%;height:300px;border-radius:10px;background:var(--bg);border:1px solid var(--grid);}
+.simGrid{display:grid;grid-template-columns:1fr 340px;gap:18px;margin-top:16px;}
+@media(max-width:860px){.simGrid{grid-template-columns:1fr;}}
+/* state register + status */
+.registerRow{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-top:14px;}
+.stateBox{
+  min-width:120px;text-align:center;
+  background:var(--panel2);border:2px solid var(--blue);border-radius:12px;
+  padding:8px 18px;
+}
+.stateBox .lbl{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);}
+.stateBox .val{font-size:30px;font-family:Georgia,'Times New Roman',serif;font-style:italic;color:var(--blue);line-height:1.15;}
+.stateBox.halted{border-color:var(--green);} .stateBox.halted .val{color:var(--green);}
+.stateBox.confused{border-color:var(--red);} .stateBox.confused .val{color:var(--red);}
+@keyframes regflash{0%{background:rgba(131,193,103,.35);}100%{background:var(--panel2);}}
+.stateBox.flash{animation:regflash .5s ease-out;}
+.stepsBox{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:8px 18px;text-align:center;}
+.stepsBox .lbl{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);}
+.stepsBox .val{font-size:30px;color:var(--yellow);font-variant-numeric:tabular-nums;line-height:1.15;}
+.status{
+  flex:1;min-width:220px;font-size:14.5px;color:var(--muted);
+  background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:10px 14px;
+}
+.status.good{color:var(--green);border-color:rgba(131,193,103,.5);}
+.status.bad{color:var(--red);border-color:rgba(252,98,85,.5);}
+.status.warn{color:var(--yellow);border-color:rgba(255,211,90,.45);}
+/* controls */
+.controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:14px;}
+button{
+  background:var(--panel2);border:1px solid var(--line);color:var(--ink);
+  border-radius:9px;padding:8px 14px;cursor:pointer;font-size:14px;font-family:inherit;
+  touch-action:manipulation;
+}
+button:hover{border-color:var(--blue);}
+button.active,button.on{border-color:var(--blue);color:var(--blue);background:rgba(88,196,221,.08);}
+button:disabled{opacity:.4;cursor:default;}
+input[type=range]{accent-color:var(--blue);width:130px;vertical-align:middle;}
+.speedLbl{font-size:13px;color:var(--muted);}
+.speedVal{color:var(--blue);font-variant-numeric:tabular-nums;}
+.tapeRow{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:12px;}
+.tapeRow input[type=text]{
+  background:var(--bg);border:1px solid var(--line);color:var(--ink);border-radius:9px;
+  padding:8px 12px;font-family:ui-monospace,'Cascadia Mono',Consolas,monospace;font-size:15px;
+  letter-spacing:.15em;width:220px;
+}
+.tapeRow input[type=text]:focus{outline:none;border-color:var(--blue);}
+.hint{font-size:12.5px;color:var(--muted);}
+/* rule table */
+.ruleWrap h3{margin:0 0 8px;font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);}
+table.rules{border-collapse:collapse;width:100%;font-family:ui-monospace,'Cascadia Mono',Consolas,monospace;font-size:14px;}
+table.rules th{color:var(--muted);font-weight:600;font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:4px 6px;text-align:center;}
+table.rules td{padding:2px 4px;text-align:center;}
+table.rules tr.rrow{border-left:3px solid transparent;}
+table.rules tr.rrow td:first-child{border-left:3px solid transparent;border-radius:4px 0 0 4px;}
+table.rules tr.firing td{background:rgba(88,196,221,.10);}
+table.rules tr.firing td:first-child{border-left-color:var(--blue);}
+table.rules tr.dup td{background:rgba(252,98,85,.08);}
+table.rules tr.dup td:first-child{border-left-color:var(--red);}
+table.rules input,table.rules select{
+  background:var(--bg);border:1px solid var(--line);color:var(--ink);border-radius:6px;
+  padding:5px 4px;font-family:inherit;font-size:14px;text-align:center;
+}
+table.rules input:focus,table.rules select:focus{outline:none;border-color:var(--blue);}
+table.rules input.stq{width:56px;} table.rules input.sym{width:40px;}
+table.rules select{width:54px;}
+table.rules .arrow{color:var(--muted);}
+table.rules .del{padding:4px 9px;font-size:13px;color:var(--muted);}
+table.rules .del:hover{color:var(--red);border-color:var(--red);}
+.ruleNote{font-size:12.5px;color:var(--red);min-height:18px;margin-top:6px;}
+.ruleHint{font-size:12.5px;color:var(--muted);margin-top:4px;}
+/* presets */
+.chips{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px;}
+.caption{
+  border-left:3px solid var(--yellow);background:var(--panel2);
+  border-radius:0 10px 10px 0;padding:12px 16px;font-size:14.5px;color:var(--ink);
+}
+.caption b{color:var(--yellow);}
+/* universal machine aside */
+.uni{border-color:rgba(198,136,235,.5);}
+.uni h2{color:var(--purple);}
+.uni p{margin:0 0 10px;font-size:15px;}
+/* simplifications */
+.simp ul{margin:6px 0 0;padding-left:20px;color:var(--muted);font-size:14px;}
+.simp li{margin-bottom:5px;}
+/* insights */
+.insights{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin-bottom:26px;}
+.insights .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px;}
+.insights .card h3{margin:0 0 8px;font-size:14px;letter-spacing:.03em;}
+.insights .card p{margin:0;font-size:14px;color:var(--muted);}
+.c-blue h3{color:var(--blue);} .c-yellow h3{color:var(--yellow);} .c-red h3{color:var(--red);} .c-green h3{color:var(--green);}
+footer{color:var(--muted);font-size:13.5px;border-top:1px solid var(--line);padding-top:18px;margin-top:10px;}
+footer .navrow{display:flex;justify-content:space-between;gap:12px;margin-top:10px;flex-wrap:wrap;}
+kbd{background:var(--panel2);border:1px solid var(--line);border-radius:5px;padding:1px 6px;font-size:12px;font-family:ui-monospace,Consolas,monospace;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <a class="crumb" href="./index.html">← Intro to Computer Systems Architecture</a>
+  <h1>The Turing Machine — the computer that exists only on paper</h1>
+  <p class="subtitle">In 1936 Alan Turing imagined the simplest possible computer — an endless tape, a read/write
+  head, and a table of rules — not to build it, but to prove what any machine could ever compute.
+  Write rules in the table below, press <b>▶ Run</b>, and watch the tape do arithmetic.</p>
+</header>
+
+<!-- ============ THE MACHINE ============ -->
+<section class="panel">
+  <h2>The Machine</h2>
+  <div class="hist">
+    <div class="block b1">
+      <h3>1936 · Alan Turing · zero hardware</h3>
+      <p>Defined in the paper <i>“On Computable Numbers, with an Application to the
+      Entscheidungsproblem.”</i> Not a physical machine — a thought experiment made of an
+      <b>infinite tape</b> of cells, a <b>read/write head</b>, and a <b>finite table of rules</b>.
+      That’s it. And that, Turing argued, is <i>everything</i>: it defines what “computable” means.</p>
+    </div>
+    <div class="block b2">
+      <h3>How it was “programmed”</h3>
+      <p>You write the <b>state-transition table</b>: “in state <span class="math">q</span>, reading
+      symbol <span class="math">s</span> — write this, move left or right, go to that state.”
+      Every program ever written is, deep down, such a table. Turing even described a
+      <b>universal machine</b> that reads another machine’s table off the tape and runs it —
+      program as data, on paper, in 1936.</p>
+    </div>
+    <div class="block b3">
+      <h3>What it actually solved</h3>
+      <p>No physical problem at all. It solved the <b>question</b> of what problems machines can
+      solve — and proved some can’t be: the Entscheidungsproblem (a general procedure to decide
+      mathematical truth) got its answer, and the answer was <b>no</b>. The universal machine became
+      the theoretical blueprint for the stored-program computer.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ THE SIMULATOR ============ -->
+<section class="panel">
+  <h2>The Simulator</h2>
+
+  <div class="canvasWrap"><canvas id="cv"></canvas></div>
+
+  <div class="registerRow">
+    <div class="stateBox" id="stateBox">
+      <div class="lbl">state</div>
+      <div class="val" id="stateVal">q0</div>
+    </div>
+    <div class="stepsBox">
+      <div class="lbl">steps</div>
+      <div class="val" id="stepsVal">0</div>
+    </div>
+    <div class="status" id="status">Ready. Load a preset below, or write your own rules.</div>
+  </div>
+
+  <div class="controls">
+    <button id="btnRun">▶ Run</button>
+    <button id="btnStep">Step</button>
+    <button id="btnReset">Reset</button>
+    <span class="speedLbl">speed
+      <input type="range" id="speed" min="0.2" max="2" step="0.05" value="0.6">
+      <span class="speedVal" id="speedVal">0.60 s/step</span>
+    </span>
+    <button id="btnEdit">✎ Edit tape</button>
+  </div>
+
+  <div class="tapeRow">
+    <label class="hint" for="tapeInput">tape:</label>
+    <input type="text" id="tapeInput" spellcheck="false" placeholder="e.g. 111+11">
+    <button id="btnLoadTape">Load tape</button>
+    <button id="btnBlank">Blank tape</button>
+    <span class="hint">use space or _ for blank □ · head starts on the first cell ·
+    <kbd>Space</kbd> = step while paused</span>
+  </div>
+
+  <div class="simGrid">
+    <div class="ruleWrap" style="grid-column:1 / -1;">
+      <h3>The Program — state-transition rules</h3>
+      <table class="rules">
+        <thead>
+          <tr><th>state</th><th>read</th><th></th><th>write</th><th>move</th><th>next state</th><th></th></tr>
+        </thead>
+        <tbody id="ruleBody"></tbody>
+      </table>
+      <div style="margin-top:8px;"><button id="btnAddRule">+ add rule</button></div>
+      <div class="ruleNote" id="ruleNote"></div>
+      <div class="ruleHint">A rule fires when its (state, read) matches the machine. Move is
+      <span class="mono">L</span>eft, <span class="mono">R</span>ight or <span class="mono">N</span>one.
+      Send the machine to state <span class="mono">halt</span> to finish cleanly. If no rule matches,
+      it stops confused — which is also a kind of answer.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ EXAMPLE PROGRAMS ============ -->
+<section class="panel">
+  <h2>Example Programs</h2>
+  <div class="chips" id="chips"></div>
+  <div class="caption" id="caption"></div>
+</section>
+
+<!-- ============ UNIVERSAL MACHINE ASIDE ============ -->
+<section class="panel uni">
+  <h2>Aside — the Universal Machine</h2>
+  <p>Everything above is <i>one</i> machine per problem: one table adds, another increments. Turing’s
+  deepest move was a machine <span class="math">U</span> whose tape contains <b>another machine’s rule
+  table, written out as symbols</b> — and <span class="math">U</span> reads that description and behaves
+  exactly like it. One fixed machine, any program. That is <b>program-as-data</b>, nine years before
+  von Neumann’s 1945 stored-program memo turned it into hardware.</p>
+  <p style="margin:0;">Notice what that means for the simulator you’re using: your rule table is just
+  text in memory being interpreted by a fixed engine. You’ve been running a universal machine this
+  whole time. See the hardware version in the
+  <a href="../../sim/vnmsim.html">Von Neumann machine simulator</a>.</p>
+</section>
+
+<!-- ============ SIMPLIFICATIONS ============ -->
+<section class="panel simp">
+  <h2>Simplifications — where we cheat</h2>
+  <ul>
+    <li>Turing’s 1936 formalism used <i>m-configurations</i> and allowed several prints and moves per
+    step; we use the standard modern quintuple form — (state, read) → (write, move, next) — which is
+    provably equivalent.</li>
+    <li>The tape really is unbounded here (cells are created as you wander), but the display is a
+    window of about 21 cells that slides to keep the head centred. Infinity doesn’t fit on a screen.</li>
+    <li>We use □ as the blank symbol everywhere; busy-beaver literature calls the blank “0”. Same
+    machine, different costume.</li>
+    <li>If two rules match the same (state, read), we flag them red and fire the first — a real Turing
+    machine simply isn’t allowed to be ambiguous.</li>
+    <li>Real speed is meaningless for a paper machine, so the slider is purely for your eyes.</li>
+  </ul>
+</section>
+
+<!-- ============ INSIGHTS ============ -->
+<section class="insights">
+  <div class="card c-blue">
+    <h3>A control unit IS a rule table</h3>
+    <p>State + symbol → action is all a CPU does too. The control unit takes an opcode plus flag bits
+    (its “read symbol”), consults what is essentially a big transition table, and emits micro-operations
+    (its “write and move”). When you edit the table above, you are doing microcode design with a pencil.</p>
+  </div>
+  <div class="card c-yellow">
+    <h3>The universal machine is why software exists</h3>
+    <p>One machine that runs any description means you never need new hardware for a new problem —
+    just a new tape. One hardware, any program: that single 1936 idea is the entire premise of the
+    stored-program computer, the operating system, and the app store.</p>
+  </div>
+  <div class="card c-red">
+    <h3>Computability has limits</h3>
+    <p>Turing proved no program can decide, for every program, whether it will halt. Watch the busy
+    beaver: nothing about its six little rules tells you it stops at step 13 — you had to run it.
+    Some problems aren’t hard. They’re impossible, and no amount of Moore’s Law will help.</p>
+  </div>
+</section>
+
+<footer>
+  Interactive companion to the lecture <i>Introduction to Computers &amp; Computer Systems
+  Architecture</i> · CCSA T1
+  <div class="navrow">
+    <a href="./analytical-engine.html">← The Analytical Engine</a>
+    <a href="./index.html">All explorations</a>
+    <a href="./abc.html">The Atanasoff–Berry Computer →</a>
+  </div>
+</footer>
+
+</div>
+
+<script>
+'use strict';
+/* ================= helpers ================= */
+const $ = id => document.getElementById(id);
+const BLANK = '□';
+const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
+const smooth = t => { t=clamp(t,0,1); return t*t*(3-2*t); };
+const normSym = s => { s=(s||'').trim(); if(s===''||s==='_'||s===BLANK) return BLANK; return s.slice(0,1); };
+
+/* ================= state ================= */
+const state = {
+  tape:{},            // pos -> symbol (blank cells omitted)
+  head:0,
+  q:'q0',
+  startState:'q0',
+  steps:0,
+  running:false,
+  halted:null,        // null | 'clean' | 'confused'
+  rules:[],           // {q, read, write, move, next}
+  firing:-1,
+  snapshot:{tape:{},head:0},
+  editMode:false,
+  selCell:null,
+  slide:{from:0,to:0,t0:0,dur:0},   // tape slide animation (ms times)
+  flashes:[],         // {pos, t0}
+  acc:0,
+  lastT:0,
+  autoPauseAt:500,
+};
+const stepDur = () => parseFloat($('speed').value);
+
+/* ================= presets ================= */
+const PRESETS = [
+  {
+    name:'Turing’s own first example (1936): print 0 1 0 1 …',
+    tape:'', start:'q0',
+    rules:[
+      ['q0',BLANK,'0','R','q1'],
+      ['q1',BLANK,'1','R','q0'],
+    ],
+    caption:'<b>Why this mattered:</b> machines in Turing’s paper computed infinite binary sequences '+
+      '— i.e. real numbers, digit by digit. This alternating sequence is literally the first program '+
+      'in the first paper (Turing wrote it with four m-configurations; this is the equivalent '+
+      'two-state version). Note that it <b>never halts — and that’s fine</b>: it’s computing a number '+
+      'forever. We auto-pause the run every 500 steps; we’ll assume you get the idea.',
+  },
+  {
+    name:'Unary addition: 111+11 → 11111',
+    tape:'111+11', start:'q0',
+    rules:[
+      ['q0','1','1','R','q0'],
+      ['q0','+','1','R','q1'],
+      ['q1','1','1','R','q1'],
+      ['q1',BLANK,BLANK,'L','q2'],
+      ['q2','1',BLANK,'N','halt'],
+    ],
+    caption:'<b>Why this mattered:</b> numbers as tally marks, addition as pure symbol shuffling. '+
+      'The machine scans right, overwrites the + with a 1, then erases one 1 from the end: '+
+      '3 + 2 = 5, achieved with nothing but read / write / move. Arithmetic reduced to mechanical '+
+      'symbol manipulation — exactly Turing’s point. Halts cleanly after 8 steps.',
+  },
+  {
+    name:'Binary increment: 1011 → 1100',
+    tape:'1011', start:'q0',
+    rules:[
+      ['q0','0','0','R','q0'],
+      ['q0','1','1','R','q0'],
+      ['q0',BLANK,BLANK,'L','q1'],
+      ['q1','1','0','L','q1'],
+      ['q1','0','1','N','halt'],
+      ['q1',BLANK,'1','N','halt'],
+    ],
+    caption:'<b>Why this mattered:</b> the head walks to the rightmost digit, then carries leftward — '+
+      'flipping 1→0 until it can write a 0→1. It’s <b>THE carry</b> again, the same ripple you pushed '+
+      'through beads on the <a href="./abacus.html">abacus page</a> — and exactly what an ALU does on '+
+      'an increment. Try loading tape <span class="mono">111</span>: watch the carry ripple all the '+
+      'way off the left edge.',
+  },
+  {
+    name:'3-state busy beaver',
+    tape:'', start:'A',
+    rules:[
+      ['A',BLANK,'1','R','B'],
+      ['A','1','1','L','C'],
+      ['B',BLANK,'1','L','A'],
+      ['B','1','1','R','B'],
+      ['C',BLANK,'1','L','B'],
+      ['C','1','1','R','halt'],
+    ],
+    caption:'<b>Why this mattered:</b> this is the champion 3-state, 2-symbol machine (blank □ plays '+
+      'the role of its 0): started on a blank tape it writes <b>six 1s in 13 steps</b>, then halts — '+
+      'and no 3-state machine that halts writes more. Here’s the kicker: the maximum work a tiny '+
+      'machine can do before halting is <b>unknowable in general</b> — busy-beaver values outgrow '+
+      'anything computable. A first taste of undecidability, the deep result of Turing’s paper.',
+  },
+];
+
+/* ================= tape helpers ================= */
+const readCell = p => (state.tape[p] !== undefined ? state.tape[p] : BLANK);
+function writeCell(p, s){ if(s===BLANK) delete state.tape[p]; else state.tape[p]=s; }
+function copyTape(t){ const o={}; for(const k in t) o[k]=t[k]; return o; }
+function tapeToField(){
+  const ks = Object.keys(state.tape).map(Number);
+  if(!ks.length) return '';
+  const lo = Math.min(...ks), hi = Math.max(...ks);
+  let s=''; for(let i=lo;i<=hi;i++) s += readCell(i)===BLANK ? '_' : readCell(i);
+  return s;
+}
+
+/* ================= status / readouts ================= */
+function setStatus(msg, kind){
+  const el = $('status');
+  el.textContent = msg;
+  el.className = 'status' + (kind ? ' '+kind : '');
+}
+function updateReadouts(flashState){
+  $('stepsVal').textContent = state.steps;
+  const sv = $('stateVal'); sv.textContent = state.q;
+  const box = $('stateBox');
+  box.classList.toggle('halted', state.halted==='clean');
+  box.classList.toggle('confused', state.halted==='confused');
+  if(flashState){
+    box.classList.remove('flash'); void box.offsetWidth; box.classList.add('flash');
+  }
+}
+
+/* ================= rule table ================= */
+function renderRules(){
+  const tb = $('ruleBody');
+  tb.innerHTML='';
+  state.rules.forEach((r,i)=>{
+    const tr = document.createElement('tr');
+    tr.className='rrow';
+    tr.dataset.i = i;
+    const mk = (cls,val,field)=>{
+      const td=document.createElement('td');
+      const inp=document.createElement('input');
+      inp.className=cls; inp.value=val; inp.spellcheck=false; inp.autocomplete='off';
+      inp.addEventListener('input',()=>{
+        if(field==='q'||field==='next') r[field]=inp.value.trim();
+        else { r[field]=normSym(inp.value); }
+        validateRules();
+      });
+      inp.addEventListener('blur',()=>{ if(field==='read'||field==='write') inp.value=r[field]; });
+      td.appendChild(inp); return td;
+    };
+    tr.appendChild(mk('stq', r.q, 'q'));
+    tr.appendChild(mk('sym', r.read, 'read'));
+    const ar=document.createElement('td'); ar.className='arrow'; ar.textContent='→'; tr.appendChild(ar);
+    tr.appendChild(mk('sym', r.write, 'write'));
+    const tdm=document.createElement('td');
+    const sel=document.createElement('select');
+    ['L','R','N'].forEach(m=>{
+      const o=document.createElement('option'); o.value=m; o.textContent=m;
+      if(r.move===m) o.selected=true; sel.appendChild(o);
+    });
+    sel.addEventListener('change',()=>{ r.move=sel.value; });
+    tdm.appendChild(sel); tr.appendChild(tdm);
+    tr.appendChild(mk('stq', r.next, 'next'));
+    const tdd=document.createElement('td');
+    const del=document.createElement('button'); del.className='del'; del.textContent='✕'; del.title='remove rule';
+    del.addEventListener('click',()=>{ state.rules.splice(i,1); state.firing=-1; renderRules(); });
+    tdd.appendChild(del); tr.appendChild(tdd);
+    tb.appendChild(tr);
+  });
+  validateRules();
+  highlightFiring();
+}
+function validateRules(){
+  const seen={}; const dups=new Set();
+  state.rules.forEach((r,i)=>{
+    const key=r.q+' '+r.read;
+    if(r.q!=='' && key in seen){ dups.add(i); dups.add(seen[key]); }
+    else seen[key]=i;
+  });
+  [...$('ruleBody').children].forEach((tr,i)=>tr.classList.toggle('dup', dups.has(i)));
+  $('ruleNote').textContent = dups.size
+    ? 'Duplicate (state, read) pairs flagged red — a Turing machine must be deterministic; only the first will fire.'
+    : '';
+}
+function highlightFiring(){
+  [...$('ruleBody').children].forEach((tr,i)=>tr.classList.toggle('firing', i===state.firing));
+}
+
+/* ================= execution ================= */
+function findRule(q, sym){
+  for(let i=0;i<state.rules.length;i++){
+    const r=state.rules[i];
+    if(r.q===q && r.read===sym) return i;
+  }
+  return -1;
+}
+function stepOnce(fromRun){
+  if(state.halted) return false;
+  const now = performance.now();
+  if(state.q==='halt'){ haltClean(); return false; }
+  const sym = readCell(state.head);
+  const i = findRule(state.q, sym);
+  if(i<0){
+    state.halted='confused'; state.running=false;
+    setStatus('no rule for ('+state.q+', '+sym+') — the machine halts confused.', 'bad');
+    updateRunBtn(); updateReadouts(true);
+    return false;
+  }
+  const r = state.rules[i];
+  state.firing=i; highlightFiring();
+  // write (flash the cell)
+  state.flashes.push({pos:state.head, t0:now});
+  writeCell(state.head, r.write);
+  // move (the TAPE slides, head stays centred)
+  const from = currentViewHead(now);
+  if(r.move==='L') state.head--; else if(r.move==='R') state.head++;
+  const d = stepDur()*1000;
+  state.slide = {
+    from, to:state.head,
+    t0: now + clamp(d*0.25, 40, 250),
+    dur: clamp(d*0.55, 120, 500),
+  };
+  const changed = state.q!==r.next;
+  state.q = r.next;
+  state.steps++;
+  updateReadouts(changed);
+  if(state.q==='halt'){ haltClean(); return false; }
+  setStatus('state '+state.q+' · cell '+state.head+' · reads '+readCell(state.head), null);
+  if(fromRun && state.running && state.steps % state.autoPauseAt === 0){
+    state.running=false; updateRunBtn();
+    setStatus('auto-paused at '+state.steps+' steps — we’ll assume you get the idea; infinity takes a while. ▶ Run to continue.', 'warn');
+  }
+  return true;
+}
+function haltClean(){
+  state.halted='clean'; state.running=false;
+  setStatus('clean halt after '+state.steps+' steps — the machine reached halt and rests. Result is on the tape.', 'good');
+  updateRunBtn(); updateReadouts(true);
+}
+function resetMachine(){
+  state.tape = copyTape(state.snapshot.tape);
+  state.head = state.snapshot.head;
+  state.q = state.startState;
+  state.steps = 0;
+  state.halted = null;
+  state.running = false;
+  state.firing = -1;
+  state.flashes = [];
+  state.slide = {from:state.head, to:state.head, t0:0, dur:0};
+  state.acc = 0;
+  highlightFiring(); updateRunBtn(); updateReadouts(false);
+  setStatus('Reset. Head on cell '+state.head+', state '+state.q+'. Ready.', null);
+}
+function loadTapeString(str){
+  state.tape = {};
+  [...str].forEach((ch,i)=>{ const s=normSym(ch); if(s!==BLANK) state.tape[i]=s; });
+  state.snapshot = {tape:copyTape(state.tape), head:0};
+  resetMachine();
+}
+
+/* ================= controls ================= */
+function updateRunBtn(){
+  const b=$('btnRun');
+  b.textContent = state.running ? '⏸ Pause' : '▶ Run';
+  b.classList.toggle('on', state.running);
+}
+$('btnRun').addEventListener('click',()=>{
+  if(state.halted){
+    setStatus(state.halted==='clean'
+      ? 'The machine has halted — press Reset to run it again.'
+      : 'The machine halted confused — fix the rules (or the tape) and press Reset.',
+      state.halted==='clean'?'good':'bad');
+    return;
+  }
+  state.running=!state.running; state.acc=0; updateRunBtn();
+  if(state.running) setStatus('Running…', null);
+  else setStatus('Paused at step '+state.steps+'. Step or ▶ Run to continue.', null);
+});
+$('btnStep').addEventListener('click',()=>{ if(!state.running) stepOnce(false); });
+$('btnReset').addEventListener('click', resetMachine);
+$('speed').addEventListener('input',()=>{
+  $('speedVal').textContent = stepDur().toFixed(2)+' s/step';
+});
+$('btnAddRule').addEventListener('click',()=>{
+  state.rules.push({q:'q0', read:BLANK, write:BLANK, move:'R', next:'q0'});
+  renderRules();
+});
+$('btnLoadTape').addEventListener('click',()=>{ loadTapeString($('tapeInput').value); });
+$('tapeInput').addEventListener('keydown',e=>{ if(e.key==='Enter') loadTapeString($('tapeInput').value); });
+$('btnBlank').addEventListener('click',()=>{ $('tapeInput').value=''; loadTapeString(''); });
+$('btnEdit').addEventListener('click',()=>{
+  state.editMode=!state.editMode;
+  state.selCell = state.editMode ? state.head : null;
+  $('btnEdit').classList.toggle('on', state.editMode);
+  cv.style.cursor = state.editMode ? 'text' : 'default';
+  setStatus(state.editMode
+    ? 'Edit mode: click a cell, then type a symbol (space/backspace = blank □, arrows to move, Esc to finish).'
+    : 'Edit mode off.', state.editMode?'warn':null);
+  if(!state.editMode) commitTapeEdit();
+});
+function commitTapeEdit(){
+  // editing at step 0 redefines the starting tape, so Reset returns to it
+  if(state.steps===0 && !state.halted){
+    state.snapshot={tape:copyTape(state.tape), head:state.snapshot.head};
+    $('tapeInput').value = tapeToField();
+  }
+}
+document.addEventListener('keydown',e=>{
+  const tag=(document.activeElement&&document.activeElement.tagName)||'';
+  const typing = tag==='INPUT'||tag==='SELECT'||tag==='TEXTAREA';
+  if(state.editMode && state.selCell!==null && !typing){
+    if(e.key==='Escape'){ $('btnEdit').click(); e.preventDefault(); return; }
+    if(e.key==='ArrowLeft'){ state.selCell--; e.preventDefault(); return; }
+    if(e.key==='ArrowRight'){ state.selCell++; e.preventDefault(); return; }
+    if(e.key==='Backspace'){ writeCell(state.selCell,BLANK); state.selCell--; commitTapeEdit(); e.preventDefault(); return; }
+    if(e.key==='Delete'||e.key===' '){ writeCell(state.selCell,BLANK); state.selCell++; commitTapeEdit(); e.preventDefault(); return; }
+    if(e.key.length===1){
+      writeCell(state.selCell, normSym(e.key)); state.selCell++; commitTapeEdit();
+      e.preventDefault(); return;
+    }
+    return;
+  }
+  if(e.code==='Space' && !typing && !state.running){
+    e.preventDefault(); stepOnce(false);
+  }
+});
+
+/* ================= presets UI ================= */
+const chipEls=[];
+PRESETS.forEach((p,idx)=>{
+  const b=document.createElement('button');
+  b.textContent=p.name;
+  b.addEventListener('click',()=>loadPreset(idx));
+  $('chips').appendChild(b); chipEls.push(b);
+});
+function loadPreset(idx){
+  const p=PRESETS[idx];
+  chipEls.forEach((b,i)=>b.classList.toggle('active', i===idx));
+  state.rules = p.rules.map(r=>({q:r[0],read:r[1],write:r[2],move:r[3],next:r[4]}));
+  state.startState = p.start;
+  $('tapeInput').value = p.tape;
+  renderRules();
+  loadTapeString(p.tape);
+  $('caption').innerHTML = p.caption;
+  setStatus('Loaded “'+p.name+'”. Head on cell 0, state '+p.start+'. ▶ Run or Step.', null);
+}
+
+/* ================= canvas ================= */
+const cv = $('cv');
+const ctx = cv.getContext('2d');
+let W=0, H=0, DPR=1;
+function resize(){
+  DPR = window.devicePixelRatio||1;
+  W = cv.clientWidth; H = cv.clientHeight;
+  cv.width = Math.round(W*DPR); cv.height = Math.round(H*DPR);
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+}
+new ResizeObserver(resize).observe(cv);
+window.addEventListener('resize', resize);
+
+function currentViewHead(now){
+  const s=state.slide;
+  if(now<=s.t0) return s.from;
+  return s.from + (s.to-s.from)*smooth((now-s.t0)/s.dur);
+}
+function cellMetrics(){
+  const cw = clamp(W/21, 30, 58);
+  const ch = Math.min(cw*1.25, 68);
+  const top = H*0.46;
+  return {cw, ch, top, cx:W/2};
+}
+cv.addEventListener('pointerdown',e=>{
+  if(!state.editMode) return;
+  const rect=cv.getBoundingClientRect();
+  const x=e.clientX-rect.left, y=e.clientY-rect.top;
+  const {cw,ch,top,cx}=cellMetrics();
+  if(y<top-8||y>top+ch+22) return;
+  const vh=currentViewHead(performance.now());
+  state.selCell = Math.round(vh + (x-cx)/cw);
+});
+
+function draw(now){
+  ctx.clearRect(0,0,W,H);
+  const css = getComputedStyle(document.documentElement);
+  const C = n=>css.getPropertyValue(n).trim();
+  const {cw,ch,top,cx}=cellMetrics();
+  const vh = currentViewHead(now);
+  const half = Math.ceil(W/(2*cw))+1;
+  const lo = Math.round(vh)-half, hi = Math.round(vh)+half;
+
+  // faint baseline grid strip behind tape
+  ctx.strokeStyle=C('--grid'); ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(0, top+ch+0.5); ctx.lineTo(W, top+ch+0.5); ctx.stroke();
+
+  // prune old flashes
+  state.flashes = state.flashes.filter(f=>now-f.t0<600);
+
+  for(let i=lo;i<=hi;i++){
+    const x = cx + (i-vh)*cw - cw/2;
+    // cell body
+    ctx.fillStyle=C('--panel2');
+    ctx.strokeStyle=C('--line'); ctx.lineWidth=1;
+    roundRect(x+2, top, cw-4, ch, 6); ctx.fill(); ctx.stroke();
+    // write flash
+    for(const f of state.flashes){
+      if(f.pos===i){
+        const u=(now-f.t0)/600;
+        ctx.fillStyle=C('--green');
+        ctx.globalAlpha=(1-smooth(u))*0.5;
+        roundRect(x+2, top, cw-4, ch, 6); ctx.fill();
+        ctx.globalAlpha=1;
+      }
+    }
+    // selected (edit) cell
+    if(state.editMode && state.selCell===i){
+      ctx.strokeStyle=C('--yellow'); ctx.lineWidth=2; ctx.setLineDash([5,4]);
+      roundRect(x+2, top, cw-4, ch, 6); ctx.stroke(); ctx.setLineDash([]);
+    }
+    // cell under head
+    if(i===state.head){
+      ctx.strokeStyle=C('--blue'); ctx.lineWidth=2.5;
+      ctx.shadowColor=C('--blue'); ctx.shadowBlur=12;
+      roundRect(x+2, top, cw-4, ch, 6); ctx.stroke();
+      ctx.shadowBlur=0;
+    }
+    // symbol
+    const sym = readCell(i);
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    if(sym===BLANK){
+      ctx.fillStyle=C('--muted'); ctx.globalAlpha=0.4;
+      ctx.font=(cw*0.42)+'px ui-monospace, Consolas, monospace';
+      ctx.fillText(BLANK, x+cw/2, top+ch/2+1);
+      ctx.globalAlpha=1;
+    }else{
+      ctx.fillStyle = i===state.head ? C('--blue') : C('--ink');
+      ctx.font='600 '+(cw*0.52)+'px ui-monospace, Consolas, monospace';
+      ctx.fillText(sym, x+cw/2, top+ch/2+1);
+    }
+    // index label
+    ctx.fillStyle=C('--muted'); ctx.globalAlpha=0.7;
+    ctx.font='10px sans-serif';
+    ctx.fillText(i, x+cw/2, top+ch+12);
+    ctx.globalAlpha=1;
+  }
+
+  // edge fades to suggest infinity
+  const fadeW=Math.min(90, W*0.12);
+  let g=ctx.createLinearGradient(0,0,fadeW,0);
+  g.addColorStop(0,C('--bg')); g.addColorStop(1,'rgba(14,17,23,0)');
+  ctx.fillStyle=g; ctx.fillRect(0,top-20,fadeW,ch+44);
+  g=ctx.createLinearGradient(W-fadeW,0,W,0);
+  g.addColorStop(0,'rgba(14,17,23,0)'); g.addColorStop(1,C('--bg'));
+  ctx.fillStyle=g; ctx.fillRect(W-fadeW,top-20,fadeW,ch+44);
+  ctx.fillStyle=C('--muted'); ctx.font='13px sans-serif'; ctx.globalAlpha=0.8;
+  ctx.textAlign='left';  ctx.fillText('⋯ −∞', 8, top+ch/2);
+  ctx.textAlign='right'; ctx.fillText('+∞ ⋯', W-8, top+ch/2);
+  ctx.globalAlpha=1;
+
+  // head gantry (fixed at centre; the tape moves under it)
+  const gy = top-52, gw = cw*1.45, gh = 30;
+  // legs
+  ctx.strokeStyle=C('--blue'); ctx.lineWidth=2;
+  ctx.beginPath();
+  ctx.moveTo(cx-gw/2+6, gy+gh); ctx.lineTo(cx-cw/2-2, top-6);
+  ctx.moveTo(cx+gw/2-6, gy+gh); ctx.lineTo(cx+cw/2+2, top-6);
+  ctx.stroke();
+  // pointer
+  ctx.fillStyle=C('--blue');
+  ctx.beginPath();
+  ctx.moveTo(cx, top-4); ctx.lineTo(cx-7, top-14); ctx.lineTo(cx+7, top-14); ctx.closePath();
+  ctx.fill();
+  // body
+  ctx.fillStyle=C('--panel');
+  ctx.strokeStyle=C('--blue'); ctx.lineWidth=2;
+  roundRect(cx-gw/2, gy, gw, gh, 8); ctx.fill(); ctx.stroke();
+  ctx.fillStyle=C('--blue'); ctx.font='600 11px sans-serif';
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText('HEAD', cx, gy+gh/2-5);
+  ctx.fillStyle=C('--muted'); ctx.font='10px sans-serif';
+  ctx.fillText('read · write', cx, gy+gh/2+8);
+  // state tag over gantry
+  ctx.font='italic 15px Georgia, serif';
+  ctx.fillStyle = state.halted==='clean'?C('--green'):state.halted==='confused'?C('--red'):C('--yellow');
+  ctx.fillText(state.q, cx, gy-14);
+}
+function roundRect(x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);
+  ctx.arcTo(x+w,y,x+w,y+h,r);
+  ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r);
+  ctx.arcTo(x,y,x+w,y,r);
+  ctx.closePath();
+}
+
+/* ================= main loop ================= */
+function frame(now){
+  if(!state.lastT) state.lastT=now;
+  const dt=(now-state.lastT)/1000; state.lastT=now;
+  if(state.running){
+    state.acc+=dt;
+    if(state.acc>=stepDur()){ state.acc=0; stepOnce(true); }
+  }
+  draw(now);
+  requestAnimationFrame(frame);
+}
+
+/* ================= init ================= */
+resize();
+loadPreset(0);
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

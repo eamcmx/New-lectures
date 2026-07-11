@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Zuse Z3 — Intro to Computer Systems Architecture</title>
+<style>
+:root{
+  --bg:#0e1117;
+  --panel:#161b26;
+  --panel2:#1c2230;
+  --ink:#e6e9f0;
+  --muted:#8b94a7;
+  --grid:#232b3b;
+  --axis:#4a5568;
+  --blue:#58c4dd;
+  --yellow:#ffd35a;
+  --red:#fc6255;
+  --green:#83c167;
+  --purple:#c688eb;
+  --orange:#ff9f4b;
+  --line:#2a3347;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--bg); color:var(--ink);
+  font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
+  line-height:1.55;
+}
+.wrap{max-width:1100px;margin:0 auto;padding:24px}
+a{color:var(--blue);text-decoration:none}
+a:hover{text-decoration:underline}
+header .crumb{color:var(--muted);font-size:14px}
+header .crumb:hover{color:var(--blue);text-decoration:none}
+h1{margin:10px 0 6px;font-size:32px;letter-spacing:.3px}
+.subtitle{color:var(--muted);max-width:70ch;margin:0 0 22px}
+.math{font-family:Georgia,'Times New Roman',serif;font-style:italic}
+.mono{font-family:ui-monospace,'Cascadia Mono',Consolas,monospace;font-style:normal}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin-bottom:22px}
+.panel h2{margin:0 0 12px;font-size:15px;letter-spacing:1.6px;text-transform:uppercase;color:var(--muted)}
+.hist{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.hist .blk{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:12px 14px;font-size:14px}
+.hist .blk b{display:block;color:var(--yellow);font-size:12px;letter-spacing:1.2px;text-transform:uppercase;margin-bottom:6px;font-weight:600}
+.hist .blk .big{color:var(--ink);font-size:15px}
+.hist .blk span{color:var(--muted)}
+button{
+  background:var(--panel2);border:1px solid var(--line);color:var(--ink);
+  border-radius:9px;padding:8px 14px;cursor:pointer;font-size:14px;font-family:inherit;
+  transition:border-color .15s,color .15s,background .15s;touch-action:manipulation;
+}
+button:hover{border-color:var(--blue)}
+button.on,button.active{border-color:var(--blue);color:var(--blue);background:rgba(88,196,221,.08)}
+button:disabled{opacity:.4;cursor:default;border-color:var(--line)}
+button.small{padding:5px 10px;font-size:13px}
+input[type=range]{accent-color:var(--blue)}
+input[type=text]{
+  background:var(--bg);border:1px solid var(--line);color:var(--ink);
+  border-radius:8px;padding:7px 10px;font-family:ui-monospace,'Cascadia Mono',Consolas,monospace;font-size:13px;
+}
+input[type=text]:focus{outline:none;border-color:var(--blue)}
+select{
+  background:var(--panel2);border:1px solid var(--line);color:var(--ink);
+  border-radius:8px;padding:6px 8px;font-size:13px;font-family:inherit;cursor:pointer;
+}
+.controls{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:14px}
+.controls .spacer{flex:1}
+.speedbox{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:13px}
+#statusBar{
+  margin-top:14px;padding:9px 14px;border-radius:9px;background:var(--panel2);
+  border:1px solid var(--line);font-size:14px;color:var(--muted);min-height:40px;display:flex;align-items:center;gap:8px;
+}
+#statusBar.warn{border-color:var(--red);color:var(--red)}
+#statusBar.good{border-color:var(--green);color:var(--green)}
+#statusBar.info{border-color:var(--blue);color:var(--blue)}
+
+/* ---- simulator layout ---- */
+.simgrid{display:grid;grid-template-columns:360px 1fr;gap:18px;align-items:start}
+@media(max-width:880px){.simgrid{grid-template-columns:1fr}}
+.col h3{margin:0 0 10px;font-size:12px;letter-spacing:1.4px;text-transform:uppercase;color:var(--muted)}
+
+/* ---- film tape ---- */
+.tapeshell{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:12px}
+.loopbadge{
+  display:none;align-items:center;gap:8px;justify-content:center;color:var(--yellow);
+  font-size:12.5px;padding:5px 0;border:1px dashed rgba(255,211,90,.5);border-radius:8px;margin-bottom:8px;
+}
+.loopbadge.show{display:flex}
+#tapeStrip{
+  max-height:430px;overflow-y:auto;border-radius:8px;background:#0a0d13;
+  border:1px solid var(--line);padding:6px 0;position:relative;scrollbar-width:thin;
+}
+.frame{
+  display:grid;grid-template-columns:22px 26px 1fr 24px;align-items:center;gap:6px;
+  padding:5px 8px 5px 4px;margin:2px 6px;border-radius:7px;border-left:3px solid transparent;
+  background:rgba(255,255,255,.015);position:relative;
+}
+.frame .fno{color:var(--axis);font-size:10.5px;text-align:right;font-family:ui-monospace,Consolas,monospace}
+.frame .sprocket{display:flex;flex-direction:column;gap:3px;align-items:center}
+.frame .sprocket i{width:5px;height:5px;border-radius:1.5px;background:#20293a;display:block}
+.frame .body{display:flex;align-items:center;gap:10px;min-width:0}
+.frame .holes{display:flex;gap:3px;flex-shrink:0}
+.frame .hole{
+  width:11px;height:11px;border-radius:50%;border:1px solid #313d55;background:transparent;
+  transition:background .2s;
+}
+.frame .hole.p{background:var(--ink);border-color:var(--ink);box-shadow:0 0 5px rgba(230,233,240,.45)}
+.frame .mn{font-family:ui-monospace,'Cascadia Mono',Consolas,monospace;font-size:13.5px;color:var(--ink);white-space:nowrap}
+.frame .mn .zz{color:var(--purple)}
+.frame .del{
+  background:none;border:none;color:var(--axis);cursor:pointer;font-size:14px;padding:2px 4px;border-radius:5px;line-height:1;
+}
+.frame .del:hover{color:var(--red)}
+.frame.current{
+  border-left-color:var(--blue);background:rgba(88,196,221,.10);
+}
+.frame.current .fno{color:var(--blue)}
+.frame.current::after{
+  content:"◀ reader";position:absolute;right:30px;top:50%;transform:translateY(-50%);
+  color:var(--blue);font-size:10px;letter-spacing:1px;opacity:.85;pointer-events:none;
+}
+.frame.bad{border-left-color:var(--red);background:rgba(252,98,85,.07)}
+.tape-empty{color:var(--axis);text-align:center;font-size:13px;padding:26px 10px}
+.palette{margin-top:12px;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.palette button{padding:6px 10px;font-size:13px;font-family:ui-monospace,'Cascadia Mono',Consolas,monospace}
+.palette .addrgrp{display:flex;gap:6px;align-items:center;background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:3px 6px}
+#textMode{display:none;margin-top:10px}
+#textMode textarea{
+  width:100%;height:180px;background:#0a0d13;border:1px solid var(--line);color:var(--ink);
+  border-radius:8px;padding:10px;font-family:ui-monospace,'Cascadia Mono',Consolas,monospace;font-size:13px;resize:vertical;
+}
+#textMode textarea:focus{outline:none;border-color:var(--blue)}
+.tapefoot{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
+
+/* ---- machine state ---- */
+.statepanel{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:14px}
+.statepanel.clack{animation:shudder .16s ease-out}
+@keyframes shudder{
+  0%{transform:translate(0,0)}30%{transform:translate(1.5px,-1px)}60%{transform:translate(-1.5px,1px)}100%{transform:translate(0,0)}
+}
+.regs{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:6px}
+.reg{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 14px}
+.reg .rlabel{font-size:12px;letter-spacing:1.4px;color:var(--muted);display:flex;justify-content:space-between}
+.reg .rval{
+  font-family:ui-monospace,'Cascadia Mono',Consolas,monospace;font-size:26px;margin-top:2px;min-height:38px;
+  color:var(--ink);transition:color .3s;
+}
+.reg .rval.empty{color:var(--axis)}
+.reg .rval.flash{color:var(--green)}
+.reg .rval.exc{color:var(--red);animation:lampblink .5s step-end 4}
+@keyframes lampblink{0%,100%{opacity:1}50%{opacity:.25}}
+.relayview{display:none;margin-top:8px}
+.relayview.show{display:block}
+.bitgrp{display:flex;align-items:center;gap:2px;margin-top:4px;flex-wrap:wrap}
+.bitgrp .glabel{font-size:9.5px;color:var(--axis);letter-spacing:.6px;width:34px;flex-shrink:0;text-transform:uppercase}
+.rdot{
+  width:9px;height:9px;border-radius:50%;background:#242e42;border:1px solid #2e3a52;
+  transition:background .12s;flex-shrink:0;
+}
+.rdot.on{background:var(--orange);border-color:var(--orange);box-shadow:0 0 5px rgba(255,159,75,.55)}
+.rdot.flip{animation:clackdot .28s ease-out}
+@keyframes clackdot{0%{transform:scale(1)}45%{transform:scale(1.7)}100%{transform:scale(1)}}
+.routnote{font-size:12px;color:var(--muted);margin:2px 0 12px}
+.memgrid{display:grid;grid-template-columns:repeat(8,1fr);gap:6px;margin-bottom:12px}
+@media(max-width:640px){.memgrid{grid-template-columns:repeat(4,1fr)}}
+.mcell{
+  background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:5px 6px;cursor:pointer;
+  text-align:center;transition:border-color .2s;min-width:0;
+}
+.mcell:hover{border-color:var(--blue)}
+.mcell .mn{font-size:10px;color:var(--muted);letter-spacing:.8px}
+.mcell .mv{font-family:ui-monospace,Consolas,monospace;font-size:12.5px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mcell.read{border-color:var(--blue);box-shadow:0 0 8px rgba(88,196,221,.35)}
+.mcell.written{border-color:var(--green);box-shadow:0 0 8px rgba(131,193,103,.4)}
+.mcell.written .mv{color:var(--green)}
+.iounit{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:640px){.iounit{grid-template-columns:1fr}}
+.iobox{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.iobox .iolabel{font-size:11px;letter-spacing:1.3px;color:var(--muted);text-transform:uppercase;margin-bottom:6px}
+#queueChips,#lampStrip{display:flex;flex-wrap:wrap;gap:6px;min-height:30px;align-items:center}
+.qchip{
+  font-family:ui-monospace,Consolas,monospace;font-size:13px;padding:3px 9px;border-radius:7px;
+  border:1px solid var(--line);color:var(--yellow);background:rgba(255,211,90,.06);
+}
+.qchip.next{border-color:var(--yellow)}
+.lamp{
+  font-family:ui-monospace,Consolas,monospace;font-size:14px;padding:4px 10px;border-radius:7px;
+  border:1px solid rgba(131,193,103,.6);color:var(--green);background:rgba(131,193,103,.08);
+  animation:stamp .45s ease-out;box-shadow:0 0 8px rgba(131,193,103,.25);
+}
+.lamp.exc{border-color:var(--red);color:var(--red);background:rgba(252,98,85,.08);animation:stamp .45s ease-out, lampblink .5s step-end 5}
+@keyframes stamp{0%{transform:scale(1.6);opacity:0}100%{transform:scale(1);opacity:1}}
+.dim{color:var(--axis);font-size:12.5px}
+#kbdPrompt{display:none;margin-top:8px;gap:6px;align-items:center}
+#kbdPrompt.show{display:flex}
+#kbdPrompt input{width:110px}
+.fpnote{font-size:12px;color:var(--muted);margin-top:10px}
+.fpnote b{color:var(--purple);font-weight:600}
+
+/* instruction legend */
+.legend{margin-top:14px;border-top:1px solid var(--line);padding-top:10px}
+.legend summary{cursor:pointer;color:var(--muted);font-size:13px}
+.legend summary:hover{color:var(--blue)}
+.legend table{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px}
+.legend td{padding:4px 8px;border-bottom:1px solid var(--grid);vertical-align:top}
+.legend td:first-child{font-family:ui-monospace,Consolas,monospace;color:var(--yellow);white-space:nowrap;width:70px}
+.legend td:last-child{color:var(--muted)}
+
+/* presets */
+.presets{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:12px}
+#presetCaption{color:var(--muted);font-size:14px;border-left:3px solid var(--yellow);padding:4px 0 4px 14px;min-height:24px}
+#presetCaption b{color:var(--yellow)}
+
+/* simplifications */
+.simpl ul{margin:6px 0 0;padding-left:20px;color:var(--muted);font-size:14px}
+.simpl li{margin-bottom:5px}
+.simpl li b{color:var(--ink);font-weight:600}
+
+/* insights */
+.insights{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:22px}
+@media(max-width:880px){.insights{grid-template-columns:1fr}}
+.insights .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px;font-size:14px}
+.insights .card h3{margin:0 0 8px;font-size:14px}
+.insights .card p{margin:0;color:var(--muted)}
+.c-blue{color:var(--blue)} .c-yellow{color:var(--yellow)} .c-green{color:var(--green)} .c-red{color:var(--red)} .c-purple{color:var(--purple)}
+
+footer{color:var(--muted);font-size:13px;border-top:1px solid var(--line);padding-top:16px;margin-top:8px}
+footer .navrow{display:flex;justify-content:space-between;gap:10px;margin-top:8px;flex-wrap:wrap}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <a class="crumb" href="./index.html">← Intro to Computer Systems Architecture</a>
+  <h1>The Zuse Z3 <span style="color:var(--muted);font-weight:400;font-size:20px">— the first programmable computer ran on relays</span></h1>
+  <p class="subtitle">Berlin, 1941: a machine of 2,400 clacking telephone relays reads its program from a strip of punched film and computes in binary <em>floating point</em>. Punch a tape below, feed the keyboard queue, and press ▶ Run — then flip on <b style="color:var(--yellow)">tape loop</b> to see how Zuse iterated without a single branch instruction: with scissors and glue.</p>
+</header>
+
+<!-- ============ THE MACHINE ============ -->
+<section class="panel">
+  <h2>The Machine</h2>
+  <div class="hist">
+    <div class="blk">
+      <b>1941 · Konrad Zuse · Berlin</b>
+      <span class="big">2,400 electromagnetic relays</span><br>
+      <span>The first working <b style="color:var(--ink)">programmable, fully automatic digital computer</b>. Binary floating-point arithmetic (22-bit words: sign · 7-bit exponent · 14-bit mantissa) and Boolean logic, clocked at roughly 5–10&nbsp;Hz. Destroyed in a Berlin air raid, 1943.</span>
+    </div>
+    <div class="blk">
+      <b>How it was programmed</b>
+      <span>Programs were holes punched into discarded <b style="color:var(--ink)">35&nbsp;mm movie film</b> — one 8-bit instruction per frame, pulled frame by frame through a reader. No conditional branch existed: to loop, operators <b style="color:var(--ink)">glued the tape ends into a physical ring</b>. Numbers went in on a decimal keyboard; answers lit up on a lamp display.</span>
+    </div>
+    <div class="blk">
+      <b>What it actually solved</b>
+      <span>Zuse was a civil engineer sick of grinding through structural formulas by hand. At the German Aeronautical Research Institute (DVL) his machines ran <b style="color:var(--ink)">aerodynamic and wing-flutter calculations</b> — evaluating the same formula over and over for tables of inputs.</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============ THE SIMULATOR ============ -->
+<section class="panel">
+  <h2>The Simulator</h2>
+
+  <div class="controls">
+    <button id="btnRun">▶ Run</button>
+    <button id="btnStep">Step</button>
+    <button id="btnReset">Reset</button>
+    <div class="speedbox">
+      <span>speed</span>
+      <input type="range" id="speed" min="0.2" max="2" step="0.05" value="0.6" style="width:120px">
+      <span id="speedOut" class="mono">0.60 s</span>
+    </div>
+    <div class="spacer"></div>
+    <button id="btnLoop" title="Glue the tape ends together — the Z3 way to iterate">⟲ Tape loop: off</button>
+    <button id="btnRelay" title="Show the 22-bit relay word of each register">● Relay view</button>
+  </div>
+
+  <div class="simgrid">
+    <!-- ---- left: punched film tape ---- -->
+    <div class="col">
+      <h3>Punched film tape · the program</h3>
+      <div class="tapeshell">
+        <div class="loopbadge" id="loopBadge">⟲ ends glued into a loop — the tape repeats forever</div>
+        <div id="tapeStrip"></div>
+        <div class="loopbadge" id="loopBadge2">⟲ splice: frame 1 follows the last frame</div>
+        <div class="palette" id="palette">
+          <button data-op="Lu" title="Lu — read the keyboard into a register">Lu</button>
+          <button data-op="Ld" title="Ld — display R1 on the lamp panel (R1 clears)">Ld</button>
+          <button data-op="Ls1" title="Ls1 — R1 := R1 + R2">Ls1</button>
+          <button data-op="Ls2" title="Ls2 — R1 := R1 − R2">Ls2</button>
+          <button data-op="Lm" title="Lm — R1 := R1 × R2">Lm</button>
+          <button data-op="Li" title="Li — R1 := R1 ÷ R2">Li</button>
+          <button data-op="Lw" title="Lw — R1 := √R1">Lw</button>
+          <span class="addrgrp">
+            <select id="addrPick"></select>
+            <button data-op="Pr" title="Pr z — load memory word z (fills R1 first, then R2)">Pr&nbsp;z</button>
+            <button data-op="Ps" title="Ps z — store R1 into memory word z (R1 clears)">Ps&nbsp;z</button>
+          </span>
+        </div>
+        <div class="tapefoot">
+          <button class="small" id="btnText">✎ Text mode</button>
+          <button class="small" id="btnClear">Blank tape</button>
+        </div>
+        <div id="textMode">
+          <textarea id="textArea" spellcheck="false" placeholder="One mnemonic per line, e.g.&#10;Lu&#10;Ps 1&#10;Pr 1&#10;Lm&#10;Ld"></textarea>
+          <div class="tapefoot">
+            <button class="small" id="btnApplyText">Punch this tape</button>
+            <span class="dim" id="textErr"></span>
+          </div>
+        </div>
+        <details class="legend">
+          <summary>The real Z3 instruction set (9 instructions — that’s all of it)</summary>
+          <table>
+            <tr><td>Lu</td><td>read a number from the keyboard into a register</td></tr>
+            <tr><td>Ld</td><td>display R1 on the lamp panel (R1 clears)</td></tr>
+            <tr><td>Pr z</td><td>load memory word Z<span class="mono">z</span> — the first Pr fills R1, the next fills R2 (the Z3 auto-routed loads)</td></tr>
+            <tr><td>Ps z</td><td>store R1 into memory word Z<span class="mono">z</span> (R1 clears)</td></tr>
+            <tr><td>Ls1</td><td>R1 := R1 + R2</td></tr>
+            <tr><td>Ls2</td><td>R1 := R1 − R2</td></tr>
+            <tr><td>Lm</td><td>R1 := R1 × R2</td></tr>
+            <tr><td>Li</td><td>R1 := R1 ÷ R2</td></tr>
+            <tr><td>Lw</td><td>R1 := √R1</td></tr>
+          </table>
+          <p class="dim" style="margin:8px 0 0">After any arithmetic op, R2 clears. There is no jump, no branch, no halt — the program is the physical length of the film.</p>
+        </details>
+      </div>
+    </div>
+
+    <!-- ---- right: machine state ---- -->
+    <div class="col">
+      <h3>Machine state · relays &amp; memory</h3>
+      <div class="statepanel" id="statePanel">
+        <div class="regs">
+          <div class="reg">
+            <div class="rlabel"><span>R1</span><span class="dim">result register</span></div>
+            <div class="rval empty" id="r1val">—</div>
+            <div class="relayview" id="r1relay"></div>
+          </div>
+          <div class="reg">
+            <div class="rlabel"><span>R2</span><span class="dim">second operand</span></div>
+            <div class="rval empty" id="r2val">—</div>
+            <div class="relayview" id="r2relay"></div>
+          </div>
+        </div>
+        <p class="routnote">Loads auto-route: <span class="mono" style="color:var(--yellow)">Pr</span>/<span class="mono" style="color:var(--yellow)">Lu</span> fill <b>R1</b> if it’s free, otherwise <b>R2</b> — on the real Z3 the hardware did this routing for you.</p>
+
+        <h3 style="margin-top:2px">Memory · Z1 … Z16 <span class="dim" style="text-transform:none;letter-spacing:0">(click a word to set it)</span></h3>
+        <div class="memgrid" id="memGrid"></div>
+
+        <div class="iounit">
+          <div class="iobox">
+            <div class="iolabel">Keyboard · input queue</div>
+            <input type="text" id="queueField" style="width:100%" placeholder="e.g. 3, 4" title="Comma-separated numbers; Lu consumes them front to back (applied on Reset)">
+            <div id="queueChips" style="margin-top:8px"><span class="dim">queue empty</span></div>
+            <div id="kbdPrompt">
+              <span class="dim">Lu waits ▸</span>
+              <input type="text" id="kbdInput" placeholder="number ⏎">
+              <button class="small" id="kbdOk">Enter</button>
+            </div>
+          </div>
+          <div class="iobox">
+            <div class="iolabel">Lamp display · output</div>
+            <div id="lampStrip"><span class="dim">nothing displayed yet</span></div>
+          </div>
+        </div>
+
+        <p class="fpnote">Values are shown to 4 significant figures — hover any register for its <b>22-bit float</b> (sign · 7-bit exponent · 14-bit mantissa), or toggle ● Relay view. <b>Zuse also invented ±∞ and “undefined” handling — exceptions, in 1941.</b></p>
+      </div>
+      <div id="statusBar">Tape ready. Pick a preset below, or punch your own program.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ EXAMPLE PROGRAMS ============ -->
+<section class="panel">
+  <h2>Example Programs</h2>
+  <div class="presets">
+    <button class="preset" data-p="hyp">1 · Hypotenuse √(a²+b²)</button>
+    <button class="preset" data-p="flutter">2 · Wing-flutter table (tape loop)</button>
+    <button class="preset" data-p="quad">3 · Quadratic root</button>
+  </div>
+  <div id="presetCaption">Each preset punches a real tape. Presets 1 and 3 run once; preset 2 glues the tape into a loop and eats through a whole queue of inputs.</div>
+</section>
+
+<!-- ============ SIMPLIFICATIONS ============ -->
+<section class="panel simpl">
+  <h2>Simplifications — where this differs from the real Z3</h2>
+  <ul>
+    <li><b>16 memory words instead of 64.</b> The real store held 64 floating-point words in 1,400 of the 2,400 relays.</li>
+    <li><b>Simplified register plumbing.</b> We route loads as “R1 if free, else R2,” clear R1 on <span class="mono">Ps</span>/<span class="mono">Ld</span>, and clear R2 after every arithmetic op. The real routing achieved the same effect with more hardware nuance.</li>
+    <li><b>Adjustable speed.</b> The real machine ran at ~5–10&nbsp;Hz: about 0.8&nbsp;s per addition and ~3&nbsp;s per multiplication. Our slider is a luxury Zuse never had.</li>
+    <li><b>The tape was real 35&nbsp;mm movie film</b> (often discarded newsreel stock). Our 8-hole frames use a consistent 2-bit-class + 6-bit-payload encoding in the spirit of the original coding; some exact historical hole patterns differed.</li>
+    <li><b>Decimal ↔ binary conversion is instant here.</b> The real Z3 genuinely performed this conversion itself — decimal keyboard in, binary floating point inside, decimal lamps out — but it took machine time.</li>
+  </ul>
+</section>
+
+<!-- ============ INSIGHT CARDS ============ -->
+<section class="insights">
+  <div class="card">
+    <h3 class="c-blue">Floating point, in relays</h3>
+    <p>Zuse put <em>scientific notation in hardware</em> — sign, exponent, mantissa — two years before anyone else was even close. Notice the trade you can see in the relay view: a huge range of magnitudes, but only 14 mantissa bits of precision. That is exactly the same bargain IEEE&nbsp;754 strikes on your GPU today, just with more bits.</p>
+  </div>
+  <div class="card">
+    <h3 class="c-yellow">No branch instruction = no “if”</h3>
+    <p>The Z3 cannot compare two numbers and choose a path — there is no conditional branch at all. The glued tape loop is a <span class="mono">while(true)</span> whose exit condition is “the input queue ran dry.” Control flow was literally scissors and glue. Every <span class="mono">if</span> in your code is a luxury the first programmable computer never had.</p>
+  </div>
+  <div class="card">
+    <h3 class="c-green">5–10 Hz vs 5 GHz</h3>
+    <p>A modern core clocks about a <em>billion times</em> faster than the Z3’s relays. Yet watch the reader gantry: fetch an instruction, execute it, advance, repeat. That fetch–execute rhythm is identical to what your CPU does — which is the lecture’s core distinction: <em>architecture outlives implementation</em>. Relays, tubes, transistors — the rhythm survives them all.</p>
+  </div>
+</section>
+
+<footer>
+  Interactive companion to the lecture <em>Introduction to Computers &amp; Computer Systems Architecture</em> · CCSA T1
+  <div class="navrow">
+    <a href="./abc.html">← The Atanasoff–Berry Computer</a>
+    <a href="./index.html">All explorations</a>
+    <a href="./mark1.html">The Harvard Mark I →</a>
+  </div>
+</footer>
+
+</div>
+
+<script>
+(function(){
+'use strict';
+/* ============================ state ============================ */
+const state = {
+  program: [],            // [{op, z}]
+  pc: 0,
+  r1: null, r2: null,
+  mem: new Array(16).fill(0),
+  mem0: new Array(16).fill(0),   // baseline restored on Reset
+  queue: [],
+  out: [],
+  running: false,
+  timer: null,
+  speed: 0.6,
+  loop: false,
+  relayView: false,
+  waitingInput: false,
+  resumeAfterInput: false,
+  presetKey: null,
+  prevBits: {r1: null, r2: null}
+};
+
+/* ============================ dom ============================ */
+const $ = id => document.getElementById(id);
+const tapeStrip=$('tapeStrip'), memGrid=$('memGrid'), statusBar=$('statusBar'),
+  r1val=$('r1val'), r2val=$('r2val'), r1relay=$('r1relay'), r2relay=$('r2relay'),
+  queueChips=$('queueChips'), lampStrip=$('lampStrip'), queueField=$('queueField'),
+  kbdPrompt=$('kbdPrompt'), kbdInput=$('kbdInput'), statePanel=$('statePanel'),
+  btnRun=$('btnRun'), btnStep=$('btnStep'), btnReset=$('btnReset'),
+  btnLoop=$('btnLoop'), btnRelay=$('btnRelay'), loopBadge=$('loopBadge'), loopBadge2=$('loopBadge2'),
+  presetCaption=$('presetCaption'), addrPick=$('addrPick'), textArea=$('textArea'), textErr=$('textErr');
+
+for(let i=1;i<=16;i++){ const o=document.createElement('option'); o.value=i; o.textContent='Z'+i; addrPick.appendChild(o); }
+
+/* ============================ formatting ============================ */
+function fmt(v){
+  if(v===null) return '—';
+  if(Number.isNaN(v)) return 'undefined';
+  if(v===Infinity) return '+∞';
+  if(v===-Infinity) return '−∞';
+  if(v===0) return '0';
+  let s = Number(v.toPrecision(4)).toString();
+  return s.replace('-','−');
+}
+function isExc(v){ return v!==null && (Number.isNaN(v)||!Number.isFinite(v)); }
+
+/* 22-bit float: 1 sign, 7-bit two's-complement exponent, 14-bit mantissa (implicit leading 1) */
+function encode22(v){
+  const bits = {s:0, e:new Array(7).fill(0), m:new Array(14).fill(0), note:''};
+  if(v===null){ bits.note='register free'; return bits; }
+  if(Number.isNaN(v)){ bits.note='undefined (exception)'; return bits; }
+  if(!Number.isFinite(v)){ bits.s = v<0?1:0; bits.e.fill(1); bits.note='±∞ (exception)'; return bits; }
+  if(v===0){ bits.note='zero (flagged by exponent −64 on the real Z3)'; return bits; }
+  bits.s = v<0?1:0;
+  let m = Math.abs(v);
+  let e = Math.floor(Math.log2(m));
+  let frac = m/Math.pow(2,e) - 1;           // in [0,1)
+  let mi = Math.round(frac*16384);
+  if(mi===16384){ mi=0; e++; }
+  e = Math.max(-64, Math.min(63, e));
+  const eu = e<0 ? e+128 : e;               // two's complement, 7 bits
+  for(let i=0;i<7;i++) bits.e[i] = (eu>>(6-i))&1;
+  for(let i=0;i<14;i++) bits.m[i] = (mi>>(13-i))&1;
+  bits.note = 'exp '+e+' · mantissa 1.'+(frac.toFixed(4).slice(2));
+  return bits;
+}
+function bitsTitle(v){
+  const b = encode22(v);
+  return 'sign '+b.s+' | exp '+b.e.join('')+' | mant '+b.m.join('')+'  ('+b.note+')';
+}
+
+/* ============================ hole encoding ============================ */
+/* 2-bit class + 6-bit payload */
+const OPBITS = { Lu:'01110000', Ld:'01111000', Lm:'01001000', Li:'01010000',
+                 Lw:'01011000', Ls1:'01100000', Ls2:'01101000' };
+function holeBits(ins){
+  if(ins.op==='Pr') return '10'+(ins.z-1).toString(2).padStart(6,'0');
+  if(ins.op==='Ps') return '11'+(ins.z-1).toString(2).padStart(6,'0');
+  return OPBITS[ins.op];
+}
+function mnemonic(ins){
+  return ins.z ? ins.op+' <span class="zz">Z'+ins.z+'</span>' : ins.op;
+}
+
+/* ============================ rendering ============================ */
+function renderTape(){
+  tapeStrip.innerHTML='';
+  if(state.program.length===0){
+    tapeStrip.innerHTML='<div class="tape-empty">blank film — punch instructions with the palette below</div>';
+    return;
+  }
+  state.program.forEach((ins,i)=>{
+    const f=document.createElement('div');
+    f.className='frame'+(i===state.pc?' current':'');
+    const holes = holeBits(ins).split('').map(b=>'<span class="hole'+(b==='1'?' p':'')+'"></span>').join('');
+    f.innerHTML =
+      '<span class="fno">'+(i+1)+'</span>'+
+      '<span class="sprocket"><i></i><i></i></span>'+
+      '<span class="body"><span class="holes">'+holes+'</span><span class="mn">'+mnemonic(ins)+'</span></span>'+
+      '<button class="del" title="cut this frame out" data-i="'+i+'">✕</button>';
+    tapeStrip.appendChild(f);
+  });
+  const cur = tapeStrip.querySelector('.frame.current');
+  if(cur) cur.scrollIntoView({block:'nearest'});
+}
+tapeStrip.addEventListener('click', e=>{
+  const d = e.target.closest('.del');
+  if(!d || state.running) return;
+  state.program.splice(+d.dataset.i,1);
+  if(state.pc>=state.program.length) state.pc=0;
+  renderTape();
+});
+
+function renderReg(el, relayEl, v, key){
+  el.textContent = fmt(v);
+  el.className = 'rval'+(v===null?' empty':'')+(isExc(v)?' exc':'');
+  el.parentElement.title = bitsTitle(v);
+  // relay strip
+  const b = encode22(v);
+  const flat = [b.s].concat(b.e, b.m);
+  const prev = state.prevBits[key];
+  let html='';
+  const grp=(label,arr,off)=>{
+    html+='<div class="bitgrp"><span class="glabel">'+label+'</span>';
+    arr.forEach((bit,j)=>{
+      const idx=off+j;
+      const flip = prev && prev[idx]!==bit;
+      html+='<span class="rdot'+(bit?' on':'')+(flip?' flip':'')+'"></span>';
+    });
+    html+='</div>';
+  };
+  grp('sign',[b.s],0); grp('exp',b.e,1); grp('mant',b.m,8);
+  relayEl.innerHTML=html;
+  state.prevBits[key]=flat;
+}
+function flashReg(el){
+  el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash');
+  setTimeout(()=>el.classList.remove('flash'), 550);
+}
+function renderRegs(flash1,flash2){
+  renderReg(r1val,r1relay,state.r1,'r1');
+  renderReg(r2val,r2relay,state.r2,'r2');
+  if(flash1) flashReg(r1val);
+  if(flash2) flashReg(r2val);
+}
+function renderMem(accessed,mode){
+  memGrid.innerHTML='';
+  state.mem.forEach((v,i)=>{
+    const c=document.createElement('div');
+    c.className='mcell'+(i===accessed?(mode==='w'?' written':' read'):'');
+    c.title='Z'+(i+1)+' = '+fmt(v)+'\n'+bitsTitle(v)+'\n(click to set)';
+    c.innerHTML='<div class="mn">Z'+(i+1)+'</div><div class="mv">'+fmt(v)+'</div>';
+    c.addEventListener('click',()=>{
+      if(state.running) return;
+      const s=prompt('Set memory word Z'+(i+1)+' :', String(state.mem[i]));
+      if(s===null) return;
+      const n=parseFloat(s.replace('−','-'));
+      if(Number.isNaN(n)){ setStatus('That is not a number the keyboard understands.','warn'); return; }
+      state.mem[i]=n; state.mem0[i]=n; renderMem();
+    });
+    memGrid.appendChild(c);
+  });
+  if(accessed!==undefined){
+    setTimeout(()=>{ const el=memGrid.children[accessed]; if(el) el.classList.remove('read','written'); }, 700);
+  }
+}
+function renderQueue(){
+  if(state.queue.length===0){ queueChips.innerHTML='<span class="dim">queue empty</span>'; return; }
+  queueChips.innerHTML = state.queue.map((v,i)=>'<span class="qchip'+(i===0?' next':'')+'">'+fmt(v)+'</span>').join('');
+}
+function renderOut(){
+  if(state.out.length===0){ lampStrip.innerHTML='<span class="dim">nothing displayed yet</span>'; return; }
+  lampStrip.innerHTML = state.out.map(v=>'<span class="lamp'+(isExc(v)?' exc':'')+'" title="'+bitsTitle(v)+'">'+fmt(v)+'</span>').join('');
+}
+function setStatus(msg, cls){
+  statusBar.textContent = msg;
+  statusBar.className = cls||'';
+}
+function clackPanel(){
+  statePanel.classList.remove('clack'); void statePanel.offsetWidth; statePanel.classList.add('clack');
+}
+function renderAll(){ renderTape(); renderRegs(); renderMem(); renderQueue(); renderOut(); }
+
+/* ============================ execution ============================ */
+function route(v){          // Z3 auto-routing: R1 if free, else R2
+  if(state.r1===null){ state.r1=v; renderRegs(true,false); }
+  else { state.r2=v; renderRegs(false,true); }
+}
+function jam(msg){
+  stopRun();
+  setStatus('⚙ the machine jams — '+msg, 'warn');
+}
+function excCheck(){
+  if(state.r1!==null && Number.isNaN(state.r1))
+    setStatus('“the lamps blink: undefined” — Zuse’s exception handling, in 1941.', 'warn');
+  else if(state.r1!==null && !Number.isFinite(state.r1))
+    setStatus('“the lamps show '+fmt(state.r1)+'” — Zuse even gave the Z3 a signed infinity.', 'warn');
+}
+
+function step(manual){
+  if(state.waitingInput) return;
+  if(state.program.length===0){ setStatus('The film is blank — punch a program first.','warn'); stopRun(); return; }
+
+  if(state.pc >= state.program.length){
+    if(state.loop){
+      state.pc = 0;
+      setStatus('⟲ the splice passes the reader — the tape comes round again.','info');
+      renderTape();
+      return;                       // rewind consumes one tick, like the physical splice
+    }
+    stopRun();
+    setStatus('End of tape. The film runs out of the reader — Reset to rewind.','good');
+    return;
+  }
+
+  const ins = state.program[state.pc];
+  clackPanel();
+
+  switch(ins.op){
+    case 'Lu':
+      if(state.queue.length===0){
+        if(state.loop){
+          stopRun();
+          setStatus('Input queue empty — the operator stops feeding numbers and the looped tape halts. '+state.out.length+' value'+(state.out.length===1?'':'s')+' stamped.','good');
+          return;
+        }
+        state.waitingInput = true;
+        state.resumeAfterInput = state.running;
+        pauseRun(true);
+        kbdPrompt.classList.add('show');
+        kbdInput.focus();
+        setStatus('Lu — the machine waits at the keyboard. Type a number and press Enter.','info');
+        return;
+      }
+      route(state.queue.shift());
+      renderQueue();
+      setStatus('Lu — keyboard value read into '+(state.r2===null?'R1':'R2')+'.');
+      break;
+    case 'Ld':
+      if(state.r1===null){ jam('Ld with nothing in R1 — the lamps stay dark.'); return; }
+      state.out.push(state.r1);
+      const wasExc = isExc(state.r1);
+      state.r1=null; renderRegs(); renderOut();
+      setStatus(wasExc ? '“the lamps blink: '+fmt(state.out[state.out.length-1])+'” — Zuse’s 1941 exception display.'
+                       : 'Ld — result stamped onto the lamp display.', wasExc?'warn':'good');
+      break;
+    case 'Pr':
+      route(state.mem[ins.z-1]);
+      renderMem(ins.z-1,'r');
+      setStatus('Pr Z'+ins.z+' — memory word loaded into '+(state.r2===null?'R1':'R2')+' (auto-routed).');
+      break;
+    case 'Ps':
+      if(state.r1===null){ jam('Ps with nothing in R1 — there is no value to store.'); return; }
+      state.mem[ins.z-1]=state.r1;
+      state.r1=null;
+      renderRegs(); renderMem(ins.z-1,'w');
+      setStatus('Ps Z'+ins.z+' — R1 stored to memory (R1 clears).');
+      break;
+    case 'Lm': case 'Li': case 'Ls1': case 'Ls2': {
+      if(state.r1===null || state.r2===null){ jam(ins.op+' needs values in both R1 and R2.'); return; }
+      const a=state.r1, b=state.r2;
+      if(ins.op==='Lm') state.r1=a*b;
+      else if(ins.op==='Li') state.r1=a/b;
+      else if(ins.op==='Ls1') state.r1=a+b;
+      else state.r1=a-b;
+      state.r2=null;
+      renderRegs(true,false);
+      setStatus(ins.op+' — '+({Lm:'multiply',Li:'divide',Ls1:'add',Ls2:'subtract'})[ins.op]+': result in R1, R2 clears.');
+      excCheck();
+      break;
+    }
+    case 'Lw':
+      if(state.r1===null){ jam('Lw needs a value in R1.'); return; }
+      state.r1=Math.sqrt(state.r1);
+      renderRegs(true,false);
+      setStatus('Lw — square root of R1.');
+      excCheck();
+      break;
+  }
+
+  state.pc++;
+  renderTape();
+}
+
+/* ---- run control ---- */
+function tick(){
+  if(!state.running) return;
+  step();
+  if(state.running) state.timer=setTimeout(tick, state.speed*1000);
+}
+function startRun(){
+  if(state.running) return;
+  state.running=true;
+  btnRun.textContent='⏸ Pause'; btnRun.classList.add('on');
+  setEditing(false);
+  state.timer=setTimeout(tick, 60);
+}
+function pauseRun(silent){
+  state.running=false;
+  clearTimeout(state.timer);
+  btnRun.textContent='▶ Run'; btnRun.classList.remove('on');
+  setEditing(true);
+  if(!silent) setStatus('Paused. Step through with the Step button (or Space).');
+}
+function stopRun(){
+  state.running=false;
+  clearTimeout(state.timer);
+  btnRun.textContent='▶ Run'; btnRun.classList.remove('on');
+  setEditing(true);
+}
+function setEditing(on){
+  document.querySelectorAll('#palette button, #btnClear, #btnApplyText').forEach(b=>b.disabled=!on);
+}
+function parseQueueField(){
+  return queueField.value.split(/[,;\s]+/).map(s=>s.trim()).filter(Boolean)
+    .map(s=>parseFloat(s.replace('−','-'))).filter(n=>!Number.isNaN(n));
+}
+function reset(){
+  stopRun();
+  state.pc=0; state.r1=null; state.r2=null; state.out=[];
+  state.mem = state.mem0.slice();
+  state.queue = parseQueueField();
+  state.waitingInput=false; kbdPrompt.classList.remove('show');
+  state.prevBits={r1:null,r2:null};
+  renderAll();
+  setStatus('Tape rewound, registers cleared, memory restored.');
+}
+
+/* ============================ editing ============================ */
+document.getElementById('palette').addEventListener('click', e=>{
+  const b=e.target.closest('button[data-op]');
+  if(!b||b.disabled) return;
+  const op=b.dataset.op;
+  const ins = (op==='Pr'||op==='Ps') ? {op, z:+addrPick.value} : {op};
+  state.program.push(ins);
+  renderTape();
+  setStatus('Frame punched: '+op+(ins.z?' Z'+ins.z:'')+'.');
+});
+$('btnClear').addEventListener('click', ()=>{
+  if($('btnClear').disabled) return;
+  state.program=[]; state.pc=0; state.presetKey=null; renderTape();
+  setStatus('Fresh blank film loaded.');
+});
+$('btnText').addEventListener('click', ()=>{
+  const tm=$('textMode');
+  const show = tm.style.display!=='block';
+  tm.style.display = show?'block':'none';
+  $('btnText').classList.toggle('on', show);
+  if(show) textArea.value = state.program.map(i=>i.op+(i.z?' '+i.z:'')).join('\n');
+});
+$('btnApplyText').addEventListener('click', ()=>{
+  const lines=textArea.value.split('\n').map(s=>s.trim());
+  const prog=[]; const bad=[];
+  lines.forEach((l,idx)=>{
+    if(!l || l.startsWith('#') || l.startsWith(';')) return;
+    const m=l.match(/^(Lu|Ld|Lm|Li|Lw|Ls1|Ls2)$/i) || l.match(/^(Pr|Ps)\s+Z?(\d{1,2})$/i);
+    if(!m){ bad.push(idx+1); return; }
+    if(m[2]!==undefined){
+      const z=+m[2];
+      if(z<1||z>16){ bad.push(idx+1); return; }
+      prog.push({op:m[1][0].toUpperCase()+m[1].slice(1).toLowerCase(), z});
+    } else {
+      const op=m[1]; const canon={lu:'Lu',ld:'Ld',lm:'Lm',li:'Li',lw:'Lw',ls1:'Ls1',ls2:'Ls2'}[op.toLowerCase()];
+      prog.push({op:canon});
+    }
+  });
+  if(bad.length){ textErr.textContent='✗ bad line'+(bad.length>1?'s':'')+': '+bad.join(', '); textErr.style.color='var(--red)'; return; }
+  textErr.textContent='✓ tape punched ('+prog.length+' frames)'; textErr.style.color='var(--green)';
+  state.program=prog; state.pc=0; renderTape();
+});
+
+/* ============================ controls ============================ */
+btnRun.addEventListener('click', ()=> state.running ? pauseRun() : startRun());
+btnStep.addEventListener('click', ()=>{ if(!state.running) step(true); });
+btnReset.addEventListener('click', reset);
+$('speed').addEventListener('input', e=>{
+  state.speed=+e.target.value;
+  $('speedOut').textContent=state.speed.toFixed(2)+' s';
+});
+btnLoop.addEventListener('click', ()=>{
+  state.loop=!state.loop;
+  btnLoop.classList.toggle('on', state.loop);
+  btnLoop.textContent='⟲ Tape loop: '+(state.loop?'on':'off');
+  loopBadge.classList.toggle('show', state.loop);
+  loopBadge2.classList.toggle('show', state.loop);
+  setStatus(state.loop
+    ? 'The tape ends are glued into a ring — the program will repeat until the input queue runs dry.'
+    : 'Splice cut — the tape is a straight strip again and the program runs once.','info');
+});
+btnRelay.addEventListener('click', ()=>{
+  state.relayView=!state.relayView;
+  btnRelay.classList.toggle('on', state.relayView);
+  r1relay.classList.toggle('show', state.relayView);
+  r2relay.classList.toggle('show', state.relayView);
+  if(state.relayView) renderRegs();
+});
+queueField.addEventListener('change', ()=>{ if(!state.running){ state.queue=parseQueueField(); renderQueue(); } });
+
+function submitKbd(){
+  const n=parseFloat(kbdInput.value.replace('−','-'));
+  if(Number.isNaN(n)){ setStatus('The keyboard only takes numbers.','warn'); return; }
+  kbdInput.value='';
+  kbdPrompt.classList.remove('show');
+  state.waitingInput=false;
+  route(n);
+  state.pc++;
+  renderTape();
+  setStatus('Lu — keyboard value accepted.');
+  if(state.resumeAfterInput){ state.resumeAfterInput=false; startRun(); }
+}
+$('kbdOk').addEventListener('click', submitKbd);
+kbdInput.addEventListener('keydown', e=>{ if(e.key==='Enter') submitKbd(); });
+
+document.addEventListener('keydown', e=>{
+  if(e.code==='Space' && !state.running && !state.waitingInput
+     && !/^(INPUT|TEXTAREA|SELECT|BUTTON)$/.test(document.activeElement.tagName)){
+    e.preventDefault(); step(true);
+  }
+});
+
+/* ============================ presets ============================ */
+function P(text){ // "Lu|Ps 1|..." → program
+  return text.split('|').map(t=>{
+    const m=t.trim().split(/\s+/);
+    return m[1] ? {op:m[0], z:+m[1]} : {op:m[0]};
+  });
+}
+const PRESETS = {
+  hyp: {
+    program: P('Lu|Ps 1|Lu|Ps 2|Pr 1|Pr 1|Lm|Ps 3|Pr 2|Pr 2|Lm|Pr 3|Ls1|Lw|Ld'),
+    queue: '3, 4', mem: {}, loop: false,
+    caption: '<b>Hypotenuse √(a²+b²).</b> Two keyboard reads, two squarings by Pr/Ps shuffling, one add, one square root, one lamp display — with 3 and 4 queued, the lamps stamp <b>5</b>. One formula, automated end to end: exactly the civil-engineering arithmetic Zuse was sick of doing by hand.'
+  },
+  flutter: {
+    program: P('Lu|Ps 2|Pr 2|Pr 2|Lm|Pr 1|Lm|Pr 3|Lm|Ld'),
+    queue: '10, 20, 30, 40', mem: {1:1.225, 3:0.5}, loop: true,
+    caption: '<b>Wing-flutter table — dynamic pressure q = ½·ρ·v².</b> Air density ρ = 1.225 sits in Z1, the constant ½ in Z3, and a queue of airspeeds feeds Lu. With the tape glued into a loop, one 10-frame program stamps out a whole table: 61.25, 245, 551.3, 980. The DVL used Z-machines for exactly this — aerodynamic formula tables, the same job as filling a spreadsheet column.'
+  },
+  quad: {
+    program: P('Pr 2|Pr 2|Lm|Ps 6|Pr 4|Pr 1|Lm|Pr 3|Lm|Ps 7|Pr 6|Pr 7|Ls2|Lw|Pr 2|Ls2|Ps 9|Pr 5|Pr 1|Lm|Ps 10|Pr 9|Pr 10|Li|Ld'),
+    queue: '', mem: {1:1, 2:-3, 3:2, 4:4, 5:2}, loop: false,
+    caption: '<b>Quadratic root x = (−b + √(b²−4ac)) / 2a.</b> With a=1, b=−3, c=2 in Z1–Z3 (constants 4 and 2 in Z4, Z5), the lamps show <b>x = 2</b> — a multi-step formula with a square root was luxury computing in 1941. Now notice what’s <em>missing</em>: the machine cannot check the discriminant’s sign and choose a path — no conditional branch. Try c = 3 (click Z3): the lamps blink <b>undefined</b> — Zuse’s exception, not a crash.'
+  }
+};
+document.querySelectorAll('.preset').forEach(b=>{
+  b.addEventListener('click', ()=>{
+    stopRun();
+    document.querySelectorAll('.preset').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+    const p=PRESETS[b.dataset.p];
+    state.presetKey=b.dataset.p;
+    state.program=p.program.map(i=>({...i}));
+    state.mem0=new Array(16).fill(0);
+    for(const k in p.mem) state.mem0[k-1]=p.mem[k];
+    queueField.value=p.queue;
+    if(state.loop!==p.loop) btnLoop.click();
+    presetCaption.innerHTML=p.caption;
+    reset();
+    setStatus('Preset tape punched ('+state.program.length+' frames). Press ▶ Run.','info');
+  });
+});
+
+/* ============================ init ============================ */
+setEditing(true);
+renderAll();
+})();
+</script>
+</body>
+</html>
