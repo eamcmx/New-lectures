@@ -402,7 +402,7 @@ async function send(text){
     if(res.status===401){
       errCard('<b>Key rejected (401).</b> Mistral did not accept that key — it may have been revoked or mis-pasted. Hit <b>Key…</b> above, forget it, and paste a fresh one from console.mistral.ai.');
     } else if(res.status===429){
-      errCard('<b>Rate limited (429).</b> The free tier is catching its breath — wait ~30 seconds and try again. Your message is still in the box of your memory, so just re-ask.');
+      errCard('<b>Rate limited (429).</b> The free tier is catching its breath — wait ~30 seconds, then send your question again.');
     } else if(!res.ok){
       errCard('<b>API error '+res.status+'.</b> Mistral answered but not happily. Wait a moment and try again; if it persists, check status at console.mistral.ai.');
     } else {

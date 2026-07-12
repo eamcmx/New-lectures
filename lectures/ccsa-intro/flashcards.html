@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Flashcards — Intro to Computer Systems Architecture</title>
+<style>
+:root{
+  --bg:#0e1117;
+  --panel:#161b26;
+  --panel2:#1c2230;
+  --ink:#e6e9f0;
+  --muted:#8b94a7;
+  --grid:#232b3b;
+  --axis:#4a5568;
+  --blue:#58c4dd;
+  --yellow:#ffd35a;
+  --red:#fc6255;
+  --green:#83c167;
+  --purple:#c688eb;
+  --orange:#ff9f4b;
+  --line:#2a3347;
+}
+*{box-sizing:border-box;}
+body{
+  margin:0;background:var(--bg);color:var(--ink);
+  font-family:'Segoe UI',system-ui,-apple-system,sans-serif;line-height:1.55;
+}
+.wrap{max-width:1100px;margin:0 auto;padding:24px;}
+header a.crumb{color:var(--muted);text-decoration:none;font-size:14px;}
+header a.crumb:hover{color:var(--blue);}
+h1{margin:10px 0 6px;font-size:30px;}
+.paal{
+  display:inline-block;font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--purple);border:1px solid var(--purple);border-radius:999px;
+  padding:3px 10px;opacity:.85;margin:2px 0 8px;
+}
+.subtitle{color:var(--muted);margin:6px 0 22px;max-width:760px;font-size:15px;}
+.math{font-family:Georgia,'Times New Roman',serif;font-style:italic;}
+
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 20px;}
+
+/* progress */
+.progress-row{display:flex;align-items:center;gap:12px;margin-bottom:16px;}
+.progress-bar{flex:1;height:8px;background:var(--panel2);border:1px solid var(--line);border-radius:999px;overflow:hidden;}
+.progress-fill{height:100%;width:0%;background:var(--blue);border-radius:999px;transition:width .4s ease;}
+.progress-label{color:var(--muted);font-size:13px;white-space:nowrap;}
+
+/* flashcard */
+.stage{display:flex;flex-direction:column;align-items:center;}
+.cardwrap{perspective:1200px;width:100%;max-width:640px;min-height:320px;position:relative;}
+.flashcard{
+  position:relative;width:100%;min-height:320px;cursor:pointer;
+  transform-style:preserve-3d;transition:transform .5s cubic-bezier(.4,.1,.2,1);
+}
+.flashcard.flipped{transform:rotateY(180deg);}
+.face{
+  position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;
+  background:var(--panel2);border:1px solid var(--line);border-radius:16px;
+  padding:22px 26px;display:flex;flex-direction:column;
+}
+.face.back{transform:rotateY(180deg);border-color:var(--axis);}
+.face .body{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;gap:12px;}
+.face .prompt{font-size:21px;line-height:1.45;}
+.face .keyfact{font-size:19px;line-height:1.5;font-weight:600;max-width:520px;}
+.face .clarify{color:var(--muted);font-size:15px;max-width:500px;}
+.face .hint{color:var(--muted);font-size:12.5px;text-align:center;margin-top:10px;}
+.topic-tag{
+  align-self:flex-start;font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;
+  border:1px solid;border-radius:999px;padding:2px 10px;opacity:.9;
+}
+.topic-foundations{color:var(--blue);border-color:var(--blue);}
+.topic-early{color:var(--yellow);border-color:var(--yellow);}
+.topic-first{color:var(--red);border-color:var(--red);}
+.topic-modern{color:var(--green);border-color:var(--green);}
+
+/* grade buttons */
+.grade-row{
+  display:flex;gap:14px;margin-top:18px;min-height:46px;align-items:center;justify-content:center;
+  opacity:0;pointer-events:none;transition:opacity .3s ease .25s;
+}
+.grade-row.show{opacity:1;pointer-events:auto;}
+button{
+  background:var(--panel2);border:1px solid var(--line);color:var(--ink);
+  border-radius:9px;padding:8px 14px;cursor:pointer;font-size:15px;font-family:inherit;
+}
+button:hover{border-color:var(--blue);}
+button.again{border-color:rgba(252,98,85,.5);}
+button.again:hover{border-color:var(--red);color:var(--red);background:rgba(252,98,85,.08);}
+button.gotit{border-color:rgba(131,193,103,.5);}
+button.gotit:hover{border-color:var(--green);color:var(--green);background:rgba(131,193,103,.08);}
+button.primary{border-color:var(--blue);color:var(--blue);background:rgba(88,196,221,.08);}
+.kbd{
+  display:inline-block;border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;
+  padding:0 6px;font-size:11.5px;color:var(--muted);font-family:inherit;margin-left:6px;
+}
+
+/* leitner bins */
+.bins{display:flex;gap:14px;margin-top:22px;width:100%;max-width:640px;}
+.bin{
+  flex:1;background:var(--panel2);border:1px solid var(--line);border-radius:12px;
+  padding:10px 12px;text-align:center;transition:border-color .3s;
+}
+.bin .bin-name{font-size:12px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);}
+.bin .bin-count{font-size:22px;font-weight:600;margin-top:2px;transition:transform .2s;}
+.bin.b1 .bin-count{color:var(--red);}
+.bin.b2 .bin-count{color:var(--yellow);}
+.bin.b3 .bin-count{color:var(--green);}
+.bin.bumped{border-color:var(--blue);}
+.bin.bumped .bin-count{transform:scale(1.35);}
+.fly{
+  position:fixed;width:16px;height:16px;border-radius:50%;z-index:50;pointer-events:none;
+  transition:transform .55s cubic-bezier(.3,.7,.4,1),opacity .55s ease;
+}
+
+/* stats strip */
+.stats-row{
+  display:flex;flex-wrap:wrap;gap:10px 22px;align-items:center;
+  margin:18px 0;color:var(--muted);font-size:13.5px;
+}
+.stats-row .stat b{color:var(--ink);font-weight:600;}
+.stats-row .spacer{flex:1;}
+.stats-row button{font-size:13px;padding:5px 11px;color:var(--muted);}
+.stats-row button:hover{color:var(--red);border-color:var(--red);}
+
+/* end screen */
+.endscreen{display:none;width:100%;max-width:640px;text-align:center;}
+.endscreen h2{margin:4px 0 14px;font-size:22px;}
+.end-summary{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-bottom:20px;}
+.end-summary .chip{
+  background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:10px 16px;font-size:14px;
+}
+.end-summary .chip b{display:block;font-size:22px;font-weight:600;}
+.chip.c-graded b{color:var(--blue);}
+.chip.c-promoted b{color:var(--green);}
+.chip.c-again b{color:var(--red);}
+.barchart{
+  display:flex;align-items:flex-end;justify-content:center;gap:26px;height:130px;
+  margin:8px auto 6px;padding:0 10px;
+}
+.barchart .bar{width:64px;display:flex;flex-direction:column;justify-content:flex-end;height:100%;}
+.barchart .bar .fill{border-radius:6px 6px 0 0;min-height:3px;transition:height .8s cubic-bezier(.4,.1,.2,1);}
+.bar.b1 .fill{background:var(--red);}
+.bar.b2 .fill{background:var(--yellow);}
+.bar.b3 .fill{background:var(--green);}
+.barchart-labels{display:flex;justify-content:center;gap:26px;color:var(--muted);font-size:12.5px;margin-bottom:18px;}
+.barchart-labels span{width:64px;text-align:center;}
+.weakest{color:var(--muted);font-size:14.5px;margin:6px 0 18px;}
+.weakest a{color:var(--blue);text-decoration:none;}
+.weakest a:hover{text-decoration:underline;}
+.end-actions{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;}
+
+/* empty screen */
+.emptyscreen{display:none;width:100%;max-width:640px;text-align:center;color:var(--muted);}
+.emptyscreen p{font-size:15px;}
+
+/* insights */
+.insights{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin:26px 0;}
+@media (max-width:840px){.insights{grid-template-columns:1fr;}}
+.insights .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px;}
+.card h3{margin:0 0 8px;font-size:15px;}
+.card p{margin:0;color:var(--muted);font-size:14px;}
+.card p b{color:var(--ink);}
+
+footer{
+  color:var(--muted);font-size:13.5px;border-top:1px solid var(--line);
+  padding-top:18px;margin-top:10px;
+  display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;align-items:center;
+}
+footer .navlinks{display:flex;gap:22px;flex-wrap:wrap;}
+footer a{color:var(--muted);text-decoration:none;}
+footer a:hover{color:var(--blue);}
+
+@media (max-width:520px){
+  .face .prompt{font-size:18px;}
+  .face .keyfact{font-size:17px;}
+  .cardwrap,.flashcard{min-height:300px;}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <a class="crumb" href="./index.html">← Intro to Computer Systems Architecture</a>
+  <h1>Flashcards — the history, drilled</h1>
+  <div><span class="paal">PAAL · CourseForge session kit</span></div>
+  <p class="subtitle">Every date, machine, and definition from the lecture, in a Leitner box.
+  Click the card (or press <b>Space</b>) to flip, then grade yourself honestly:
+  <b>1</b> = Again, <b>2</b> = Got it. Cards you know climb toward Mastered and return less
+  often; cards you miss fall back to Learning and come around sooner. Your progress is saved
+  in this browser.</p>
+</header>
+
+<!-- ============ MAIN PANEL ============ -->
+<div class="panel">
+  <div class="progress-row">
+    <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+    <span class="progress-label" id="progressLabel">0 / 0</span>
+  </div>
+
+  <div class="stage">
+    <div class="cardwrap" id="cardwrap">
+      <div class="flashcard" id="flashcard" role="button" aria-label="Flashcard: click to flip" tabindex="0">
+        <div class="face front">
+          <span class="topic-tag" id="tagFront">foundations</span>
+          <div class="body"><div class="prompt" id="cardFront"></div></div>
+          <div class="hint">click or press <b>Space</b> to flip</div>
+        </div>
+        <div class="face back">
+          <span class="topic-tag" id="tagBack">foundations</span>
+          <div class="body">
+            <div class="keyfact" id="cardBackFact"></div>
+            <div class="clarify" id="cardBackClarify"></div>
+          </div>
+          <div class="hint" id="backHint">how did you do?</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grade-row" id="gradeRow">
+      <button class="again" id="btnAgain">✗ Again<span class="kbd">1</span></button>
+      <button class="gotit" id="btnGotit">✓ Got it<span class="kbd">2</span></button>
+    </div>
+
+    <!-- session end screen -->
+    <div class="endscreen" id="endscreen">
+      <h2>Session complete ✦</h2>
+      <div class="end-summary">
+        <div class="chip c-graded"><b id="sumGraded">0</b>cards graded</div>
+        <div class="chip c-promoted"><b id="sumPromoted">0</b>promoted</div>
+        <div class="chip c-again"><b id="sumAgain">0</b>back to box 1</div>
+      </div>
+      <div class="barchart" id="barchart">
+        <div class="bar b1"><div class="fill" id="bar1"></div></div>
+        <div class="bar b2"><div class="fill" id="bar2"></div></div>
+        <div class="bar b3"><div class="fill" id="bar3"></div></div>
+      </div>
+      <div class="barchart-labels"><span>Learning</span><span>Almost</span><span>Mastered</span></div>
+      <div class="weakest" id="weakest"></div>
+      <div class="end-actions">
+        <button class="primary" id="btnStudyAgain">Study again</button>
+      </div>
+    </div>
+
+    <!-- nothing due screen -->
+    <div class="emptyscreen" id="emptyscreen">
+      <h2 style="color:var(--ink)">Nothing due this session 🎉</h2>
+      <p>Your Almost and Mastered cards aren't scheduled yet — that's the spacing doing its job.
+      Come back after another session or two, or review everything now.</p>
+      <button class="primary" id="btnStudyAll">Review all 26 anyway</button>
+    </div>
+
+    <div class="bins" id="bins">
+      <div class="bin b1" id="bin1"><div class="bin-name">Box 1 · Learning</div><div class="bin-count" id="binCount1">0</div></div>
+      <div class="bin b2" id="bin2"><div class="bin-name">Box 2 · Almost</div><div class="bin-count" id="binCount2">0</div></div>
+      <div class="bin b3" id="bin3"><div class="bin-name">Box 3 · Mastered</div><div class="bin-count" id="binCount3">0</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ STATS STRIP ============ -->
+<div class="stats-row">
+  <span class="stat">Deck: <b>26</b> cards</span>
+  <span class="stat">Learning <b id="statB1">26</b> · Almost <b id="statB2">0</b> · Mastered <b id="statB3">0</b></span>
+  <span class="stat">Seen today: <b id="statToday">0</b></span>
+  <span class="stat">Sessions completed: <b id="statSessions">0</b></span>
+  <span class="spacer"></span>
+  <button id="btnReset">Reset progress</button>
+</div>
+
+<!-- ============ INSIGHTS ============ -->
+<section class="insights">
+  <div class="card">
+    <h3 style="color:var(--blue)">Retrieval beats rereading</h3>
+    <p>Notice the little effort right before you flip — that reach into memory is where learning
+    actually happens. Rereading the lecture feels smooth because recognition is easy; recalling
+    from a blank card what made the <b>Z3</b> different from the <b>ABC</b> is hard, and that
+    difficulty is precisely what writes the fact in. Always guess before you peek.</p>
+  </div>
+  <div class="card">
+    <h3 style="color:var(--yellow)">The boxes are honest</h3>
+    <p>A card you've "got" twice still comes back, just more slowly — box 2 every other session,
+    box 3 every fourth. That's not the system distrusting you; it's the system knowing that
+    forgetting is the default. Each return visit, spaced a bit wider, is what turns
+    "<b>ENIAC, 1945, 17,468 tubes</b>" from a phrase you recognize into one you own.</p>
+  </div>
+</section>
+
+<footer>
+  <span>Interactive companion to the lecture <em>Introduction to Computers &amp; Computer Systems
+  Architecture</em> · CCSA T1</span>
+  <span class="navlinks">
+    <a href="study-buddy.html">← Study Buddy</a>
+    <a href="./index.html">All explorations</a>
+    <a href="lecture.html">The Interactive Lecture →</a>
+  </span>
+</footer>
+
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* ---------- deck ---------- */
+/* topics: foundations (blue) · early (yellow) · first (red) · modern (green) */
+const DECK = [
+ /* FOUNDATIONS */
+ {id:"f1", topic:"foundations",
+  front:'Computer <b>architecture</b> describes…',
+  fact:'The programmer-visible system: ISA, registers, memory model, I/O.',
+  clarify:'"What it does" — the contract software can rely on.'},
+ {id:"f2", topic:"foundations",
+  front:'Computer <b>organization</b> describes…',
+  fact:'The physical implementation: circuits, gates, microarchitecture.',
+  clarify:'"How it’s built" — the machinery beneath the contract.'},
+ {id:"f3", topic:"foundations",
+  front:'The <b>ISA</b> is…',
+  fact:'The instruction set architecture — the hardware/software contract.',
+  clarify:'Instructions, opcodes, addressing modes, data types, registers.'},
+ {id:"f4", topic:"foundations",
+  front:'Name <b>four things</b> architecture specifies.',
+  fact:'ISA, memory organization, I/O mechanisms, parallel processing.',
+  clarify:'Plus the interconnect protocols (buses) that tie them together.'},
+ {id:"f5", topic:"foundations",
+  front:'Architecture vs organization: which changes with <b>new chip technology</b>?',
+  fact:'Organization changes; architecture stays fixed.',
+  clarify:'The stable architecture is why old software keeps working on new chips.'},
+
+ /* EARLY DEVICES */
+ {id:"e1", topic:"early",
+  front:'The <b>abacus</b> (~2500 BCE) — its modern echo?',
+  fact:'Columns = orders of magnitude ≈ register / positional storage.',
+  clarify:'The human operator plays the role of the control unit.'},
+ {id:"e2", topic:"early",
+  front:'The <b>Antikythera mechanism</b> — what was it?',
+  fact:'~100 BCE Greek geared analog computer that predicted eclipses.',
+  clarify:'Its bronze gears ≈ logic gates; the geartrain was mechanical software.'},
+ {id:"e3", topic:"early",
+  front:'The <b>astrolabe</b> — its modern echo?',
+  fact:'Analog measurement read to a scale ≈ analog-to-digital conversion.',
+  clarify:'The alidade turns a continuous angle into a discrete reading.'},
+ {id:"e4", topic:"early",
+  front:'The <b>slide rule</b> — what principle makes it work?',
+  fact:'Log scales: adding distances adds logarithms = multiplication.',
+  clarify:'Pure analog computation, used all the way into the Apollo era.'},
+ {id:"e5", topic:"early",
+  front:'The <b>Jacquard loom</b> (1801) — why does it matter to computing?',
+  fact:'Punch-card-controlled weaving: instructions stored as binary holes.',
+  clarify:'The program lived separately from the machine — a first.'},
+ {id:"e6", topic:"early",
+  front:'The <b>Hollerith tabulator</b> (1890) — what did it do, and what became of it?',
+  fact:'Electric punch-card counting for the US census.',
+  clarify:'Hollerith’s company became IBM in 1924.'},
+
+ /* FIRST COMPUTERS */
+ {id:"p1", topic:"first",
+  front:'<b>Difference Engine</b> vs <b>Analytical Engine</b> — the one-line contrast?',
+  fact:'Tabulator of polynomials by finite differences vs general-purpose programmable design.',
+  clarify:'The Analytical Engine had a Mill + Store + punched cards + branching.'},
+ {id:"p2", topic:"first",
+  front:'Ada Lovelace’s <b>Note G</b> (1843) — why is it famous?',
+  fact:'The first computer program: computing Bernoulli numbers.',
+  clarify:'She also saw computing reaching beyond numbers — music, symbols.'},
+ {id:"p3", topic:"first",
+  front:'Turing’s <b>1936</b> contribution?',
+  fact:'A formal model of computation: tape + head + rules.',
+  clarify:'Defined computability and its limits — and the universal machine.'},
+ {id:"p4", topic:"first",
+  front:'The <b>ABC</b> (1939) — first at what, limited how?',
+  fact:'First ELECTRONIC digital computing device (300+ vacuum tubes).',
+  clarify:'Not programmable — it solved only systems of linear equations.'},
+ {id:"p5", topic:"first",
+  front:'The <b>Z3</b> (1941) — first at what?',
+  fact:'First working PROGRAMMABLE automatic digital computer.',
+  clarify:'2,400 relays, binary floating point, punched film — but no branch instruction.'},
+ {id:"p6", topic:"first",
+  front:'The <b>Harvard Mark I</b> (1944) — what was it?',
+  fact:'IBM electromechanical giant: 750,000 parts, paper-tape programs.',
+  clarify:'Nicknamed "Bessie", it ground out math tables for the Navy.'},
+ {id:"p7", topic:"first",
+  front:'<b>ENIAC</b> (1945) — first at what, and the key numbers?',
+  fact:'First GENERAL-PURPOSE all-electronic computer: 17,468 tubes, 5,000 add/s.',
+  clarify:'Plugboard-programmed; built for artillery firing tables.'},
+ {id:"p8", topic:"first",
+  front:'Who <b>programmed</b> ENIAC?',
+  fact:'Six women: McNulty, Jennings, Snyder, Wescoff, Bilas, Lichterman.',
+  clarify:'Programming’s first practitioners — largely uncredited for decades.'},
+ {id:"p9", topic:"first",
+  front:'The <b>stored-program concept</b> (von Neumann, 1945)?',
+  fact:'Instructions AND data live in one memory, as numbers.',
+  clarify:'Reprogramming becomes loading, not rewiring.'},
+
+ /* MODERN ERA */
+ {id:"m1", topic:"modern",
+  front:'The <b>transistor</b> (1947) mattered because…',
+  fact:'It replaced vacuum tubes: smaller, faster, cooler, reliable.',
+  clarify:'Bell Labs — Bardeen, Brattain, Shockley.'},
+ {id:"m2", topic:"modern",
+  front:'The <b>integrated circuit</b> (1958–59)?',
+  fact:'Many transistors on one silicon chip (Kilby, Noyce).',
+  clarify:'The step that enabled mass miniaturization.'},
+ {id:"m3", topic:"modern",
+  front:'<b>Moore’s Law</b> — statement and status?',
+  fact:'Transistors per chip double ~every 2 years (1965/75).',
+  clarify:'An industry roadmap, not a law of physics.'},
+ {id:"m4", topic:"modern",
+  front:'The <b>Intel 4004</b> (1971) — why the milestone?',
+  fact:'First single-chip microprocessor.',
+  clarify:'It made personal computers possible (Altair 8800, 1975).'},
+ {id:"m5", topic:"modern",
+  front:'<b>CISC vs RISC</b> in one line?',
+  fact:'Few complex multi-cycle instructions vs many simple single-cycle pipelined ones.',
+  clarify:'Modern CPUs: a CISC contract on the outside, a RISC engine inside.'},
+ {id:"m6", topic:"modern",
+  front:'<b>Cloud</b> vs <b>edge</b> computing?',
+  fact:'On-demand centralized virtualized resources vs processing pushed near the data source.',
+  clarify:'Edge exists for latency — compute where the data is born.'}
+];
+
+const TOPIC_META = {
+  foundations:{label:"foundations",     cls:"topic-foundations", color:"#58c4dd",
+               links:[["lecture.html","The Interactive Lecture"],["cisc-risc.html","CISC vs RISC"]]},
+  early:      {label:"early devices",   cls:"topic-early",       color:"#ffd35a",
+               links:[["abacus.html","The Abacus"],["slide-rule.html","The Slide Rule"],
+                      ["punch-card.html","Punch Cards"],["timeline.html","The Timeline"]]},
+  first:      {label:"first computers", cls:"topic-first",       color:"#fc6255",
+               links:[["analytical-engine.html","The Analytical Engine"],["turing-machine.html","The Turing Machine"],
+                      ["abc.html","The ABC"],["z3.html","The Z3"],
+                      ["mark1.html","The Harvard Mark I"],["eniac.html","ENIAC"]]},
+  modern:     {label:"modern era",      cls:"topic-modern",      color:"#83c167",
+               links:[["moore.html","Moore’s Law"],["cisc-risc.html","CISC vs RISC"],
+                      ["stored-program.html","The Stored Program"]]}
+};
+
+const INTERVAL = {1:1, 2:2, 3:4};   /* sessions between reviews per box */
+const LS_KEY = "ccsa-cards-v1";
+
+/* ---------- persistence ---------- */
+function todayStr(){ return new Date().toISOString().slice(0,10); }
+
+function loadStore(){
+  let s = null;
+  try { s = JSON.parse(localStorage.getItem(LS_KEY)); } catch(e){ s = null; }
+  if (!s || typeof s !== "object" || !s.cards) s = {cards:{}, sessions:0, today:todayStr(), seenToday:[]};
+  if (s.today !== todayStr()){ s.today = todayStr(); s.seenToday = []; }
+  if (!Array.isArray(s.seenToday)) s.seenToday = [];
+  if (typeof s.sessions !== "number" || !isFinite(s.sessions)) s.sessions = 0;
+  DECK.forEach(c => {
+    const rec = s.cards[c.id];
+    if (!rec || typeof rec.box !== "number" || typeof rec.due !== "number" ||
+        rec.box < 1 || rec.box > 3){
+      s.cards[c.id] = {box:1, due:0};
+    }
+  });
+  return s;
+}
+function saveStore(){
+  try { localStorage.setItem(LS_KEY, JSON.stringify(store)); } catch(e){}
+}
+
+let store = loadStore();
+
+/* ---------- state ---------- */
+const state = {
+  queue: [],          /* card ids remaining this session */
+  current: null,      /* current card id */
+  flipped: false,
+  grading: false,     /* locked while fly animation runs */
+  finished: new Set(),/* ids finished this session (left the queue for good) */
+  dueTotal: 0,
+  graded: 0, promoted: 0, backToOne: 0,
+  mode: "idle"        /* idle | study | end | empty */
+};
+
+/* ---------- dom ---------- */
+const $ = id => document.getElementById(id);
+const flashcard = $("flashcard"), cardwrap = $("cardwrap");
+const gradeRow = $("gradeRow"), endscreen = $("endscreen"), emptyscreen = $("emptyscreen");
+
+/* ---------- helpers ---------- */
+function shuffle(a){
+  for (let i = a.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+function cardById(id){ return DECK.find(c => c.id === id); }
+function boxCounts(){
+  const n = {1:0, 2:0, 3:0};
+  DECK.forEach(c => n[store.cards[c.id].box]++);
+  return n;
+}
+
+/* ---------- rendering ---------- */
+function renderStats(){
+  const n = boxCounts();
+  $("statB1").textContent = n[1];
+  $("statB2").textContent = n[2];
+  $("statB3").textContent = n[3];
+  $("binCount1").textContent = n[1];
+  $("binCount2").textContent = n[2];
+  $("binCount3").textContent = n[3];
+  $("statToday").textContent = store.seenToday.length;
+  $("statSessions").textContent = store.sessions;
+}
+
+function renderProgress(){
+  const done = state.finished.size;
+  const total = Math.max(state.dueTotal, 1);
+  $("progressFill").style.width = (100 * done / total) + "%";
+  $("progressLabel").textContent = done + " / " + state.dueTotal;
+}
+
+function showCard(id){
+  const c = cardById(id);
+  const meta = TOPIC_META[c.topic];
+  state.current = id;
+  state.flipped = false;
+  state.grading = false;
+  flashcard.classList.remove("flipped");
+  gradeRow.classList.remove("show");
+  const tf = $("tagFront"), tb = $("tagBack");
+  tf.textContent = meta.label; tb.textContent = meta.label;
+  tf.className = "topic-tag " + meta.cls;
+  tb.className = "topic-tag " + meta.cls;
+  $("cardFront").innerHTML = c.front;
+  $("cardBackFact").innerHTML = c.fact;
+  $("cardBackClarify").innerHTML = c.clarify;
+  $("backHint").innerHTML = 'grade yourself — <b>1</b> Again · <b>2</b> Got it';
+  /* seen today */
+  if (store.seenToday.indexOf(id) === -1){ store.seenToday.push(id); saveStore(); }
+  renderStats();
+  renderProgress();
+}
+
+function setMode(mode){
+  state.mode = mode;
+  cardwrap.style.display   = mode === "study" ? "" : "none";
+  gradeRow.style.display   = mode === "study" ? "" : "none";
+  endscreen.style.display  = mode === "end"   ? "block" : "none";
+  emptyscreen.style.display= mode === "empty" ? "block" : "none";
+}
+
+/* ---------- session flow ---------- */
+function buildQueue(all){
+  const s = store.sessions;             /* current session index */
+  const due = DECK.filter(c => all || store.cards[c.id].due <= s).map(c => c.id);
+  return shuffle(due);
+}
+
+function startSession(all){
+  state.queue = buildQueue(!!all);
+  state.finished = new Set();
+  state.dueTotal = state.queue.length;
+  state.graded = 0; state.promoted = 0; state.backToOne = 0;
+  if (state.queue.length === 0){ setMode("empty"); renderStats(); return; }
+  setMode("study");
+  showCard(state.queue.shift());
+}
+
+function flip(){
+  if (state.mode !== "study" || state.flipped || state.grading) return;
+  state.flipped = true;
+  flashcard.classList.add("flipped");
+  gradeRow.classList.add("show");
+}
+
+function grade(gotIt){
+  if (state.mode !== "study" || !state.flipped || state.grading) return;
+  state.grading = true;
+  const id = state.current;
+  const rec = store.cards[id];
+  state.graded++;
+  if (gotIt){
+    if (rec.box < 3){ rec.box++; state.promoted++; }
+    rec.due = store.sessions + INTERVAL[rec.box];
+    state.finished.add(id);           /* leaves the session for good */
+  } else {
+    if (rec.box !== 1) state.backToOne++;
+    rec.box = 1;
+    rec.due = store.sessions + 1;
+    state.queue.push(id);             /* comes back later this session */
+  }
+  saveStore();
+  flyToBin(rec.box, cardById(id).topic);
+  renderProgress();
+  setTimeout(nextCard, 620);
+}
+
+function nextCard(){
+  if (state.mode !== "study") return;
+  if (state.queue.length === 0){ endSession(); return; }
+  showCard(state.queue.shift());
+}
+
+function endSession(){
+  store.sessions++;
+  saveStore();
+  setMode("end");
+  renderStats();
+  $("sumGraded").textContent = state.graded;
+  $("sumPromoted").textContent = state.promoted;
+  $("sumAgain").textContent = state.backToOne;
+  /* mini bar chart */
+  const n = boxCounts();
+  const mx = Math.max(n[1], n[2], n[3], 1);
+  requestAnimationFrame(() => {
+    $("bar1").style.height = (100 * n[1] / mx) + "%";
+    $("bar2").style.height = (100 * n[2] / mx) + "%";
+    $("bar3").style.height = (100 * n[3] / mx) + "%";
+  });
+  /* weakest topic → links */
+  let worst = null, worstScore = Infinity;
+  Object.keys(TOPIC_META).forEach(t => {
+    const cards = DECK.filter(c => c.topic === t);
+    const avg = cards.reduce((a,c) => a + store.cards[c.id].box, 0) / cards.length;
+    if (avg < worstScore){ worstScore = avg; worst = t; }
+  });
+  const meta = TOPIC_META[worst];
+  const links = meta.links.slice(0, 3)
+    .map(l => '<a href="' + l[0] + '">' + l[1] + '</a>').join(" · ");
+  $("weakest").innerHTML =
+    'Weakest topic right now: <b style="color:' + meta.color + '">' + meta.label +
+    '</b> — revisit the interactives: ' + links;
+}
+
+/* ---------- fly-to-bin animation ---------- */
+function flyToBin(box, topic){
+  const bin = $("bin" + box);
+  const from = flashcard.getBoundingClientRect();
+  const to = bin.getBoundingClientRect();
+  const el = document.createElement("div");
+  el.className = "fly";
+  el.style.background = TOPIC_META[topic].color;
+  el.style.left = (from.left + from.width / 2 - 8) + "px";
+  el.style.top  = (from.top + from.height / 2 - 8) + "px";
+  document.body.appendChild(el);
+  const dx = (to.left + to.width / 2) - (from.left + from.width / 2);
+  const dy = (to.top + to.height / 2) - (from.top + from.height / 2);
+  requestAnimationFrame(() => {
+    el.style.transform = "translate(" + dx + "px," + dy + "px) scale(.4)";
+    el.style.opacity = "0.15";
+  });
+  setTimeout(() => {
+    el.remove();
+    bin.classList.add("bumped");
+    renderStats();
+    setTimeout(() => bin.classList.remove("bumped"), 260);
+  }, 560);
+}
+
+/* ---------- events ---------- */
+flashcard.addEventListener("click", flip);
+
+$("btnAgain").addEventListener("click", e => { e.stopPropagation(); grade(false); });
+$("btnGotit").addEventListener("click", e => { e.stopPropagation(); grade(true); });
+$("btnStudyAgain").addEventListener("click", () => startSession(false));
+$("btnStudyAll").addEventListener("click", () => startSession(true));
+
+$("btnReset").addEventListener("click", () => {
+  if (!confirm("Reset all flashcard progress? Every card returns to Box 1 and session history is cleared.")) return;
+  try { localStorage.removeItem(LS_KEY); } catch(e){}
+  store = loadStore();
+  saveStore();
+  startSession(false);
+});
+
+document.addEventListener("keydown", e => {
+  if (e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA")) return;
+  if (e.key === " " || e.code === "Space"){
+    e.preventDefault();
+    if (state.mode === "study") flip();
+    else if (state.mode === "end") startSession(false);
+  } else if (e.key === "1"){
+    grade(false);
+  } else if (e.key === "2"){
+    grade(true);
+  } else if (e.key === "ArrowRight"){
+    if (state.mode === "study" && state.flipped && !state.grading){
+      /* skip without grading: card returns later this session */
+      state.queue.push(state.current);
+      nextCard();
+    }
+  }
+});
+
+/* ---------- go ---------- */
+renderStats();
+startSession(false);
+})();
+</script>
+</body>
+</html>
