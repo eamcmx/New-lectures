@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Formative Quiz — Intro to Computer Systems Architecture</title>
+<style>
+:root{
+  --bg:#0e1117; --panel:#161b26; --panel2:#1c2230; --ink:#e6e9f0; --muted:#8b94a7;
+  --grid:#232b3b; --axis:#4a5568; --blue:#58c4dd; --yellow:#ffd35a; --red:#fc6255;
+  --green:#83c167; --purple:#c688eb; --orange:#ff9f4b; --line:#2a3347;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:'Segoe UI',system-ui,-apple-system,sans-serif;line-height:1.55}
+.wrap{max-width:1100px;margin:0 auto;padding:24px}
+a{color:var(--blue);text-decoration:none}
+a:hover{text-decoration:underline}
+header a.crumb{color:var(--muted);font-size:14px}
+header a.crumb:hover{color:var(--blue);text-decoration:none}
+h1{margin:10px 0 6px;font-size:32px;letter-spacing:.3px}
+.paal{display:inline-block;font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--purple);border:1px solid var(--purple);border-radius:999px;padding:3px 10px;margin:2px 0 10px}
+.subtitle{color:var(--muted);max-width:75ch;margin:0 0 22px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin-bottom:22px}
+.math{font-family:Georgia,'Times New Roman',serif;font-style:italic}
+button{background:var(--panel2);border:1px solid var(--line);color:var(--ink);border-radius:9px;padding:8px 14px;cursor:pointer;font-size:14px;font-family:inherit}
+button:hover{border-color:var(--blue)}
+button.primary{border-color:var(--blue);color:var(--blue);background:rgba(88,196,221,.08);font-weight:600;padding:11px 24px;font-size:15px}
+button.primary:hover{background:rgba(88,196,221,.16)}
+
+/* ---- landing ---- */
+#landing{text-align:center;padding:40px 20px 44px}
+#landing h2{font-size:15px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);margin:0 0 18px}
+.facts{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin:0 0 26px}
+.fact{background:var(--panel2);border:1px solid var(--line);border-radius:11px;padding:12px 18px;min-width:130px}
+.fact .big{font-size:24px;font-weight:700;display:block}
+.fact .lbl{font-size:12px;color:var(--muted);letter-spacing:.05em;text-transform:uppercase}
+.fact.blue .big{color:var(--blue)} .fact.yellow .big{color:var(--yellow)}
+.fact.green .big{color:var(--green)} .fact.purple .big{color:var(--purple)}
+#bestNote{color:var(--muted);font-size:13px;margin:16px 0 0}
+#bestNote b{color:var(--yellow);font-style:normal}
+
+/* ---- quiz ---- */
+#quiz{display:none}
+.dots{display:flex;gap:7px;flex-wrap:wrap;margin:0 0 18px}
+.dot{width:13px;height:13px;border-radius:50%;background:var(--panel2);border:1.5px solid var(--axis);transition:all .25s}
+.dot.cur{border-color:var(--blue);box-shadow:0 0 0 3px rgba(88,196,221,.22)}
+.dot.ok{background:var(--green);border-color:var(--green)}
+.dot.bad{background:var(--red);border-color:var(--red)}
+.qmeta{color:var(--muted);font-size:13px;letter-spacing:.06em;text-transform:uppercase;margin:0 0 8px}
+.qtext{font-size:21px;font-weight:600;margin:0 0 18px;max-width:70ch}
+.opts{display:grid;gap:10px;max-width:760px}
+.opt{display:flex;gap:12px;align-items:flex-start;text-align:left;background:var(--panel2);border:1px solid var(--line);border-radius:11px;padding:12px 15px;font-size:15.5px;line-height:1.45;transition:border-color .15s,background .15s}
+.opt:hover:not(:disabled){border-color:var(--blue)}
+.opt:disabled{cursor:default;opacity:.55}
+.opt .key{flex:none;width:24px;height:24px;border-radius:7px;border:1px solid var(--axis);color:var(--muted);font-size:12.5px;display:flex;align-items:center;justify-content:center;margin-top:1px}
+.opt.right{border-color:var(--green);background:rgba(131,193,103,.10);opacity:1}
+.opt.right .key{border-color:var(--green);color:var(--green)}
+.opt.wrong{border-color:var(--red);background:rgba(252,98,85,.10);opacity:1}
+.opt.wrong .key{border-color:var(--red);color:var(--red)}
+.verdict{display:none;margin:18px 0 0;border-radius:11px;padding:12px 16px;font-size:15px;max-width:760px;animation:fadeUp .3s ease}
+.verdict.ok{display:block;border:1px solid var(--green);background:rgba(131,193,103,.08)}
+.verdict.bad{display:block;border:1px solid var(--red);background:rgba(252,98,85,.08)}
+.verdict b.v-ok{color:var(--green)} .verdict b.v-bad{color:var(--red)}
+.verdict .expl{color:var(--muted);display:block;margin-top:3px}
+@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+#nextBtn{display:none;margin-top:16px}
+.kbd-hint{color:var(--muted);font-size:12.5px;margin-top:20px}
+.kbd-hint kbd{border:1px solid var(--axis);border-radius:5px;padding:1px 6px;font-family:inherit;font-size:11.5px;color:var(--ink)}
+
+/* ---- results ---- */
+#results{display:none;text-align:center;padding:26px 16px 34px}
+#dialWrap{margin:6px auto 4px;width:190px;height:190px;position:relative}
+#dialWrap svg{transform:rotate(-90deg)}
+#dialPct{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+#dialPct .n{font-size:42px;font-weight:700;line-height:1}
+#dialPct .d{font-size:12.5px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;margin-top:4px}
+#scoreLine{font-size:17px;margin:8px 0 4px}
+#gateMsg{margin:14px auto 6px;max-width:640px;font-size:16px}
+#gateMsg.pass{color:var(--green);font-weight:600;font-size:18px}
+#gateMsg a{font-weight:600}
+#revisit{display:none;margin:16px auto 0;max-width:680px;text-align:left}
+#revisit h3{font-size:13.5px;text-transform:uppercase;letter-spacing:.1em;color:var(--yellow);margin:0 0 10px}
+#revisit ul{margin:0;padding-left:0;list-style:none;display:grid;gap:8px}
+#revisit li{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:9px 14px;font-size:14.5px}
+#revisit li .miss{color:var(--muted);font-size:13px;display:block}
+#resultBtns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:24px}
+#bestLine{color:var(--muted);font-size:13px;margin-top:16px}
+#bestLine b{color:var(--yellow)}
+
+/* ---- review ---- */
+#review{display:none}
+.rv-item{border-bottom:1px solid var(--line);padding:16px 2px}
+.rv-item:last-of-type{border-bottom:none}
+.rv-q{font-weight:600;font-size:16.5px;margin:0 0 9px}
+.rv-q .tag{font-size:12px;border-radius:6px;padding:1px 8px;margin-right:8px;font-weight:600;vertical-align:1px}
+.rv-q .tag.ok{color:var(--green);border:1px solid var(--green)}
+.rv-q .tag.bad{color:var(--red);border:1px solid var(--red)}
+.rv-opts{display:grid;gap:6px;max-width:720px}
+.rv-opt{border:1px solid var(--line);border-radius:9px;padding:7px 12px;font-size:14px;color:var(--muted)}
+.rv-opt.right{border-color:var(--green);color:var(--ink);background:rgba(131,193,103,.08)}
+.rv-opt.picked-wrong{border-color:var(--red);color:var(--ink);background:rgba(252,98,85,.08)}
+.rv-expl{color:var(--muted);font-size:13.5px;margin:9px 0 0;max-width:72ch}
+#reviewBtns{margin-top:18px;display:flex;gap:12px;flex-wrap:wrap}
+
+#confetti{position:fixed;inset:0;pointer-events:none;z-index:50;display:none}
+
+footer{color:var(--muted);font-size:13.5px;margin-top:34px;border-top:1px solid var(--line);padding-top:16px}
+footer .nav{display:flex;justify-content:space-between;gap:14px;margin-top:10px;flex-wrap:wrap}
+@media(max-width:640px){h1{font-size:26px}.qtext{font-size:18px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <a class="crumb" href="./index.html">← Intro to Computer Systems Architecture</a>
+  <h1>Formative Quiz — prove the 80%</h1>
+  <span class="paal">PAAL · CourseForge session kit</span>
+  <p class="subtitle">Twelve questions on the whole arc — from Babbage's Mill to edge computing. Answer each one, read why, and score 80% or better to open the Worked Solutions gate. Questions and options reshuffle on every attempt.</p>
+</header>
+
+<div class="panel">
+
+  <!-- LANDING -->
+  <div id="landing">
+    <h2>Ready when you are</h2>
+    <div class="facts">
+      <div class="fact blue"><span class="big">12</span><span class="lbl">questions</span></div>
+      <div class="fact yellow"><span class="big">80%</span><span class="lbl">pass = 10 of 12</span></div>
+      <div class="fact green"><span class="big">✓</span><span class="lbl">unlocks Worked Solutions</span></div>
+      <div class="fact purple"><span class="big" id="bestBig">—</span><span class="lbl">best so far</span></div>
+    </div>
+    <button class="primary" id="startBtn">Start the quiz →</button>
+    <p id="bestNote">One question at a time · instant feedback · keys <b>1–4</b> to answer.</p>
+  </div>
+
+  <!-- QUIZ -->
+  <div id="quiz">
+    <div class="dots" id="dots"></div>
+    <p class="qmeta" id="qmeta"></p>
+    <p class="qtext" id="qtext"></p>
+    <div class="opts" id="opts"></div>
+    <div class="verdict" id="verdict"></div>
+    <button class="primary" id="nextBtn">Next question →</button>
+    <p class="kbd-hint">Keyboard: <kbd>1</kbd>–<kbd>4</kbd> pick an answer · <kbd>Enter</kbd> / <kbd>→</kbd> next</p>
+  </div>
+
+  <!-- RESULTS -->
+  <div id="results">
+    <div id="dialWrap">
+      <svg width="190" height="190" viewBox="0 0 190 190">
+        <circle cx="95" cy="95" r="78" fill="none" stroke="var(--grid)" stroke-width="13"/>
+        <circle id="dialArc" cx="95" cy="95" r="78" fill="none" stroke="var(--blue)" stroke-width="13"
+                stroke-linecap="round" stroke-dasharray="490.09" stroke-dashoffset="490.09"/>
+      </svg>
+      <div id="dialPct"><span class="n" id="dialNum">0%</span><span class="d" id="dialSub"></span></div>
+    </div>
+    <p id="scoreLine"></p>
+    <p id="gateMsg"></p>
+    <div id="revisit">
+      <h3>Revisit these before your next attempt</h3>
+      <ul id="revisitList"></ul>
+    </div>
+    <div id="resultBtns">
+      <button class="primary" id="retryBtn">Try again ↻</button>
+      <button id="reviewBtn">Review answers</button>
+    </div>
+    <p id="bestLine"></p>
+  </div>
+
+  <!-- REVIEW -->
+  <div id="review">
+    <p class="qmeta">Review — your attempt, question by question</p>
+    <div id="reviewList"></div>
+    <div id="reviewBtns">
+      <button class="primary" id="retryBtn2">Try again ↻</button>
+      <button id="backBtn">← Back to results</button>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  Interactive companion to the lecture <em>Introduction to Computers &amp; Computer Systems Architecture</em> · CCSA T1
+  <div class="nav">
+    <a href="./teacher-deck.html">← Teacher Deck</a>
+    <a href="./index.html">All explorations</a>
+    <a href="./worked-solutions.html">Worked Solutions →</a>
+  </div>
+</footer>
+</div>
+
+<canvas id="confetti"></canvas>
+
+<script>
+'use strict';
+/* Options: correct answer is always index 0 here; shuffled per attempt. */
+const QUESTIONS=[
+ {q:"Computer ARCHITECTURE deals with…",
+  o:["the programmer-visible behavior: ISA, registers, memory model",
+     "the gate-level circuit implementation",
+     "the chip fabrication process",
+     "the physical packaging"],
+  e:"Architecture = what it does; organization = how it's built.",
+  link:"lecture.html#s1", label:"Lecture S1 — Architecture vs organization"},
+ {q:"Which is an ORGANIZATION (not architecture) concern?",
+  o:["the microarchitecture and RTL circuit design",
+     "the instruction set",
+     "the addressing modes",
+     "the number of programmer-visible registers"],
+  e:"An implementation detail, invisible to software.",
+  link:"lecture.html#s1", label:"Lecture S1 — Architecture vs organization"},
+ {q:"The Analytical Engine's “Mill” and “Store” correspond to today's…",
+  o:["CPU and memory","keyboard and screen","compiler and linker","cache and disk"],
+  e:"Babbage split processing from storage in 1837.",
+  link:"analytical-engine.html", label:"The Analytical Engine"},
+ {q:"Ada Lovelace is celebrated as…",
+  o:["the author of the first computer program (Note G, Bernoulli numbers)",
+     "the builder of the Difference Engine",
+     "the inventor of punch cards",
+     "ENIAC's chief engineer"],
+  e:"She also foresaw computing beyond numbers.",
+  link:"analytical-engine.html", label:"The Analytical Engine"},
+ {q:"What made the Jacquard loom historically important for computing?",
+  o:["it stored instructions as binary hole patterns on punch cards",
+     "it performed arithmetic","it used electricity","it printed results"],
+  e:"The program was separated from the machine, 1801.",
+  link:"punch-card.html", label:"The Punch Card"},
+ {q:"Turing's 1936 paper established…",
+  o:["a formal model of computation and its limits (the Turing machine)",
+     "the first electronic computer","the transistor","floating-point arithmetic"],
+  e:"It defined what “computable” means.",
+  link:"turing-machine.html", label:"The Turing Machine"},
+ {q:"The Zuse Z3 (1941) was the first…",
+  o:["working programmable, fully automatic digital computer",
+     "electronic general-purpose computer",
+     "stored-program computer",
+     "transistorized computer"],
+  e:"Relays + punched film; ENIAC was the first general-purpose ELECTRONIC machine, and EDSAC-era machines were the first stored-program ones.",
+  link:"z3.html", label:"The Zuse Z3"},
+ {q:"ENIAC was originally built to…",
+  o:["compute artillery firing tables for the US Army",
+     "break Enigma codes","run the census","guide Apollo"],
+  e:"For the Ballistic Research Lab; a trajectory in ~30 s vs ~20 h by hand.",
+  link:"eniac.html", label:"ENIAC"},
+ {q:"Von Neumann's stored-program concept means…",
+  o:["instructions and data live in the same memory as numbers",
+     "programs are stored on punch cards",
+     "each program gets its own memory chip",
+     "the CPU stores results only in registers"],
+  e:"Reprogramming became loading, not rewiring.",
+  link:"stored-program.html", label:"The Stored-Program Machine"},
+ {q:"Moore's Law (1975 revision) observed that transistor counts per chip double roughly every…",
+  o:["two years","six months","five years","decade"],
+  e:"An industry roadmap, not a law of physics.",
+  link:"moore.html", label:"Moore's Law"},
+ {q:"RISC processors improve throughput by…",
+  o:["using few simple single-cycle instructions that pipeline well",
+     "adding more complex multi-cycle instructions",
+     "removing registers","avoiding compilers"],
+  e:"Patterson & Ditzel 1980; modern x86 decodes CISC into RISC-like micro-ops.",
+  link:"cisc-risc.html", label:"CISC vs RISC"},
+ {q:"Edge computing pushes processing…",
+  o:["closer to the data sources, away from central clouds",
+     "into the CPU's L1 cache","onto punch cards","into a single mainframe"],
+  e:"Lower latency and network load for IoT/5G.",
+  link:"lecture.html#s6", label:"Lecture S6 — The modern era"}
+];
+
+const N=QUESTIONS.length, PASS_PCT=80, KEY='ccsa-quiz-best';
+const state={order:[],optOrders:[],picks:[],idx:0,answered:false,finished:false};
+const $=id=>document.getElementById(id);
+const screens={landing:$('landing'),quiz:$('quiz'),results:$('results'),review:$('review')};
+
+function show(name){for(const k in screens)screens[k].style.display=(k===name)?'block':'none';}
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+function getBest(){const v=parseInt(localStorage.getItem(KEY),10);return Number.isFinite(v)?v:null;}
+function setBest(pct){const b=getBest();if(b===null||pct>b)localStorage.setItem(KEY,String(pct));} /* only ever raised */
+
+function refreshBestUI(){
+  const b=getBest();
+  $('bestBig').textContent=(b===null)?'—':b+'%';
+  if(b!==null&&b>=PASS_PCT)$('bestBig').style.color='var(--green)';
+}
+
+/* ---------- attempt flow ---------- */
+function startAttempt(){
+  state.order=shuffle([...Array(N).keys()]);
+  state.optOrders=state.order.map(qi=>shuffle([...Array(QUESTIONS[qi].o.length).keys()]));
+  state.picks=new Array(N).fill(null);   /* original option index picked */
+  state.idx=0;state.answered=false;state.finished=false;
+  buildDots();show('quiz');renderQuestion();
+}
+function buildDots(){
+  const d=$('dots');d.innerHTML='';
+  for(let i=0;i<N;i++){const s=document.createElement('span');s.className='dot';d.appendChild(s);}
+  paintDots();
+}
+function paintDots(){
+  [...$('dots').children].forEach((s,i)=>{
+    s.className='dot';
+    if(state.picks[i]!==null)s.classList.add(state.picks[i]===0?'ok':'bad');
+    if(i===state.idx&&!state.finished)s.classList.add('cur');
+  });
+}
+function renderQuestion(){
+  const qi=state.order[state.idx],Q=QUESTIONS[qi],om=state.optOrders[state.idx];
+  state.answered=false;
+  $('qmeta').textContent='Question '+(state.idx+1)+' of '+N;
+  $('qtext').textContent=Q.q;
+  const box=$('opts');box.innerHTML='';
+  om.forEach((oi,slot)=>{
+    const b=document.createElement('button');b.className='opt';b.dataset.oi=oi;
+    b.innerHTML='<span class="key">'+(slot+1)+'</span><span>'+Q.o[oi]+'</span>';
+    b.addEventListener('click',()=>answer(oi));
+    box.appendChild(b);
+  });
+  const v=$('verdict');v.className='verdict';v.innerHTML='';
+  $('nextBtn').style.display='none';
+  paintDots();
+}
+function answer(oi){
+  if(state.answered)return;
+  state.answered=true;state.picks[state.idx]=oi;
+  const Q=QUESTIONS[state.order[state.idx]],right=(oi===0);
+  [...$('opts').children].forEach(b=>{
+    b.disabled=true;const boi=+b.dataset.oi;
+    if(boi===0)b.classList.add('right');
+    else if(boi===oi)b.classList.add('wrong');
+  });
+  const v=$('verdict');
+  v.className='verdict '+(right?'ok':'bad');
+  v.innerHTML=(right?'<b class="v-ok">Correct ✓</b>':'<b class="v-bad">Not quite ✗</b>')+
+    '<span class="expl">'+Q.e+'</span>';
+  const nb=$('nextBtn');
+  nb.textContent=(state.idx===N-1)?'See results →':'Next question →';
+  nb.style.display='inline-block';
+  paintDots();
+}
+function next(){
+  if(!state.answered)return;
+  if(state.idx<N-1){state.idx++;renderQuestion();}
+  else finish();
+}
+
+/* ---------- results ---------- */
+function finish(){
+  state.finished=true;paintDots();
+  const correct=state.picks.filter(p=>p===0).length;
+  const pct=Math.round(correct/N*100);
+  const pass=pct>=PASS_PCT;
+  const prevBest=getBest();
+  const firstPass=pass&&(prevBest===null||prevBest<PASS_PCT);
+  setBest(pct);
+  show('results');
+  $('scoreLine').innerHTML='You got <b style="color:'+(pass?'var(--green)':'var(--yellow)')+'">'+
+    correct+' of '+N+'</b> correct.';
+  $('dialSub').textContent=correct+' / '+N;
+  const gm=$('gateMsg');
+  if(pass){
+    gm.className='pass';
+    gm.innerHTML='Gate open — Worked Solutions unlocked ✓ &nbsp;<a href="./worked-solutions.html">Go to Worked Solutions →</a>';
+    $('revisit').style.display='none';
+  }else{
+    gm.className='';
+    gm.innerHTML='Not there yet — the gate needs <b style="color:var(--yellow)">80%</b> (10 of 12). Brush up below, then try again.';
+    buildRevisit();$('revisit').style.display='block';
+  }
+  const b=getBest();
+  $('bestLine').innerHTML='Best so far: <b>'+b+'%</b> — saved on this device'+(b>=PASS_PCT?' · gate stays open':'')+'.';
+  animateDial(pct,pass);
+  if(firstPass)confettiBurst();
+  refreshBestUI();
+}
+function buildRevisit(){
+  const ul=$('revisitList');ul.innerHTML='';
+  const seen=new Map(); /* link -> {label, misses[]} */
+  state.picks.forEach((p,i)=>{
+    if(p===0)return;
+    const Q=QUESTIONS[state.order[i]];
+    if(!seen.has(Q.link))seen.set(Q.link,{label:Q.label,misses:[]});
+    seen.get(Q.link).misses.push(i+1);
+  });
+  for(const[link,info]of seen){
+    const li=document.createElement('li');
+    li.innerHTML='<a href="./'+link+'">'+info.label+' →</a>'+
+      '<span class="miss">missed question'+(info.misses.length>1?'s':'')+' '+info.misses.join(', ')+'</span>';
+    ul.appendChild(li);
+  }
+}
+function animateDial(pct,pass){
+  const arc=$('dialArc'),num=$('dialNum'),C=2*Math.PI*78;
+  arc.style.stroke=pass?'var(--green)':(pct>=50?'var(--yellow)':'var(--red)');
+  const t0=performance.now(),dur=1200;
+  (function step(now){
+    let t=Math.min(1,(now-t0)/dur);t=t*t*(3-2*t); /* smoothstep */
+    const p=pct*t;
+    arc.style.strokeDashoffset=C*(1-p/100);
+    num.textContent=Math.round(p)+'%';
+    if(t<1)requestAnimationFrame(step);
+  })(t0);
+}
+
+/* ---------- review ---------- */
+function buildReview(){
+  const box=$('reviewList');box.innerHTML='';
+  state.order.forEach((qi,i)=>{
+    const Q=QUESTIONS[qi],pick=state.picks[i],right=(pick===0);
+    const div=document.createElement('div');div.className='rv-item';
+    let html='<p class="rv-q"><span class="tag '+(right?'ok':'bad')+'">'+(right?'✓':'✗')+'</span>'+
+      (i+1)+'. '+Q.q+'</p><div class="rv-opts">';
+    state.optOrders[i].forEach(oi=>{
+      let cls='rv-opt';
+      if(oi===0)cls+=' right';
+      else if(oi===pick)cls+=' picked-wrong';
+      html+='<div class="'+cls+'">'+Q.o[oi]+(oi===0?' ✓':(oi===pick?' — your pick':''))+'</div>';
+    });
+    html+='</div><p class="rv-expl">'+Q.e+' &nbsp;<a href="./'+Q.link+'">'+Q.label+' →</a></p>';
+    div.innerHTML=html;box.appendChild(div);
+  });
+}
+
+/* ---------- confetti ---------- */
+function confettiBurst(){
+  const cv=$('confetti'),ctx=cv.getContext('2d'),dpr=window.devicePixelRatio||1;
+  cv.width=innerWidth*dpr;cv.height=innerHeight*dpr;cv.style.display='block';
+  ctx.scale(dpr,dpr);
+  const colors=['#58c4dd','#ffd35a','#fc6255','#83c167','#c688eb','#ff9f4b'];
+  const parts=[];
+  for(let i=0;i<170;i++){
+    const a=Math.random()*Math.PI*2,sp=3+Math.random()*7;
+    parts.push({x:innerWidth/2,y:innerHeight*0.38,
+      vx:Math.cos(a)*sp,vy:Math.sin(a)*sp-4,
+      w:5+Math.random()*6,h:3+Math.random()*4,
+      rot:Math.random()*Math.PI,vr:(Math.random()-.5)*.3,
+      c:colors[i%colors.length],life:1});
+  }
+  const t0=performance.now();
+  (function tick(now){
+    const dt=Math.min(32,now-(tick.last||now))/16.7;tick.last=now;
+    ctx.clearRect(0,0,innerWidth,innerHeight);
+    let alive=false;
+    for(const p of parts){
+      p.vy+=0.18*dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.rot+=p.vr*dt;
+      p.life-=0.006*dt;
+      if(p.life<=0||p.y>innerHeight+20)continue;
+      alive=true;
+      ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.rot);
+      ctx.globalAlpha=Math.max(0,Math.min(1,p.life*1.6));
+      ctx.fillStyle=p.c;ctx.fillRect(-p.w/2,-p.h/2,p.w,p.h);
+      ctx.restore();
+    }
+    if(alive&&now-t0<4200)requestAnimationFrame(tick);
+    else{ctx.clearRect(0,0,innerWidth,innerHeight);cv.style.display='none';}
+  })(t0);
+}
+
+/* ---------- wiring ---------- */
+$('startBtn').addEventListener('click',startAttempt);
+$('nextBtn').addEventListener('click',next);
+$('retryBtn').addEventListener('click',startAttempt);
+$('retryBtn2').addEventListener('click',startAttempt);
+$('reviewBtn').addEventListener('click',()=>{buildReview();show('review');});
+$('backBtn').addEventListener('click',()=>show('results'));
+
+document.addEventListener('keydown',ev=>{
+  if(ev.metaKey||ev.ctrlKey||ev.altKey)return;
+  if(screens.landing.style.display!=='none'&&ev.key==='Enter'){startAttempt();return;}
+  if(screens.quiz.style.display==='none'||screens.quiz.style.display==='')return;
+  if(!state.answered&&ev.key>='1'&&ev.key<='4'){
+    const slot=+ev.key-1,om=state.optOrders[state.idx];
+    if(slot<om.length)answer(om[slot]);
+  }else if(state.answered&&(ev.key==='Enter'||ev.key===' '||ev.key==='ArrowRight')){
+    ev.preventDefault();next();
+  }
+});
+
+show('landing');
+refreshBestUI();
+window.addEventListener('storage',refreshBestUI);
+window.addEventListener('focus',refreshBestUI);
+</script>
+</body>
+</html>
