@@ -66,7 +66,7 @@ canvas{display:block;width:100%;border-radius:6px}
 #chainCv{height:470px;touch-action:none;cursor:crosshair}
 #fabricCv{height:470px}
 #readerCv{height:210px}
-#dialCv{height:190px}
+#dialCv{height:135px}
 .caption{color:var(--muted);font-size:14px;margin:12px 2px 0;max-width:860px}
 .caption b{color:var(--ink);font-weight:600}
 .legend{display:flex;gap:16px;flex-wrap:wrap;color:var(--muted);font-size:13px;margin:10px 2px 0}
@@ -770,7 +770,8 @@ function drawReader(){
   }
 
   const xs = holeXs(readerX, cardW);
-  const labels = ['AGE','OCCUPATION','REGION'], groupsMid = [(xs[0]+xs[2])/2,(xs[3]+xs[5])/2,(xs[6]+xs[9])/2];
+  const labels = cardW < 260 ? ['AGE','OCC','REG'] : ['AGE','OCCUPATION','REGION'];
+  const groupsMid = [(xs[0]+xs[2])/2,(xs[3]+xs[5])/2,(xs[6]+xs[9])/2];
   ctx.fillStyle = C.axis; ctx.font = '9.5px system-ui,sans-serif';
   for(let g=0;g<3;g++) ctx.fillText(labels[g], groupsMid[g], cardY + cardH + 16);
 
@@ -809,7 +810,7 @@ function drawReader(){
   if(inStation && card) punchedNow = [card.a, 3+card.o, 6+card.r];
   for(let i=0;i<10;i++){
     const isHole = punchedNow && punchedNow.indexOf(i) !== -1;
-    const drop = press * (isHole ? 34 : 24);   // through the hole vs stopped by cardboard
+    const drop = 5 + press * (isHole ? 30 : 20);   // through the hole vs stopped by cardboard
     const tipY = pinTop + drop;
     ctx.strokeStyle = isHole && flash>0 ? C.yellow : C.axis;
     ctx.lineWidth = 2.5;
@@ -849,7 +850,7 @@ function drawDials(){
   const twoRows = w < 620;
   const perRow = twoRows ? 5 : 10;
   const rows = twoRows ? 2 : 1;
-  const wantH = twoRows ? 330 : 190;
+  const wantH = twoRows ? 265 : 135;
   if(Math.abs(parseFloat(dialCv.style.height||'0') - wantH) > 1){
     dialCv.style.height = wantH + 'px';
     return; // re-fit next frame
