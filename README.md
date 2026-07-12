@@ -90,6 +90,21 @@ Thirteen interactive explorations for the introduction lecture — the road from
 | ↳ | 12 · Moore's Law (real transistor counts, linear/log reveal) | [Open](https://eamcmx.github.io/New-lectures/lectures/ccsa-intro/moore.html) |
 | ↳ | 13 · CISC vs RISC (pipeline race) | [Open](https://eamcmx.github.io/New-lectures/lectures/ccsa-intro/cisc-risc.html) |
 
+### CourseForge PAAL session kit (CCSA T1)
+
+The full CourseForge per-session package around the 13 labs. Mounting guide: [`MOUNTING.md`](lectures/ccsa-intro/MOUNTING.md). The teacher deck and the hidden instructor key are teacher-only (the key needs the instructor code).
+
+| Kit part | Page | Published page |
+|----------|------|----------------|
+| 📖 Interactive lecture | `lecture.html` — all 7 sections, 13 labs woven in, self-checks | [Open](https://eamcmx.github.io/New-lectures/lectures/ccsa-intro/lecture.html) |
+| 🎓 Teacher deck | `teacher-deck.html` — 36 slides, speaker notes (N), fullscreen (F) | [Open](https://eamcmx.github.io/New-lectures/lectures/ccsa-intro/teacher-deck.html) |
+| ✅ Formative quiz | `quiz.html` — 12 questions, 80% gate | [Open](https://eamcmx.github.io/New-lectures/lectures/ccsa-intro/quiz.html) |
+| 🔓 Worked solutions | `worked-solutions.html` — 5 exercises, unlocked by the quiz | [Open](https://eamcmx.github.io/New-lectures/lectures/ccsa-intro/worked-solutions.html) |
+| 🤖 Prompt Studio | `prompt-studio.html` — PAAL guided AI prompts | [Open](https://eamcmx.github.io/New-lectures/lectures/ccsa-intro/prompt-studio.html) |
+| 💬 Study Buddy | `study-buddy.html` — Socratic in-page tutor (own Mistral key) | [Open](https://eamcmx.github.io/New-lectures/lectures/ccsa-intro/study-buddy.html) |
+| 🃏 Flashcards | `flashcards.html` — 26 cards, Leitner boxes | [Open](https://eamcmx.github.io/New-lectures/lectures/ccsa-intro/flashcards.html) |
+| 🗝 Instructor key | `instructor-key.html` — unlisted; quiz key, runbook, misconceptions | *teacher-only, code required* |
+
 ---
 
 *Pages are served from the `main` branch via GitHub Pages. To add a new lecture, drop an `index.html` into a new folder under `lectures/` and add a row to the table above.*

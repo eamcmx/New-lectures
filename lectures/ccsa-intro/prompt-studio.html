@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prompt Studio — Intro to Computer Systems Architecture</title>
+<style>
+:root{
+  --bg:#0e1117;
+  --panel:#161b26;
+  --panel2:#1c2230;
+  --ink:#e6e9f0;
+  --muted:#8b94a7;
+  --grid:#232b3b;
+  --axis:#4a5568;
+  --blue:#58c4dd;
+  --yellow:#ffd35a;
+  --red:#fc6255;
+  --green:#83c167;
+  --purple:#c688eb;
+  --orange:#ff9f4b;
+  --line:#2a3347;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  background:var(--bg);color:var(--ink);
+  font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
+  line-height:1.55;
+}
+.wrap{max-width:1100px;margin:0 auto;padding:24px}
+.math{font-family:Georgia,'Times New Roman',serif;font-style:italic}
+header{margin-bottom:22px}
+header a.crumb{color:var(--muted);text-decoration:none;font-size:14px}
+header a.crumb:hover{color:var(--blue)}
+h1{font-size:30px;margin:10px 0 8px;font-weight:650}
+.paal{
+  display:inline-block;font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--purple);border:1px solid var(--purple);border-radius:999px;
+  padding:3px 10px;opacity:.85;margin-bottom:10px;
+}
+.subtitle{color:var(--muted);max-width:820px;font-size:15px}
+.panel{
+  background:var(--panel);border:1px solid var(--line);
+  border-radius:14px;padding:18px 20px;margin-bottom:20px;
+}
+h2{font-size:20px;font-weight:650;margin-bottom:6px}
+h2 .tag{font-size:12px;color:var(--muted);font-weight:400;margin-left:8px;letter-spacing:.04em}
+.lede{color:var(--muted);font-size:14.5px;max-width:860px;margin-bottom:14px}
+.lede strong{color:var(--ink);font-weight:600}
+
+/* traffic-light rubric */
+.lights{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:14px}
+@media(max-width:760px){.lights{grid-template-columns:1fr}}
+.light{
+  background:var(--panel2);border:1px solid var(--line);border-radius:12px;
+  padding:13px 15px;font-size:13.5px;color:var(--muted);
+}
+.light b{display:block;font-size:14px;margin-bottom:4px}
+.light.g{border-left:3px solid var(--green)} .light.g b{color:var(--green)}
+.light.y{border-left:3px solid var(--yellow)} .light.y b{color:var(--yellow)}
+.light.r{border-left:3px solid var(--red)} .light.r b{color:var(--red)}
+
+/* recipe builder */
+.recipe{display:grid;grid-template-columns:minmax(280px,420px) 1fr;gap:20px}
+@media(max-width:860px){.recipe{grid-template-columns:1fr}}
+.field{margin-bottom:13px}
+.field label{display:block;font-size:12.5px;letter-spacing:.05em;text-transform:uppercase;
+  color:var(--muted);margin-bottom:5px}
+.field .fixed{
+  background:var(--panel2);border:1px dashed var(--line);border-radius:9px;
+  padding:9px 12px;font-size:14px;color:var(--ink);
+}
+select,input[type="text"]{
+  width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--ink);
+  border-radius:9px;padding:9px 12px;font-size:14px;font-family:inherit;cursor:pointer;
+}
+input[type="text"]{cursor:text}
+select:focus,input[type="text"]:focus{outline:none;border-color:var(--blue)}
+select:hover{border-color:var(--blue)}
+#nRow{display:none}
+#nRow.show{display:block}
+.promptbox{
+  background:var(--panel2);border:1px solid var(--line);border-radius:12px;
+  padding:16px 18px;font-family:ui-monospace,'Cascadia Code',Consolas,Menlo,monospace;
+  font-size:13.2px;line-height:1.6;white-space:pre-wrap;color:var(--ink);
+  min-height:280px;max-height:460px;overflow-y:auto;
+}
+.outhead{display:flex;align-items:center;justify-content:space-between;gap:10px;
+  margin-bottom:8px;flex-wrap:wrap}
+.outhead span{font-size:12.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+button{
+  background:var(--panel2);border:1px solid var(--line);color:var(--ink);
+  border-radius:9px;padding:8px 14px;cursor:pointer;font-size:14px;
+  font-family:inherit;transition:border-color .15s,color .15s,background .15s;
+}
+button:hover{border-color:var(--blue)}
+button.active{border-color:var(--blue);color:var(--blue);background:rgba(88,196,221,.08)}
+button.good{border-color:var(--green);color:var(--green);background:rgba(131,193,103,.08)}
+.btnrow{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+a.buddy{
+  display:inline-block;background:var(--panel2);border:1px solid var(--line);
+  color:var(--ink);border-radius:9px;padding:8px 14px;font-size:14px;
+  text-decoration:none;transition:border-color .15s,color .15s;
+}
+a.buddy:hover{border-color:var(--purple);color:var(--purple)}
+.hint{font-size:12.5px;color:var(--muted);margin-top:8px}
+
+/* gallery accordion */
+.acc{border:1px solid var(--line);border-radius:11px;margin-bottom:10px;overflow:hidden;
+  background:var(--panel2)}
+.acc summary{
+  list-style:none;cursor:pointer;padding:12px 16px;font-size:14.5px;font-weight:600;
+  display:flex;align-items:center;gap:10px;user-select:none;
+}
+.acc summary::-webkit-details-marker{display:none}
+.acc summary .mode{
+  font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;
+  border:1px solid var(--line);border-radius:999px;padding:2px 9px;margin-left:auto;
+  white-space:nowrap;
+}
+.acc summary .arrow{color:var(--muted);transition:transform .2s;font-size:12px}
+.acc[open] summary .arrow{transform:rotate(90deg)}
+.acc summary:hover{color:var(--blue)}
+.accbody{padding:0 16px 14px}
+.accbody .promptbox{min-height:0;max-height:none;margin-bottom:10px}
+.mode.quiz{color:var(--blue);border-color:rgba(88,196,221,.5)}
+.mode.hunt{color:var(--red);border-color:rgba(252,98,85,.5)}
+.mode.talk{color:var(--yellow);border-color:rgba(255,211,90,.5)}
+.mode.match{color:var(--green);border-color:rgba(131,193,103,.5)}
+.mode.exam{color:var(--orange);border-color:rgba(255,159,75,.5)}
+.mode.debate{color:var(--purple);border-color:rgba(198,136,235,.5)}
+
+/* clinic */
+.pairhead{display:flex;align-items:baseline;gap:12px;margin:18px 0 10px;flex-wrap:wrap}
+.pairhead b{font-size:15px}
+.pairhead span{font-size:13px;color:var(--muted)}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:760px){.pair{grid-template-columns:1fr}}
+.pcard{
+  background:var(--panel2);border:1px solid var(--line);border-radius:12px;
+  padding:13px 15px;cursor:pointer;font-size:13.5px;transition:border-color .15s,background .15s;
+  position:relative;
+}
+.pcard .plabel{font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);
+  margin-bottom:6px}
+.pcard .ptext{font-family:ui-monospace,'Cascadia Code',Consolas,Menlo,monospace;
+  font-size:12.6px;line-height:1.55;color:var(--ink);white-space:pre-wrap}
+.pcard:hover{border-color:var(--blue)}
+.pcard.correct{border-color:var(--green);background:rgba(131,193,103,.08);cursor:default}
+.pcard.wrong{border-color:var(--red);background:rgba(252,98,85,.07);cursor:default}
+.pcard.dim{opacity:.55;cursor:default}
+.pcard .stamp{position:absolute;top:10px;right:12px;font-size:16px;display:none}
+.pcard.correct .stamp,.pcard.wrong .stamp{display:block}
+.verdictline{
+  margin-top:9px;padding:10px 13px;border-radius:9px;font-size:13.5px;display:none;
+  border:1px solid var(--line);background:var(--panel);color:var(--muted);
+}
+.verdictline.show{display:block}
+.verdictline b.ok{color:var(--green)} .verdictline b.no{color:var(--red)}
+.scorebar{
+  margin-top:18px;padding:13px 16px;border-radius:11px;border:1px solid var(--line);
+  background:var(--panel2);font-size:14.5px;display:flex;align-items:center;gap:14px;
+  flex-wrap:wrap;
+}
+.scorebar .num{font-size:20px;font-weight:650;color:var(--blue)}
+.scorebar .final{color:var(--yellow)}
+
+/* checklist */
+.checklist{list-style:none;margin-top:10px}
+.checklist li{
+  display:flex;gap:11px;align-items:flex-start;padding:9px 0;font-size:14px;
+  border-bottom:1px solid var(--line);color:var(--muted);
+}
+.checklist li:last-child{border-bottom:none}
+.checklist .tick{color:var(--green);flex:0 0 auto;font-size:15px;line-height:1.5}
+.checklist b{color:var(--ink);font-weight:600}
+.checklist a{color:var(--blue);text-decoration:none}
+.checklist a:hover{text-decoration:underline}
+
+/* insights */
+.insights{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px}
+@media(max-width:860px){.insights{grid-template-columns:1fr}}
+.insight{background:var(--panel);border:1px solid var(--line);border-radius:14px;
+  padding:16px 18px;font-size:13.8px;color:var(--muted)}
+.insight h3{font-size:14.5px;margin-bottom:6px;font-weight:650}
+.insight.c1 h3{color:var(--blue)} .insight.c2 h3{color:var(--red)} .insight.c3 h3{color:var(--green)}
+
+footer{color:var(--muted);font-size:13px;margin-top:8px;padding-bottom:30px}
+footer .navrow{display:flex;justify-content:space-between;gap:12px;margin-top:10px;flex-wrap:wrap}
+footer a{color:var(--muted);text-decoration:none}
+footer a:hover{color:var(--blue)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <a class="crumb" href="./index.html">← Intro to Computer Systems Architecture</a>
+  <h1>Prompt Studio</h1>
+  <span class="paal">PAAL · CourseForge session kit</span>
+  <p class="subtitle">Learn computer history <em>with</em> an AI, not from it. Build a tutor-grade prompt below, copy it into Claude, ChatGPT, Le Chat — or send it straight to the Study Buddy page — and make the machine quiz <em>you</em> like the exam is real.</p>
+</header>
+
+<!-- 1 ▸ intro + traffic light -->
+<section class="panel">
+  <h2>Why prompts matter <span class="tag">the PAAL idea</span></h2>
+  <p class="lede">
+    The goal of using an AI in this course is not answers — it is <strong>calibrated practice</strong>: questions pitched just above your level, with your reasoning checked step by step.
+    A good prompt turns the AI into a coach that quizzes you on the machines and waits for you to commit; a lazy prompt turns it into a homework printer that quietly does the learning <em>for</em> you.
+    And one extra warning for this lecture: <strong>history is a hallucination hotspot</strong> — models confidently produce wrong dates and merge machines together — so every factual claim gets verified against your notes.
+  </p>
+  <div class="lights">
+    <div class="light g"><b>🟢 AI as coach</b>
+      Quiz me on the machines, check my Turing-machine trace, probe my architecture-vs-organization reasoning. Commit-before-reveal, one question at a time. This is where learning happens.</div>
+    <div class="light y"><b>🟡 AI as reference</b>
+      Dates, tube counts, specs. Usable — but models hallucinate history <em>constantly</em>: wrong years, merged machines, invented "firsts". Verify every claim against the lecture before you trust it.</div>
+    <div class="light r"><b>🔴 Avoid: AI as answer machine</b>
+      Pasting the assignment and copying the output = skill atrophy. You will meet the exam alone, and it does not accept screenshots of a chat.</div>
+  </div>
+</section>
+
+<!-- 2 ▸ recipe builder -->
+<section class="panel">
+  <h2>Prompt recipe builder <span class="tag">assembles live as you choose</span></h2>
+  <p class="lede">Pick the ingredients; the studio writes a best-practice prompt — role, task, interaction protocol, difficulty calibration, and a built-in verification clause — in the box on the right.</p>
+  <div class="recipe">
+    <div>
+      <div class="field">
+        <label for="selWho">I am a</label>
+        <select id="selWho">
+          <option value="a CS undergraduate">CS undergraduate</option>
+          <option value="an engineering student">engineering student</option>
+          <option value="a self-learner">self-learner</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>studying</label>
+        <div class="fixed">computer systems architecture — the history <span style="color:var(--muted)">(fixed — this lecture)</span></div>
+      </div>
+      <div class="field">
+        <label for="selTopic">Topic</label>
+        <select id="selTopic">
+          <option value="0">architecture vs organization</option>
+          <option value="1">early mechanical devices</option>
+          <option value="2">Babbage &amp; Lovelace</option>
+          <option value="3" selected>the first digital computers (Turing · ABC · Z3 · Mark I · ENIAC)</option>
+          <option value="4">the stored-program concept</option>
+          <option value="5">Moore's law &amp; microprocessors</option>
+          <option value="6">CISC vs RISC &amp; modern paradigms</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="selMode">I want the AI to</label>
+        <select id="selMode">
+          <option value="quiz" selected>quiz me — one at a time, wait for my answer</option>
+          <option value="check">check my reasoning — find my first wrong step</option>
+          <option value="explain">explain three ways: story · technical · modern echo</option>
+          <option value="interview">play a historical figure I can interview</option>
+          <option value="exam">give exam-style questions above my level</option>
+        </select>
+      </div>
+      <div class="field" id="nRow">
+        <label for="selN">Number of questions</label>
+        <select id="selN">
+          <option value="3">3</option>
+          <option value="5" selected>5</option>
+          <option value="8">8</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="selLevel">My current level</label>
+        <select id="selLevel">
+          <option value="0" selected>just read the lecture</option>
+          <option value="1">know the basics</option>
+          <option value="2">comfortable — want stretch</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="txtFocus">Specifically about… <span style="text-transform:none;letter-spacing:0">(optional)</span></label>
+        <input type="text" id="txtFocus" maxlength="160" placeholder="e.g. why the Z3's missing conditional branch matters">
+      </div>
+    </div>
+    <div>
+      <div class="outhead">
+        <span>Your prompt — copy into any AI</span>
+        <button id="btnCopy">📋 Copy</button>
+      </div>
+      <div class="promptbox" id="promptOut" aria-live="polite"></div>
+      <div class="btnrow">
+        <a class="buddy" id="buddyLink" href="./study-buddy.html">→ open Study Buddy with this prompt</a>
+      </div>
+      <p class="hint">The Study Buddy link stores this prompt locally so the next page starts pre-loaded. Nothing is sent anywhere.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 3 ▸ gallery -->
+<section class="panel">
+  <h2>Gallery — seven expert prompts <span class="tag">one per pillar of the lecture, six different modes</span></h2>
+  <p class="lede">Steal these. Each is tuned to the actual lecture content and shows a different way to make the AI work <em>you</em> harder.</p>
+  <div id="gallery"></div>
+</section>
+
+<!-- 4 ▸ clinic -->
+<section class="panel">
+  <h2>Prompt clinic <span class="tag">weak vs strong — you diagnose</span></h2>
+  <p class="lede">Two prompts walk into a chat. One will teach you something; the other will hand you a fluent essay full of unverifiable "facts" — or do your thinking for you. Click the <strong>stronger</strong> one in each pair.</p>
+  <div id="clinic"></div>
+  <div class="scorebar" id="scorebar">
+    <span class="num" id="scoreNum">0 / 4</span>
+    <span id="scoreVerdict">Diagnose all four pairs to get your verdict.</span>
+  </div>
+</section>
+
+<!-- 5 ▸ verification habit -->
+<section class="panel">
+  <h2>The verification habit <span class="tag">non-negotiable — especially for history</span></h2>
+  <ul class="checklist">
+    <li><span class="tick">✓</span><span><b>Dates and "firsts" are the classic AI failure.</b> Cross-check every "first computer" claim against the lecture's careful distinctions: first <em>electronic digital device</em> (ABC, 1939, not programmable) ≠ first <em>working programmable computer</em> (Z3, 1941) ≠ first <em>general-purpose all-electronic</em> (ENIAC, 1945) ≠ first <em>stored-program design</em> (von Neumann's 1945 EDVAC report). An AI that hands you one flat "first" has already failed the question.</span></li>
+    <li><span class="tick">✓</span><span><b>Watch for merged machines.</b> Models love blending details into one franken-computer — Mark I's paper tape on ENIAC, ENIAC's tube count on the Z3's relays. If a paragraph describes a machine, check each spec belongs to <em>that</em> machine.</span></li>
+    <li><span class="tick">✓</span><span><b>Ask the AI to argue the opposite.</b> "Now convince me the Z3 was <em>not</em> the first programmable computer." Whatever survives the counter-argument is what you actually understand — and fabricated facts rarely survive their own rebuttal.</span></li>
+    <li><span class="tick">✓</span><span><b>Numbers are checkable — check them.</b> If it says Moore's law takes the Intel 4004's 2,300 transistors to ~150 billion after 26 doublings, don't nod along: 2,300 × 2²⁶ is arithmetic you can do yourself (2¹⁰ ≈ 10³ makes it a ten-second estimate).</span></li>
+    <li><span class="tick">✓</span><span><b>Cross-check with the interactives</b> in this set: walk the <a href="./timeline.html">grand timeline</a>, run the <a href="./z3.html">Z3</a> and <a href="./eniac.html">ENIAC</a> pages, step the <a href="./stored-program.html">stored-program machine</a>, plot the <a href="./moore.html">Moore's-law curve</a>. Pixels don't hallucinate.</span></li>
+  </ul>
+</section>
+
+<!-- 6 ▸ insights -->
+<section class="insights">
+  <div class="insight c1">
+    <h3>Protocol beats content</h3>
+    <p>Notice how every strong prompt here specifies an <em>interaction protocol</em> — one question at a time, commit before reveal, first-wrong-step only. That single rule is what turns a chat into practice: it forces retrieval, and retrieval is where memory forms.</p>
+  </div>
+  <div class="insight c2">
+    <h3>Fluency ≠ truth</h3>
+    <p>An AI paragraph putting ENIAC in 1943 with 18,000 relays reads exactly as smoothly as the correct one (1945, 17,468 vacuum tubes). In history, confident wrong dates abound — which is why the verification clause is baked into every prompt this studio builds, and why the interactive pages are your ground truth.</p>
+  </div>
+  <div class="insight c3">
+    <h3>Raise difficulty, not comfort</h3>
+    <p>The best students use AI to <em>increase</em> difficulty — "make the anachronisms subtler", "make me defend the other side", "two right in a row means harder" — not to decrease effort. The struggle you're tempted to outsource is the product.</p>
+  </div>
+</section>
+
+<footer>
+  <div>Interactive companion to the lecture <i>Introduction to Computers &amp; Computer Systems Architecture</i> · CCSA T1</div>
+  <div class="navrow">
+    <a href="./worked-solutions.html">← Worked Solutions</a>
+    <a href="./index.html">All explorations</a>
+    <a href="./study-buddy.html">Study Buddy →</a>
+  </div>
+</footer>
+
+</div>
+<script>
+(function(){
+'use strict';
+
+/* ================= data ================= */
+
+const TOPICS = [
+  { name:"architecture vs organization",
+    detail:"the distinction between computer architecture (what the system does — programmer-visible: instruction set, opcodes, addressing modes, registers, memory model, I/O mechanisms) and organization (how it is physically built: circuits, gates, microarchitecture, the things that change with IC technology)",
+    figure:"a veteran mainframe CPU architect from the 1960s who fought the architecture-vs-implementation battle in real designs" },
+  { name:"early mechanical devices",
+    detail:"the abacus (~2500 BCE, beads as register values), the Antikythera mechanism (~100 BCE Greek geared analog computer that predicted eclipses), the astrolabe, and the slide rule (1600s–1970s: logarithmic scales, analog computation, used in the Apollo program)",
+    figure:"an Apollo-program engineer who did mission calculations on a slide rule" },
+  { name:"Babbage & Lovelace",
+    detail:"Babbage's Difference Engine (1822, polynomial tables by finite differences) and Analytical Engine (1837: Mill, Store, punched cards, loops, branching — the first general-purpose programmable design), Ada Lovelace's 1843 Note G, plus the Jacquard loom (1801) and Hollerith's 1890 tabulator",
+    figure:"Ada Lovelace in 1843, just after publishing her notes on the Analytical Engine" },
+  { name:"the first digital computers",
+    detail:"Turing's 1936 paper and machine, the ABC (1939: first electronic digital computing device, 300+ tubes, not programmable), Zuse's Z3 (1941: first working programmable automatic digital computer, 2,400 relays, binary floating point, no conditional branch), the Harvard Mark I (1944), and ENIAC (1945: first general-purpose all-electronic computer, 17,468 tubes, plugboard-programmed, six women programmers)",
+    figure:"Jean Bartik, one of ENIAC's six original programmers" },
+  { name:"the stored-program concept",
+    detail:"von Neumann's 1945 EDVAC report — data and instructions in ONE memory; CPU (ALU + registers + control unit), memory, I/O, system bus; and how the design realizes Turing's universal machine in hardware",
+    figure:"John von Neumann around the time of the 1945 EDVAC report" },
+  { name:"Moore's law & microprocessors",
+    detail:"the transistor (1947, Bell Labs), the integrated circuit (1958–59, Kilby and Noyce), Moore's law (1965: transistor counts double roughly every two years), the Intel 4004 (1971, first microprocessor), the first personal computers, and the early-2000s clock-speed plateau that forced the turn to multicore",
+    figure:"Gordon Moore in the years after his 1965 observation" },
+  { name:"CISC vs RISC & modern paradigms",
+    detail:"CISC (x86: many complex multi-cycle instructions) versus RISC (few simple single-cycle instructions, pipelining-friendly, compiler does the work — Patterson & Ditzel 1980), modern CPUs as RISC cores behind CISC front-ends, and the newer paradigms: cloud, edge, and quantum",
+    figure:"David Patterson, co-author of the 1980 RISC case" }
+];
+
+const LEVELS = [
+  { line:"I have just read the lecture.",
+    cal:"Start at recognition level: names, dates, and what each machine could and could not do — one fact at a time — before asking me to compare or argue." },
+  { line:"I know the basics — the machines, roughly when, and the big concepts.",
+    cal:"Skip the warm-ups. Make me compare machines, classify features as architecture vs organization, and justify every claim, not just recall it." },
+  { line:"I am comfortable with this material and want to be stretched.",
+    cal:"Push me: counterfactuals (what if the Z3 had a conditional branch?), the fine 'first computer' distinctions, back-of-envelope Moore's-law arithmetic, and a connection from each historical idea to modern hardware." }
+];
+
+const VERIFY = [
+  "Verification clause (non-negotiable):",
+  "- At the end of each round, cite exactly ONE claim from this exchange that I should double-check against my lecture notes — prefer dates, counts, and any sentence containing the word \"first\".",
+  "- Computer history is a hallucination hotspot (wrong years, merged machines), so treat your own historical claims as candidates for that check too."
+].join("\n");
+
+function protoQuiz(n){ return [
+  "Interaction protocol:",
+  "- Ask exactly ONE question at a time and STOP. Wait for my answer.",
+  "- Do not reveal the solution, or any hint, until I have committed to an answer.",
+  "- When I answer: first say right/wrong, then give the correct account briefly.",
+  "- If I am wrong, give one hint and let me retry once before revealing.",
+  "- Track my score out of " + n + " and adapt: two right in a row → harder; two wrong → easier."
+].join("\n"); }
+
+const MODES = {
+  quiz: (t,n)=>({
+    task: "Quiz me with " + n + " questions on " + t.name + " — specifically " + t.detail + ".",
+    proto: protoQuiz(n)
+  }),
+  check: (t)=>({
+    task: "I will paste my reasoning about " + t.name + " (" + t.detail + ") — for example a step-by-step Turing-machine trace, an argument about which machine deserves a \"first\", or my classification of a feature as architecture vs organization. Your job is to find the FIRST step where I go wrong, if any.",
+    proto: [
+      "Interaction protocol:",
+      "- Do NOT rewrite or redo my whole argument.",
+      "- Point at the first incorrect step, explain in one or two sentences WHY it is wrong, and stop.",
+      "- Let me repair the step myself; only confirm or correct after I try.",
+      "- If my reasoning is fully sound, say so and give me one slightly harder claim of the same type to defend."
+    ].join("\n")
+  }),
+  explain: (t)=>({
+    task: "Explain " + t.name + " (" + t.detail + ") three different ways: (1) as a story — the people, the stakes, the moment; (2) technically — the mechanisms, numbers, and design trade-offs; (3) as a modern echo — where the same idea lives in today's hardware.",
+    proto: [
+      "Interaction protocol:",
+      "- Keep each explanation under 120 words.",
+      "- After all three, ask me which one clicked and why.",
+      "- Then give me ONE question that tests whether the explanation actually landed, and wait for my answer before commenting."
+    ].join("\n")
+  }),
+  interview: (t)=>({
+    task: "Role-play as " + t.figure + ", and let me interview you about " + t.name + " (" + t.detail + ").",
+    proto: [
+      "Interaction protocol:",
+      "- Answer in first person, in character — but stay strictly within the historical record.",
+      "- Whenever you dramatize, fill a gap, or go beyond documented fact, flag it inline with [speculation].",
+      "- Never invent dates, quotes, or specifications; if the record is silent, say so (in character if you can).",
+      "- After every third question of mine, break character for one line and suggest a sharper question a historian would ask.",
+      "- End the interview by listing the two claims from your answers I should verify against my lecture notes."
+    ].join("\n")
+  }),
+  exam: (t)=>({
+    task: "Generate exam-style questions on " + t.name + " (" + t.detail + "), pitched slightly ABOVE my current level.",
+    proto: [
+      "Interaction protocol:",
+      "- One question at a time; wait for my complete written answer.",
+      "- Grade each answer out of 10 with specific feedback (what earns points, what loses them) before the next question.",
+      "- Mix formats: one dates-and-context question, one machine comparison, one 'spot the historical error', one modern-echo application.",
+      "- At the end, summarize my weakest sub-topic and set me one targeted follow-up exercise."
+    ].join("\n")
+  })
+};
+
+/* ================= recipe builder ================= */
+
+const selWho = document.getElementById('selWho');
+const selTopic = document.getElementById('selTopic');
+const selMode = document.getElementById('selMode');
+const selN = document.getElementById('selN');
+const nRow = document.getElementById('nRow');
+const selLevel = document.getElementById('selLevel');
+const txtFocus = document.getElementById('txtFocus');
+const promptOut = document.getElementById('promptOut');
+const btnCopy = document.getElementById('btnCopy');
+const buddyLink = document.getElementById('buddyLink');
+
+function buildPrompt(){
+  const t = TOPICS[+selTopic.value];
+  const lvl = LEVELS[+selLevel.value];
+  const n = +selN.value;
+  const m = MODES[selMode.value](t, n);
+  const focus = txtFocus.value.trim();
+  const parts = [
+    "You are a patient but rigorous tutor for a university lecture on computer systems architecture — the history of computing from the abacus and the Antikythera mechanism, through Babbage and Lovelace, Turing, the ABC, Z3, Mark I and ENIAC, to the stored-program concept, Moore's law, microprocessors, and CISC vs RISC.",
+    "",
+    "About me: I am " + selWho.value + " taking this course. " + lvl.line,
+    "",
+    "Task: " + m.task + (focus ? " Focus specifically on: " + focus + "." : ""),
+    "",
+    m.proto,
+    "",
+    "Difficulty calibration: " + lvl.cal,
+    "",
+    VERIFY,
+    "",
+    "Begin now."
+  ];
+  return parts.join("\n");
+}
+
+function refresh(){
+  nRow.classList.toggle('show', selMode.value === 'quiz');
+  promptOut.textContent = buildPrompt();
+}
+[selWho, selTopic, selMode, selN, selLevel].forEach(el => el.addEventListener('change', refresh));
+txtFocus.addEventListener('input', refresh);
+
+/* copy helper (clipboard API + fallback) */
+function copyText(text, btn, okLabel){
+  const done = ()=>{
+    const old = btn.textContent;
+    btn.textContent = okLabel || '✓ Copied';
+    btn.classList.add('good');
+    setTimeout(()=>{ btn.textContent = old; btn.classList.remove('good'); }, 1500);
+  };
+  const fallback = ()=>{
+    try{
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.focus(); ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      done();
+    }catch(e){
+      btn.textContent = 'Select & copy manually';
+    }
+  };
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(done, fallback);
+  } else fallback();
+}
+
+btnCopy.addEventListener('click', ()=> copyText(buildPrompt(), btnCopy));
+
+buddyLink.addEventListener('click', ()=>{
+  try{ localStorage.setItem('ccsa-buddy-seed', buildPrompt()); }catch(e){}
+  /* navigation proceeds via href */
+});
+
+refresh();
+
+/* ================= gallery ================= */
+
+const GALLERY = [
+  { title:"Architecture vs organization", mode:"Rapid-fire", cls:"quiz",
+    text:
+`You are a rapid-fire drill sergeant for the distinction between computer ARCHITECTURE (what the system does — programmer-visible: instruction set, opcodes, addressing modes, registers, memory model, I/O mechanisms) and ORGANIZATION (how it is built — circuits, gates, microarchitecture, clock circuitry, physical memory technology).
+Fire short items at me ONE at a time — e.g. "the number of general-purpose registers", "the cache replacement policy", "whether multiply exists as an instruction", "the width of the internal data path", "the addressing modes available to a compiler". I answer "architecture" or "organization" plus ONE sentence of justification. You rule on both the label AND the justification — a right label with wrong reasoning scores only half.
+Wait for my answer every time. Every 5 items, give my running score and name one pattern in my mistakes. Include a couple of genuinely borderline items, and when I commit, discuss why they are borderline. 15 items total, then a verdict — and one claim from the drill I should verify against the lecture's architecture-vs-organization table.` },
+  { title:"Early machines — eliminate the anachronism", mode:"Error hunt", cls:"hunt",
+    text:
+`Let's play eliminate-the-anachronism. Each round, write a 4–6 sentence paragraph about ONE machine from computing history — start with the early devices (abacus, Antikythera mechanism, astrolabe, slide rule) and work forward round by round until you reach ENIAC — and plant EXACTLY one historical error in it: a wrong date, a wrong technology (electrical contacts where there were bronze gears, tubes where there were relays), a detail borrowed from a different machine, or a capability the machine never had.
+I reply with the sentence I think is wrong and my correction. Do not confirm or deny until I commit. Then reveal the plant, state the true fact, and tell me which lecture detail would have caught it.
+6 rounds, score out of 6. Make the plants progressively subtler — round 1 can be blatant ("the Antikythera mechanism ran on batteries"), but by round 6 it should hinge on a fine distinction like plugboard-programmed vs stored-program.` },
+  { title:"Babbage & Lovelace — interview Ada", mode:"Interview", cls:"talk",
+    text:
+`Role-play as Ada Lovelace in 1843, just after the publication of your translation of Menabrea's paper on Babbage's Analytical Engine — with your famous notes appended. I am a student interviewing you.
+Ground rules: stay strictly within the historical record — the Difference Engine and its finite differences, the Analytical Engine's Mill and Store, the punched cards borrowed from the Jacquard loom, loops and conditional branching, your Note G program for the Bernoulli numbers, and your view that the Engine might act on symbols beyond numbers. Answer in first person, in character. Whenever you dramatize or go beyond documented fact, flag it inline with [speculation]. Never invent quotes, dates, or technical details; if the record is silent, say so — in character if you can.
+After every third question of mine, break character for one line and suggest the sharper question a historian would ask. End the interview by listing two claims from your answers that I should verify against my lecture notes.` },
+  { title:"The first digital computers — machine matchmaker", mode:"Matchmaker", cls:"match",
+    text:
+`You are the machine matchmaker. Each round, give me ONE computational problem a 1940s institution might face — e.g. "solve a system of 29 simultaneous linear equations", "compute an artillery firing table before Friday", "run a calculation that must loop until a condition is met", "grind through Navy mathematical tables reliably, day after day".
+My machine shop: the ABC (electronic but not programmable, built for linear equations), the Z3 (programmable relay machine, binary floating point, punched-film program, NO conditional branch), the Harvard Mark I (electromechanical, paper-tape sequenced, slow but steady), ENIAC (all-electronic and roughly 1000× faster, but reprogrammed by rewiring plugboards), or "a Turing machine on paper" (universal, but hopelessly slow).
+I pick a machine and justify the match in 2–3 sentences; you rule on my pick AND my reasoning — the justification matters more than the pick. Include at least one problem with NO good match, where the right answer is "none of these — this needs a stored-program machine". Wait for me every round. 5 rounds, score out of 5, and each round name one machine spec I should verify in my notes.` },
+  { title:"Stored program — the Turing-trace checker", mode:"Trace check", cls:"exam",
+    text:
+`You are my trace checker. Define a tiny Turing machine — three states plus halt, alphabet {0, 1, blank}, a clear transition table — that does something simple, like flipping every bit on the tape or adding 1 to a binary number. Show me the table and an input tape, then STOP.
+I will write out the full trace: at every step, the current state, head position, symbol read, symbol written, and move direction. You check my trace only after I post the whole thing, and you name ONLY the FIRST step where I go wrong. I repair that step myself; you resume checking only after my repair.
+When I get a full trace right, escalate: a machine with a subtler table, then a reasoning round ("this machine never halts on input 110 — how do you know?").
+Finale: I explain in under 150 words how von Neumann's stored-program design (the 1945 EDVAC report — instructions and data in ONE memory) turns Turing's universal machine from a paper construction into buildable hardware, and why ENIAC's plugboards don't qualify. You probe my explanation with exactly two questions before grading it out of 10.` },
+  { title:"Moore's law — estimation coaching", mode:"Estimation", cls:"quiz",
+    text:
+`Coach me through Moore's-law estimation. Iron rule: I do every step of arithmetic; you only check. Never compute a number before I have committed to my own.
+Round 1: the Intel 4004 (1971) had about 2,300 transistors. With doubling every ~2 years, walk me — one committed step at a time — to an estimate for the early 2020s (26 doublings): 2,300 × 2²⁶. Teach me the shortcut 2¹⁰ ≈ 10³ and make me use it, then have me sanity-check the result against a real modern chip's transistor count.
+Round 2: reverse direction — I name a modern chip's transistor count, and you make me compute how many doublings that is back to 2,300, and whether the implied years match 1971.
+Round 3: the plateau — quiz me on why transistor counts kept doubling after the early 2000s while clock speeds stalled, and what multicore has to do with it.
+After each round: flag one number from the round that I should verify against the lecture, because quoted transistor counts are exactly the kind of figure that gets hallucinated.` },
+  { title:"CISC vs RISC — argue BOTH sides", mode:"Debate", cls:"debate",
+    text:
+`Moderate a debate in which I must argue BOTH sides. Motion: "RISC was the right bet."
+Round 1 — I argue FOR RISC: few simple single-cycle instructions, pipelining-friendly, let the compiler do the work (Patterson & Ditzel, 1980). You rebut as a hardened CISC advocate: code density, expensive memory, rich instructions closer to high-level languages, x86's crushing installed base.
+Round 2 — we swap: I defend CISC and you attack as a RISC purist.
+Rules: after each of my arguments, score it out of 10 on evidence and logic BEFORE rebutting. Penalize any claim I cannot back with a fact from the lecture. If either of us uses a fact that seems off — a date, a chip, an attribution — stop the debate and make me check it before play resumes.
+Final round: I resolve the motion with the modern answer — how today's x86 CPUs translate CISC instructions into RISC-like micro-operations internally, so both camps partly won. You grade the synthesis out of 10 and name my single weakest argument of the whole debate.` }
+];
+
+const galleryEl = document.getElementById('gallery');
+GALLERY.forEach((g, i)=>{
+  const det = document.createElement('details');
+  det.className = 'acc';
+  const sum = document.createElement('summary');
+  sum.innerHTML = '<span class="arrow">▶</span> ' + (i+1) + '. ' + g.title +
+                  ' <span class="mode ' + g.cls + '">' + g.mode + '</span>';
+  const body = document.createElement('div');
+  body.className = 'accbody';
+  const box = document.createElement('div');
+  box.className = 'promptbox';
+  box.textContent = g.text;
+  const btn = document.createElement('button');
+  btn.textContent = '📋 Copy this prompt';
+  btn.addEventListener('click', ()=> copyText(g.text, btn));
+  body.appendChild(box);
+  body.appendChild(btn);
+  det.appendChild(sum);
+  det.appendChild(body);
+  galleryEl.appendChild(det);
+});
+
+/* ================= prompt clinic ================= */
+
+const PAIRS = [
+  {
+    theme:"Getting an explanation — specificity",
+    weak:"tell me about ENIAC",
+    strong:"I'm a CS undergrad who just read the lecture section on ENIAC (1945, 17,468 tubes, plugboard-programmed, artillery firing tables). In under 120 words, explain why it counts as general-purpose but NOT stored-program — then ask me ONE question that tests the distinction and wait for my answer.",
+    why:"Specificity is the difference. The strong prompt states who is asking, pins the facts it already has, bounds the length, and ends with a commit-before-reveal question. “tell me about ENIAC” gets a generic essay pitched at nobody — and on this topic, likely with a few confidently wrong numbers mixed in."
+  },
+  {
+    theme:"Asking for practice — protocol",
+    weak:"Give me a quiz about the history of computers.",
+    strong:"Quiz me with 5 questions on the first digital computers (Turing, ABC, Z3, Mark I, ENIAC), ONE at a time. Don't reveal any answer until I commit. Two right in a row → harder (make me defend the 'first' claims); two wrong → easier. Track my score, and each round name one claim I should verify in my notes.",
+    why:"The interaction protocol is the whole game: one at a time, commit before reveal, adaptive difficulty, scoring, a verification clause. The weak prompt dumps ten questions WITH their answers in one message — your eyes read the solutions before your brain attempts anything."
+  },
+  {
+    theme:"Checking a “first” — verification",
+    weak:"What was the first computer? Just give me a short answer.",
+    strong:"My claim: the ABC (1939) was the first electronic digital computing device but not programmable; the Z3 (1941) was the first working programmable computer; ENIAC (1945) was the first general-purpose all-electronic one. Argue AGAINST my distinctions as convincingly as you can, then tell me which parts survive. I'll re-check the dates against my lecture notes either way.",
+    why:"“The first computer” has no single answer — a bare question like that practically orders a hallucination. The strong prompt states your own position, demands a counter-argument, and keeps a human verification step, so a fluent-but-wrong reply can't slip through."
+  },
+  {
+    theme:"Pitching the difficulty — calibration",
+    weak:"Explain the stored-program concept like I'm five.",
+    strong:"I already know the basics of the von Neumann model (one memory for data + instructions, CPU with ALU/registers/control, buses). Give me exam-style questions slightly ABOVE that level — e.g. what exactly ENIAC couldn't do that EDVAC's design could, or how the stored program realizes Turing's universal machine. Grade each answer out of 10 before the next.",
+    why:"Calibration: ELI5 while preparing for an exam lowers the bar exactly when it should rise. The strong prompt states the current level and asks for stretch with graded feedback — the AI raises difficulty instead of flattening it."
+  }
+];
+
+const clinicEl = document.getElementById('clinic');
+const scoreNum = document.getElementById('scoreNum');
+const scoreVerdict = document.getElementById('scoreVerdict');
+const clinicState = { answered: 0, score: 0 };
+
+function verdictFor(s){
+  switch(s){
+    case 4: return "4/4 — Prompt whisperer. Your AI now works you like a good TA; go make it sweat.";
+    case 3: return "3/4 — Sharp eye. One trap got you; re-read its feedback and you're set.";
+    case 2: return "2/4 — Coin-flip territory. Re-read the recipe: role, task, protocol, calibration, verification.";
+    default: return s + "/4 — The homework printer thanks you for your loyalty. Back up to the traffic light, then try again.";
+  }
+}
+
+PAIRS.forEach((p, idx)=>{
+  const head = document.createElement('div');
+  head.className = 'pairhead';
+  head.innerHTML = '<b>Pair ' + (idx+1) + '</b><span>' + p.theme + '</span>';
+  clinicEl.appendChild(head);
+
+  const strongFirst = Math.random() < 0.5;
+  const cards = strongFirst
+    ? [{txt:p.strong, strong:true}, {txt:p.weak, strong:false}]
+    : [{txt:p.weak, strong:false}, {txt:p.strong, strong:true}];
+
+  const row = document.createElement('div');
+  row.className = 'pair';
+  const fb = document.createElement('div');
+  fb.className = 'verdictline';
+  let done = false;
+
+  cards.forEach((c, ci)=>{
+    const card = document.createElement('div');
+    card.className = 'pcard';
+    card.setAttribute('role','button');
+    card.setAttribute('tabindex','0');
+    card.innerHTML = '<div class="plabel">Prompt ' + (ci===0?'A':'B') + '</div>' +
+                     '<div class="ptext"></div><div class="stamp"></div>';
+    card.querySelector('.ptext').textContent = c.txt;
+
+    function pick(){
+      if(done) return;
+      done = true;
+      clinicState.answered++;
+      const other = row.children[1-ci];
+      if(c.strong){
+        clinicState.score++;
+        card.classList.add('correct');
+        card.querySelector('.stamp').textContent = '✓';
+        other.classList.add('dim');
+        fb.innerHTML = '<b class="ok">Correct.</b> ' + escapeHtml(p.why);
+      }else{
+        card.classList.add('wrong');
+        card.querySelector('.stamp').textContent = '✗';
+        other.classList.add('correct');
+        other.querySelector('.stamp').textContent = '✓';
+        fb.innerHTML = '<b class="no">Not this one.</b> ' + escapeHtml(p.why);
+      }
+      fb.classList.add('show');
+      updateScore();
+    }
+    card.addEventListener('click', pick);
+    card.addEventListener('keydown', e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); pick(); } });
+    row.appendChild(card);
+  });
+
+  clinicEl.appendChild(row);
+  clinicEl.appendChild(fb);
+});
+
+function escapeHtml(s){
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function updateScore(){
+  scoreNum.textContent = clinicState.score + ' / 4';
+  if(clinicState.answered === PAIRS.length){
+    scoreVerdict.textContent = verdictFor(clinicState.score);
+    scoreVerdict.className = 'final';
+  } else {
+    scoreVerdict.textContent = (PAIRS.length - clinicState.answered) + ' pair' +
+      (PAIRS.length - clinicState.answered === 1 ? '' : 's') + ' left…';
+  }
+}
+
+})();
+</script>
+</body>
+</html>

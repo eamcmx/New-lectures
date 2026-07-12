@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Instructor Key — Intro to Computer Systems Architecture</title>
+<style>
+:root{
+  --bg:#0e1117; --panel:#161b26; --panel2:#1c2230; --ink:#e6e9f0; --muted:#8b94a7;
+  --grid:#232b3b; --axis:#4a5568; --blue:#58c4dd; --yellow:#ffd35a; --red:#fc6255;
+  --green:#83c167; --purple:#c688eb; --orange:#ff9f4b; --line:#2a3347;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:'Segoe UI',system-ui,-apple-system,sans-serif;line-height:1.55}
+.wrap{max-width:1100px;margin:0 auto;padding:24px}
+a{color:var(--blue);text-decoration:none}
+a:hover{text-decoration:underline}
+header a.crumb{color:var(--muted);font-size:14px}
+header a.crumb:hover{color:var(--blue);text-decoration:none}
+h1{margin:10px 0 6px;font-size:32px;letter-spacing:.3px}
+.subtitle{color:var(--muted);max-width:80ch;margin:0 0 22px}
+.badge{display:inline-block;font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--purple);border:1px solid var(--purple);border-radius:999px;padding:3px 10px;margin:2px 0 10px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin-bottom:22px}
+.math{font-family:Georgia,'Times New Roman',serif;font-style:italic}
+h2{font-size:15px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);margin:0 0 12px}
+h2 .accent{color:var(--yellow)}
+button{background:var(--panel2);border:1px solid var(--line);color:var(--ink);border-radius:9px;padding:8px 14px;cursor:pointer;font-size:14px;font-family:inherit}
+button:hover{border-color:var(--blue)}
+
+/* ---------- gate ---------- */
+#gate{display:flex;align-items:center;justify-content:center;min-height:56vh}
+#gate .box{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:28px 30px;max-width:440px;width:100%;text-align:center}
+#gate .lockicon{font-size:30px;margin-bottom:8px}
+#gate h2{margin-bottom:6px}
+#gate p.note{color:var(--muted);font-size:13.5px;margin:0 0 16px}
+#gate .row{display:flex;gap:10px;justify-content:center}
+#gate input{background:#0b0e14;border:1px solid var(--line);color:var(--ink);border-radius:9px;padding:9px 12px;font-size:15px;font-family:inherit;letter-spacing:.06em;width:190px;text-align:center}
+#gate input:focus{outline:none;border-color:var(--blue)}
+#gate input.shake{animation:shake .45s;border-color:var(--red)}
+@keyframes shake{
+  0%,100%{transform:translateX(0)}
+  15%,45%,75%{transform:translateX(-7px)}
+  30%,60%,90%{transform:translateX(7px)}
+}
+#gate .err{color:var(--red);font-size:13px;min-height:19px;margin-top:9px}
+#gate button.go{border-color:rgba(131,193,103,.5);color:var(--green);font-weight:600}
+#gate button.go:hover{border-color:var(--green)}
+
+/* ---------- unlocked content ---------- */
+#content{display:none}
+.lockbar{display:flex;justify-content:flex-end;margin:-6px 0 14px}
+.lockbar a{color:var(--muted);font-size:13px}
+.lockbar a:hover{color:var(--red);text-decoration:none}
+
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{color:var(--muted);text-transform:uppercase;font-size:11.5px;letter-spacing:.09em;text-align:left;padding:7px 10px;border-bottom:1px solid var(--line)}
+td{padding:8px 10px;border-bottom:1px solid var(--grid);vertical-align:top}
+tr:last-child td{border-bottom:none}
+.tscroll{overflow-x:auto}
+
+ol.qkey{margin:0;padding-left:22px}
+ol.qkey>li{margin:0 0 16px}
+ol.qkey .q{font-weight:600}
+ol.qkey ul{list-style:none;margin:6px 0 0;padding:0}
+ol.qkey ul li{margin:3px 0;font-size:13.8px;padding-left:22px;position:relative}
+ol.qkey ul li::before{position:absolute;left:0;top:0}
+ol.qkey li.ok{color:var(--green)}
+ol.qkey li.ok::before{content:"✔"}
+ol.qkey li.dx{color:var(--muted)}
+ol.qkey li.dx::before{content:"✘";color:var(--red)}
+ol.qkey li.dx b{color:#b9c1d2;font-weight:600}
+ol.qkey li.dx .why{font-style:italic}
+
+.anslist{margin:0;padding-left:0;list-style:none}
+.anslist li{padding:7px 0;border-bottom:1px solid var(--grid);font-size:14.5px}
+.anslist li:last-child{border-bottom:none}
+.anslist .tag{display:inline-block;min-width:38px;font-weight:700;color:var(--yellow)}
+.anslist b{color:var(--green)}
+
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px}
+.cards .card{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:13px 15px}
+.cards .card h3{margin:0 0 6px;font-size:14.5px;color:var(--red)}
+.cards .card p{margin:0;font-size:13.5px;color:#c6cddb}
+.cards .card p b{color:var(--ink)}
+
+.taskcards .card h3{color:var(--blue)}
+
+.tip{border-left:3px solid var(--yellow);background:rgba(255,211,90,.05);padding:9px 13px;border-radius:0 8px 8px 0;font-size:13.8px;color:#d5dae6;margin:12px 0 0}
+.tip b{color:var(--yellow)}
+.codeword{font-family:ui-monospace,Consolas,monospace;font-style:normal;color:var(--yellow);background:rgba(255,211,90,.08);border:1px solid rgba(255,211,90,.25);border-radius:6px;padding:1px 7px;font-size:.92em}
+code.kv{font-family:ui-monospace,Consolas,monospace;color:var(--blue);font-size:.92em}
+p.body{font-size:14.5px;color:#c6cddb;margin:0 0 10px;max-width:88ch}
+p.body b{color:var(--ink)}
+.footnote{color:var(--muted);font-size:12.5px;border-top:1px dashed var(--line);margin-top:14px;padding-top:10px;max-width:88ch}
+
+footer{color:var(--muted);font-size:13px;border-top:1px solid var(--line);margin-top:34px;padding-top:16px;display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between}
+@media(max-width:640px){h1{font-size:26px} #gate .row{flex-direction:column;align-items:center}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <a class="crumb" href="./index.html">← Intro to Computer Systems Architecture</a>
+  <h1>Instructor Key — CCSA T1</h1>
+  <div><span class="badge">PAAL · CourseForge session kit</span></div>
+  <p class="subtitle">Teacher-only companion: quiz answer key with distractor rationales, worked-solutions summary, a 90-minute session runbook, misconception traps, grading notes, and the PAAL layer. Unlisted — keep the URL out of student-facing pages.</p>
+</header>
+
+<!-- ================= ACCESS GATE ================= -->
+<div id="gate">
+  <div class="box">
+    <div class="lockicon">🔒</div>
+    <h2>Instructor access</h2>
+    <p class="note">This page is unlisted — students reach it only if given the URL and code.</p>
+    <div class="row">
+      <input id="code" type="password" placeholder="instructor code" autocomplete="off" spellcheck="false">
+      <button class="go" id="unlock">Unlock</button>
+    </div>
+    <div class="err" id="err"></div>
+  </div>
+</div>
+
+<!-- ================= CONTENT (hidden until unlocked) ================= -->
+<div id="content">
+
+<div class="lockbar"><a href="#" id="relock">🔒 lock again</a></div>
+
+<!-- 1. QUIZ ANSWER KEY -->
+<section class="panel">
+  <h2><span class="accent">1 ·</span> Quiz answer key — quiz.html, 12 questions</h2>
+  <p class="body">Correct answer listed first in green; each distractor is annotated with the misconception it probes. Use the annotations for post-quiz debrief — the wrong answers are where the teaching is.</p>
+  <ol class="qkey">
+    <li><span class="q">What is computer <em>architecture</em>?</span>
+      <ul>
+        <li class="ok">The programmer-visible blueprint of the system: the ISA (instructions, opcodes, addressing modes, registers), memory organization, and I/O mechanisms.</li>
+        <li class="dx"><b>The physical circuits, gates and chip layout</b> — <span class="why">confuses architecture with organization (the classic swap).</span></li>
+        <li class="dx"><b>The case, motherboard and cabling of a computer</b> — <span class="why">"architecture = hardware you can touch" misconception.</span></li>
+        <li class="dx"><b>The clock speed and benchmark scores of a CPU</b> — <span class="why">mistakes a performance metric for the design specification.</span></li>
+      </ul>
+    </li>
+    <li><span class="q">What is computer <em>organization</em>?</span>
+      <ul>
+        <li class="ok">How the system is physically realized: microarchitecture, RTL, circuits and gates — it changes with IC technology while the architecture stays fixed.</li>
+        <li class="dx"><b>The set of instructions a programmer can use</b> — <span class="why">the same swap in the other direction (that's architecture/ISA).</span></li>
+        <li class="dx"><b>How the operating system schedules processes</b> — <span class="why">confuses hardware organization with OS resource management.</span></li>
+        <li class="dx"><b>How files and folders are arranged on disk</b> — <span class="why">naive everyday reading of the word "organization".</span></li>
+      </ul>
+    </li>
+    <li><span class="q">In Babbage's Analytical Engine, the Mill and the Store correspond to today's…</span>
+      <ul>
+        <li class="ok">CPU and memory.</li>
+        <li class="dx"><b>I/O devices and the system bus</b> — <span class="why">knows the von Neumann parts list but maps the wrong ones.</span></li>
+        <li class="dx"><b>ALU and control unit</b> — <span class="why">both live <em>inside</em> the CPU — partial understanding of the hierarchy.</span></li>
+        <li class="dx"><b>Hard disk and RAM</b> — <span class="why">the Store held working numbers (memory), not archival storage.</span></li>
+      </ul>
+    </li>
+    <li><span class="q">Ada Lovelace is called the first programmer because…</span>
+      <ul>
+        <li class="ok">Her 1843 Note G contained the first published program — an algorithm (Bernoulli numbers) for the Analytical Engine — and she saw computing going beyond numbers.</li>
+        <li class="dx"><b>She built the Analytical Engine with Babbage</b> — <span class="why">the "she merely assisted Babbage" myth; conflates building hardware with writing software.</span></li>
+        <li class="dx"><b>She invented the punched card</b> — <span class="why">confuses her with Jacquard/Hollerith.</span></li>
+        <li class="dx"><b>She programmed ENIAC during WWII</b> — <span class="why">a century off; conflates her with the six ENIAC programmers.</span></li>
+      </ul>
+    </li>
+    <li><span class="q">Why does the Jacquard loom (1801) matter to computing?</span>
+      <ul>
+        <li class="ok">Its punched cards stored binary instructions — hole / no-hole — that controlled the machine: instruction storage before any computer existed.</li>
+        <li class="dx"><b>It performed arithmetic calculations</b> — <span class="why">it wove cloth; it computed nothing — the point is the <em>instruction encoding</em>.</span></li>
+        <li class="dx"><b>It was the first electronic machine</b> — <span class="why">"old + important = electronic" anachronism; it was purely mechanical.</span></li>
+        <li class="dx"><b>It was the first stored-program machine</b> — <span class="why">instructions lived on external cards, not in a memory shared with data.</span></li>
+      </ul>
+    </li>
+    <li><span class="q">Turing's 1936 paper "On Computable Numbers" contributed…</span>
+      <ul>
+        <li class="ok">A formal model of computation (the Turing machine) and proofs of its fundamental limits — what can and cannot be computed.</li>
+        <li class="dx"><b>The first working electronic computer</b> — <span class="why">"Turing machines are physical" misconception; the machine is a mathematical abstraction.</span></li>
+        <li class="dx"><b>The first programming language</b> — <span class="why">confuses a model of computation with a notation for programs.</span></li>
+        <li class="dx"><b>The stored-program design of EDVAC</b> — <span class="why">that's von Neumann 1945 — though it <em>realizes</em> Turing's universal machine, a nice discussion link.</span></li>
+      </ul>
+    </li>
+    <li><span class="q">The Zuse Z3 (1941) is credited as…</span>
+      <ul>
+        <li class="ok">The first working programmable, automatic, digital computer (2,400 relays, binary floating point, program on punched film).</li>
+        <li class="dx"><b>The first electronic computer</b> — <span class="why">relays, not vacuum tubes — probes the electronic (ABC/ENIAC) vs electromechanical distinction.</span></li>
+        <li class="dx"><b>The first stored-program computer</b> — <span class="why">its program stayed on external film; it couldn't even branch.</span></li>
+        <li class="dx"><b>A mechanical calculator that could not be programmed</b> — <span class="why">misses the very property that makes Z3 historic.</span></li>
+      </ul>
+    </li>
+    <li><span class="q">ENIAC (1945) was originally built to…</span>
+      <ul>
+        <li class="ok">Compute artillery firing tables for the US Army.</li>
+        <li class="dx"><b>Tabulate the US census</b> — <span class="why">confuses ENIAC with Hollerith's 1890 tabulator.</span></li>
+        <li class="dx"><b>Break enemy codes</b> — <span class="why">confuses ENIAC with Bletchley Park's Colossus.</span></li>
+        <li class="dx"><b>Calculate Moon-landing trajectories</b> — <span class="why">anachronism — two decades early.</span></li>
+      </ul>
+    </li>
+    <li><span class="q">The stored-program concept (von Neumann, 1945) says…</span>
+      <ul>
+        <li class="ok">Instructions and data live in the same memory — so programs can be loaded, modified and even treated as data.</li>
+        <li class="dx"><b>Programs are stored permanently on a hard disk</b> — <span class="why">confuses the memory model with persistent storage.</span></li>
+        <li class="dx"><b>Instructions sit in a separate read-only memory from data</b> — <span class="why">that's the Harvard-style split — exactly what stored-program is <em>not</em>; echoes ../../sim/harvard.html.</span></li>
+        <li class="dx"><b>The CPU keeps a copy of instructions in a cache</b> — <span class="why">a modern organization detail mistaken for the founding architectural idea.</span></li>
+      </ul>
+    </li>
+    <li><span class="q">Moore's Law (1965) observed that transistor counts double roughly every…</span>
+      <ul>
+        <li class="ok">2 years.</li>
+        <li class="dx"><b>6 months</b> — <span class="why">exponential enthusiasm — overshoots the actual cadence.</span></li>
+        <li class="dx"><b>10 years</b> — <span class="why">undershoots; misses why the effect compounds so dramatically.</span></li>
+        <li class="dx"><b>Clock speed doubles every 2 years</b> — <span class="why">count vs speed confusion — clocks plateaued in the early 2000s while counts kept doubling.</span></li>
+      </ul>
+    </li>
+    <li><span class="q">The RISC philosophy is…</span>
+      <ul>
+        <li class="ok">Few simple instructions, each ideally completing in a single cycle, enabling deep pipelining and compiler optimization.</li>
+        <li class="dx"><b>Provide as many powerful, complex instructions as possible</b> — <span class="why">that's CISC, verbatim.</span></li>
+        <li class="dx"><b>Reduce the number of registers to save silicon</b> — <span class="why">misreads "reduced" — RISC typically has <em>more</em> registers.</span></li>
+        <li class="dx"><b>Accept slower chips in exchange for lower cost</b> — <span class="why">"simple = slow" fallacy; simplicity is what makes pipelining fast.</span></li>
+      </ul>
+    </li>
+    <li><span class="q">Edge computing means…</span>
+      <ul>
+        <li class="ok">Processing data near its sources (sensors, devices) for low latency — key to 5G and IoT.</li>
+        <li class="dx"><b>Always sending data to a central cloud for processing</b> — <span class="why">the exact opposite; probes whether "edge" was understood at all.</span></li>
+        <li class="dx"><b>Computation at the physical edge of the chip die</b> — <span class="why">plausible-sounding literal reading of "edge".</span></li>
+        <li class="dx"><b>The newest, cutting-edge CPU generation</b> — <span class="why">marketing-word confusion ("edge" = "leading edge").</span></li>
+      </ul>
+    </li>
+  </ol>
+</section>
+
+<!-- 2. WORKED SOLUTIONS SUMMARY -->
+<section class="panel">
+  <h2><span class="accent">2 ·</span> Worked-solutions answer summary — worked-solutions.html</h2>
+  <p class="body">Final answers only; full derivations are on the student page once unlocked.</p>
+  <ul class="anslist">
+    <li><span class="tag">E1</span> a / c / e = <b>architecture</b>; b / d / f = <b>organization</b>.</li>
+    <li><span class="tag">E2</span> Turing machine: <span class="math">1011 → 1100</span> — <b>9 rule firings</b>, ends in a clean halt.</li>
+    <li><span class="tag">E3</span> The tape yields <b>40</b> = (7 + 3)(7 − 3).</li>
+    <li><span class="tag">E4</span> Difference-engine column: <b>1, 5, 11, 19, 29, 41, 55</b>.</li>
+    <li><span class="tag">E5</span> Moore extrapolation: <b>≈ 1.54 × 10¹¹ predicted</b> vs <b>1.34 × 10¹¹ actual</b> transistors; the 3 THz counterfactual is why the industry pivoted to <b>multicore</b>.</li>
+  </ul>
+  <div class="tip"><b>Unlock paths:</b> students unlock worked-solutions.html by scoring ≥ 80% on quiz.html (best score kept in <code class="kv">localStorage: ccsa-quiz-best</code>). The muted "instructor?" link on that page accepts the same code as this page — <span class="codeword">TSI-CCSA</span> — and sets <code class="kv">ccsa-solutions-override=1</code>.</div>
+</section>
+
+<!-- 3. TEACHING RUNBOOK -->
+<section class="panel">
+  <h2><span class="accent">3 ·</span> Teaching runbook — 90-minute session plan</h2>
+  <div class="tscroll">
+  <table>
+    <tr><th style="width:110px">Time</th><th style="width:220px">Segment</th><th>What you do</th></tr>
+    <tr><td>0–10 min</td><td><b>Hook</b></td><td>Project <a href="./timeline.html">timeline.html</a> and hit "play the story". Say nothing for the first minute — let 4,500 years scroll by. Then: "everything on this line is somebody solving <em>the same problem</em> with the parts they had."</td></tr>
+    <tr><td>10–30 min</td><td><b>S1–S3</b> · definitions &amp; the mechanical era</td><td><a href="./teacher-deck.html">teacher-deck.html</a> slides 1–14. Live demos: <a href="./abacus.html">abacus.html</a> (add two numbers, ask "where's the register?") and <a href="./punch-card.html">punch-card.html</a> (punch a word; "you just wrote binary in 1801").</td></tr>
+    <tr><td>30–60 min</td><td><b>The six simulators</b> · group work</td><td>Split the class into 6 groups, one machine each: analytical-engine, turing-machine, abc, z3, mark1, eniac. 15 min to complete that machine's preset task, then a 2-minute report-back answering one question: <b>"what was miserable about programming it?"</b> The misery gradient IS the lecture.</td></tr>
+    <tr><td>60–75 min</td><td><b>S4–S6</b> · the big ideas</td><td>Remaining deck slides with live demos of <a href="./stored-program.html">stored-program.html</a> (the punchline of the group session: "here is what fixes all six miseries at once") and <a href="./cisc-risc.html">cisc-risc.html</a> (race the two pipelines).</td></tr>
+    <tr><td>75–90 min</td><td><b>Assessment</b></td><td>Students take <a href="./quiz.html">quiz.html</a> individually. Remind them: ≥ 80% unlocks worked-solutions.html, retakes allowed, best score kept.</td></tr>
+  </table>
+  </div>
+
+  <p class="body" style="margin-top:14px"><b>Alternative: 2 × 45 min.</b> Session A = hook + S1–S3 + hand out the group assignments as homework (each simulator page is self-explaining). Session B = 10-min report-backs (2 min × 5 groups you pick) + S4–S6 with the stored-program/cisc-risc demos + quiz. If short, the quiz also works as pre-session-B homework, using the first 5 minutes of B to debrief the worst-missed question with the distractor notes above.</p>
+
+  <h2 style="margin-top:18px">Group task cards (one line each)</h2>
+  <div class="cards taskcards">
+    <div class="card"><h3><a href="./analytical-engine.html">Analytical Engine</a></h3><p>Run the preset program through Mill and Store; report which modern component each is, and what a "loop" physically was.</p></div>
+    <div class="card"><h3><a href="./turing-machine.html">Turing Machine</a></h3><p>Run the preset tape to the halt state; report what the machine <em>can't</em> ever tell you about another program.</p></div>
+    <div class="card"><h3><a href="./abc.html">ABC</a></h3><p>Solve the preset linear system; report the one thing this fully electronic machine could NOT do (be reprogrammed).</p></div>
+    <div class="card"><h3><a href="./z3.html">Z3</a></h3><p>Step the preset punched-film program through the relays; report why "no branching" made some programs impossible.</p></div>
+    <div class="card"><h3><a href="./mark1.html">Harvard Mark I</a></h3><p>Feed the preset paper-tape table job; report what "Harvard architecture" means about where the program lives.</p></div>
+    <div class="card"><h3><a href="./eniac.html">ENIAC</a></h3><p>Rewire the plugboard to the preset firing-table setup; report how long "loading a new program" took and who did that job.</p></div>
+  </div>
+</section>
+
+<!-- 4. COMMON MISCONCEPTIONS -->
+<section class="panel">
+  <h2><span class="accent">4 ·</span> Common misconceptions — expect these, plant them if nobody bites</h2>
+  <div class="cards">
+    <div class="card"><h3>"ENIAC was the first computer."</h3><p>It was the first <b>general-purpose electronic</b> one. ABC was electronic but not programmable; Z3 was programmable but not electronic. Great discussion bait — put all three on screen and let the class fight over the definition of "first".</p></div>
+    <div class="card"><h3>"Moore's Law is physics."</h3><p>It's an <b>economic observation</b> about industry cadence, not a law of nature — which is exactly why it can (and did) bend. Pair with moore.html's actual-vs-predicted curve.</p></div>
+    <div class="card"><h3>"RISC lost."</h3><p>Students see x86 everywhere and assume CISC won. Modern x86 chips are <b>RISC cores wearing a CISC front-end</b>, and ARM (RISC) runs nearly every phone. Both camps claim victory; the decoder is the peace treaty.</p></div>
+    <div class="card"><h3>"Architecture = hardware."</h3><p>Architecture is the <b>programmer-visible contract</b> (ISA, memory model, I/O); organization is the physical realization. Same architecture, wildly different organizations — that's how your old binaries still run.</p></div>
+    <div class="card"><h3>"Turing machines are physical."</h3><p>The 1936 machine is a <b>mathematical abstraction</b> for reasoning about computability and its limits. Turing never built one; the simulator on turing-machine.html is a visualization of an idea, not a replica.</p></div>
+    <div class="card"><h3>"Lovelace merely assisted Babbage."</h3><p>Note G (1843) contains the first published <b>program</b>, and her writing anticipates computing beyond numbers — music, symbols. Babbage designed the machine; Lovelace saw what it <em>meant</em>.</p></div>
+  </div>
+</section>
+
+<!-- 5. GRADING & MOODLE -->
+<section class="panel">
+  <h2><span class="accent">5 ·</span> Grading &amp; Moodle notes</h2>
+  <p class="body">The quiz is <b>formative</b>: retakes are encouraged and only the best score is kept. That score lives entirely <b>client-side</b> in the student's browser (<code class="kv">localStorage: ccsa-quiz-best</code>) — it is <b>not reported to any server</b>, and you cannot see it from here. If you need a graded assessment, re-author the 12 questions in Moodle's quiz engine (the answer key above transfers directly); don't try to harvest scores from these pages.</p>
+  <p class="body">The 80%-gate with reveal-on-pass mirrors the CourseForge <b>mounting model</b> — content mounted behind a mastery check rather than dumped up front. For how this kit mounts into a course shell, see <b>MOUNTING.md</b> in this repo folder.</p>
+</section>
+
+<!-- 6. PAAL LAYER -->
+<section class="panel">
+  <h2><span class="accent">6 ·</span> PAAL layer — prompt studio &amp; study buddy</h2>
+  <p class="body"><b><a href="./prompt-studio.html">prompt-studio.html</a>:</b> assign one gallery prompt as homework (pick one per week; the "interview a machine" prompts pair well with whichever simulator that student's group had). Deliverable: a paste-your-transcript reflection — 5 lines on where the AI was helpful, where it was wrong, and how they'd sharpen the prompt. Grading the <em>reflection</em>, not the transcript, keeps it honest.</p>
+  <p class="body"><b><a href="./study-buddy.html">study-buddy.html</a>:</b> students need their own <b>free Mistral API key</b> — budget 2 minutes of class time for setup (create account → API keys → paste into the page; the key stays in their browser). Do this at the end of session 1 so the buddy is ready before the quiz session. Have your own key ready to demo on the projector.</p>
+</section>
+
+<div class="footnote" id="gatefootnote">
+  ※ About the code gate on this page: it is <b>honest deterrence, not security</b>. Anyone who opens the page source can read every answer above — there is no encryption and no server check. Treat it as a convenience gate that keeps casual student traffic out, and never as protection for anything that genuinely must stay secret (e.g. summative exam content).
+</div>
+
+</div><!-- /#content -->
+
+<footer>
+  <div>Interactive companion to the lecture <i>Introduction to Computers &amp; Computer Systems Architecture</i> · CCSA T1</div>
+  <div><a href="./index.html">All explorations →</a></div>
+</footer>
+
+</div>
+
+<script>
+(function(){
+  const KEY='ccsa-instructor', CODE='TSI-CCSA';
+  const gate=document.getElementById('gate'),
+        content=document.getElementById('content'),
+        input=document.getElementById('code'),
+        btn=document.getElementById('unlock'),
+        err=document.getElementById('err'),
+        relock=document.getElementById('relock');
+
+  function show(unlocked){
+    gate.style.display=unlocked?'none':'flex';
+    content.style.display=unlocked?'block':'none';
+    if(!unlocked){err.textContent='';input.value='';setTimeout(()=>input.focus(),50);}
+  }
+
+  function stored(){
+    try{return localStorage.getItem(KEY)==='1';}catch(e){return false;}
+  }
+
+  function tryUnlock(){
+    if(input.value.trim().toUpperCase()===CODE){
+      try{localStorage.setItem(KEY,'1');}catch(e){}
+      show(true);
+    }else{
+      err.textContent='Wrong code.';
+      input.classList.remove('shake');
+      void input.offsetWidth;            // restart the animation
+      input.classList.add('shake');
+      input.select();
+    }
+  }
+
+  btn.addEventListener('click',tryUnlock);
+  input.addEventListener('keydown',e=>{if(e.key==='Enter')tryUnlock();});
+  input.addEventListener('animationend',()=>input.classList.remove('shake'));
+
+  relock.addEventListener('click',e=>{
+    e.preventDefault();
+    try{localStorage.removeItem(KEY);}catch(e2){}
+    show(false);
+  });
+
+  show(stored());
+})();
+</script>
+</body>
+</html>

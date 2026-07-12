@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Worked Solutions — Intro to Computer Systems Architecture</title>
+<style>
+:root{
+  --bg:#0e1117; --panel:#161b26; --panel2:#1c2230; --ink:#e6e9f0; --muted:#8b94a7;
+  --grid:#232b3b; --axis:#4a5568; --blue:#58c4dd; --yellow:#ffd35a; --red:#fc6255;
+  --green:#83c167; --purple:#c688eb; --orange:#ff9f4b; --line:#2a3347;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:'Segoe UI',system-ui,-apple-system,sans-serif;line-height:1.55}
+.wrap{max-width:1100px;margin:0 auto;padding:24px}
+a{color:var(--blue);text-decoration:none}
+a:hover{text-decoration:underline}
+header a.crumb{color:var(--muted);font-size:14px}
+header a.crumb:hover{color:var(--blue);text-decoration:none}
+h1{margin:10px 0 6px;font-size:32px;letter-spacing:.3px}
+.badge{display:inline-block;font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--purple);border:1px solid var(--purple);border-radius:999px;padding:3px 10px;margin:2px 0 10px}
+.subtitle{color:var(--muted);max-width:75ch;margin:0 0 22px}
+.math{font-family:Georgia,'Times New Roman',serif;font-style:italic}
+.mono{font-family:ui-monospace,'Cascadia Mono',Consolas,monospace;font-style:normal}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 20px}
+button{background:var(--panel2);border:1px solid var(--line);color:var(--ink);border-radius:9px;padding:8px 14px;cursor:pointer;font:inherit;font-size:14px}
+button:hover{border-color:var(--blue)}
+button:disabled{opacity:.5;cursor:default}
+button:disabled:hover{border-color:var(--line)}
+
+/* ---------- gate ---------- */
+#gatePanel{max-width:640px;margin:0 auto 26px;text-align:center;padding:34px 26px;transition:opacity .5s ease,transform .5s ease}
+#gatePanel.dissolve{opacity:0;transform:translateY(-14px) scale(.98)}
+#gatePanel .lock{font-size:52px;line-height:1;margin-bottom:10px}
+#gatePanel h2{margin:0 0 8px;font-size:22px}
+#gatePanel p{color:var(--muted);margin:6px 0}
+#gateScore{display:inline-block;margin:12px 0;padding:8px 18px;border:1px solid var(--line);border-radius:10px;background:var(--panel2);font-size:15px}
+#gateScore b{font-size:20px}
+#gatePanel .cta{display:inline-block;margin-top:12px;padding:10px 18px;border:1px solid var(--blue);border-radius:10px;color:var(--blue);background:rgba(88,196,221,.08)}
+#gatePanel .cta:hover{text-decoration:none;background:rgba(88,196,221,.16)}
+#instructorLink{display:block;margin-top:22px;font-size:12px;color:var(--muted);background:none;border:none;padding:4px;cursor:pointer;width:auto;margin-left:auto;margin-right:auto}
+#instructorLink:hover{color:var(--blue)}
+#gatePanel.granted{border-color:var(--green)}
+#gatePanel.granted .lock{animation:pop .6s ease}
+@keyframes pop{0%{transform:scale(.6)}60%{transform:scale(1.25)}100%{transform:scale(1)}}
+
+/* ---------- solutions ---------- */
+#solutions{display:none;opacity:0;transform:translateY(10px);transition:opacity .6s ease,transform .6s ease}
+#solutions.on{opacity:1;transform:none}
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:0 0 18px}
+.toolbar .note{color:var(--muted);font-size:13px;margin-left:auto}
+
+.ex{margin:0 0 22px;padding:20px 22px}
+.ex h2{margin:0 0 4px;font-size:20px}
+.ex h2 .tag{color:var(--muted);font-size:13px;font-weight:400;letter-spacing:.06em;text-transform:uppercase;margin-right:8px}
+.problem{margin:8px 0 12px;max-width:80ch}
+.problem em{color:var(--yellow);font-style:normal}
+
+details.hint{margin:0 0 14px;border:1px dashed var(--line);border-radius:10px;padding:8px 14px;background:rgba(255,211,90,.03)}
+details.hint summary{cursor:pointer;color:var(--yellow);font-size:14px;list-style:none}
+details.hint summary::before{content:"💡 "}
+details.hint summary::-webkit-details-marker{display:none}
+details.hint p{color:var(--muted);font-size:14px;margin:8px 0 2px}
+
+.steps{margin:0}
+.step{display:grid;grid-template-rows:0fr;opacity:0;margin:0;transition:grid-template-rows .5s ease,opacity .5s ease,margin .5s ease}
+.step>.sinner{overflow:hidden;min-height:0}
+.step.shown{grid-template-rows:1fr;opacity:1;margin:0 0 12px}
+.scard{border:1px solid var(--line);border-left:3px solid var(--blue);border-radius:10px;background:var(--panel2);padding:12px 16px}
+.scard .snum{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--blue);margin-bottom:4px}
+.scard .move{margin:0 0 6px}
+.scard .why{font-size:14px;color:var(--muted);margin:0}
+.scard .why b{color:var(--yellow);font-weight:600}
+
+.answer{display:grid;grid-template-rows:0fr;opacity:0;margin:0;transition:grid-template-rows .5s ease,opacity .5s ease,margin .5s ease}
+.answer>.sinner{overflow:hidden;min-height:0}
+.answer.shown{grid-template-rows:1fr;opacity:1;margin:2px 0 14px}
+.abox{border:1.5px solid var(--green);border-radius:10px;padding:12px 16px;background:rgba(131,193,103,.06)}
+.abox .albl{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--green);margin-bottom:4px}
+
+.exbtns{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:4px 0 12px}
+.exbtns .next{border-color:var(--blue);color:var(--blue);background:rgba(88,196,221,.08)}
+.exbtns .small{font-size:12.5px;padding:6px 10px;color:var(--muted)}
+.exbtns .small:hover{color:var(--ink)}
+.progress{font-size:12.5px;color:var(--muted)}
+
+.chips{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:6px}
+.chips .clbl{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.chips a{display:inline-block;font-size:12.5px;border:1px solid var(--line);border-radius:999px;padding:4px 12px;color:var(--blue);background:var(--panel2)}
+.chips a:hover{border-color:var(--blue);text-decoration:none;background:rgba(88,196,221,.08)}
+
+.twrap{overflow-x:auto;margin:8px 0 2px}
+table.tt{border-collapse:collapse;font-family:ui-monospace,'Cascadia Mono',Consolas,monospace;font-size:13.5px;min-width:420px}
+table.tt th{color:var(--muted);font-weight:600;font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:4px 10px;text-align:left;border-bottom:1px solid var(--line)}
+table.tt td{padding:4px 10px;border-bottom:1px solid rgba(42,51,71,.55);white-space:nowrap}
+table.tt td.res{color:var(--green)}
+table.tt td.dim{color:var(--muted)}
+
+.tape{display:inline-flex;gap:2px;vertical-align:middle;font-family:ui-monospace,'Cascadia Mono',Consolas,monospace}
+.tape .cell{display:inline-block;min-width:24px;text-align:center;border:1px solid var(--axis);border-radius:4px;padding:1px 3px;background:var(--bg)}
+.tape .cell.head{border-color:var(--blue);color:var(--blue);box-shadow:0 0 0 1px var(--blue) inset}
+.st{font-family:Georgia,'Times New Roman',serif;font-style:italic;color:var(--blue)}
+.st.halt{color:var(--green)}
+
+.arch{color:var(--blue);font-weight:600}
+.org{color:var(--orange);font-weight:600}
+
+/* ---------- insights ---------- */
+.insights{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin-top:26px}
+.insights .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px}
+.insights h3{margin:0 0 6px;font-size:15px}
+.insights p{margin:0;font-size:14px;color:var(--muted)}
+.c-yellow{color:var(--yellow)} .c-green{color:var(--green)} .c-blue{color:var(--blue)} .c-purple{color:var(--purple)}
+
+footer{color:var(--muted);font-size:13px;margin-top:30px;border-top:1px solid var(--line);padding-top:16px}
+footer .nav{display:flex;justify-content:space-between;gap:12px;margin-top:8px;flex-wrap:wrap}
+@media (max-width:520px){h1{font-size:25px}.ex{padding:16px 14px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <a class="crumb" href="./index.html">← Intro to Computer Systems Architecture</a>
+  <h1>Worked Solutions — step by step, earned</h1>
+  <span class="badge">PAAL · CourseForge session kit</span>
+  <p class="subtitle">Five exam-style problems, solved the way you should solve them: one move at a time, each with a
+  <b style="color:var(--yellow)">why</b>. The page unlocks once your best score on the
+  <a href="./quiz.html">Formative Quiz</a> reaches <b style="color:var(--ink)">80%</b> — solutions you haven't
+  earned teach you nothing. Try each problem yourself before pressing <em>Show next step</em>.</p>
+</header>
+
+<!-- ============ GATE ============ -->
+<section class="panel" id="gatePanel">
+  <div class="lock" id="gateIcon">🔒</div>
+  <h2 id="gateTitle">These solutions are locked</h2>
+  <p id="gateMsg">Score <b style="color:var(--ink)">80% or better</b> on the formative quiz and this page opens by itself — even if the quiz is sitting in another tab.</p>
+  <div id="gateScore">best quiz score so far: <b class="c-red" id="bestVal">—</b></div>
+  <br>
+  <a class="cta" href="./quiz.html">Take the quiz →</a>
+  <button id="instructorLink" type="button">instructor?</button>
+</section>
+
+<!-- ============ SOLUTIONS ============ -->
+<div id="solutions">
+
+<div class="toolbar">
+  <button id="btnRevealAll">Reveal all</button>
+  <button id="btnCollapseAll">Collapse all</button>
+  <span class="note">each step is one move + one reason — read the reason twice</span>
+</div>
+
+<!-- ============ E1 ============ -->
+<section class="panel ex" data-ex="1">
+  <h2><span class="tag">Exercise 1</span>Architecture or organization?</h2>
+  <p class="problem">Classify each statement as <span class="arch">architecture</span> or
+  <span class="org">organization</span>, with a one-line justification:
+  <em>(a)</em> the semantics of x86's <span class="mono">MOV</span> instruction ·
+  <em>(b)</em> Intel vs AMD implementing x86 with different pipelines ·
+  <em>(c)</em> the number of ISA-visible registers ·
+  <em>(d)</em> moving from a 7&nbsp;nm to a 5&nbsp;nm process ·
+  <em>(e)</em> adding a new SIMD instruction-set extension ·
+  <em>(f)</em> doubling L1 cache associativity (same ISA).</p>
+  <details class="hint"><summary>Try first — hint</summary>
+    <p>Don't memorize six answers. Find the <b>one question</b> that decides all of them, then ask it six times.</p>
+  </details>
+  <ol class="steps">
+    <li class="step"><div class="sinner"><div class="scard">
+      <div class="snum">Step 1 — the test question</div>
+      <p class="move">Ask: <b style="color:var(--yellow)">"if this changed, would correct software have to change?"</b> If yes, it's programmer-visible → <span class="arch">architecture</span>. If programs run unmodified (only faster, cooler, or cheaper), it's <span class="org">organization</span>.</p>
+      <p class="why"><b>WHY</b> — this is the lecture's definition made operational: architecture = <i>what</i> the system does (the contract with software); organization = <i>how</i> it's physically built.</p>
+    </div></div></li>
+    <li class="step"><div class="sinner"><div class="scard">
+      <div class="snum">Step 2 — (a) MOV semantics</div>
+      <p class="move">(a) → <span class="arch">architecture</span>. Change what <span class="mono">MOV</span> means and every compiled binary on Earth breaks.</p>
+      <p class="why"><b>WHY</b> — instruction semantics are the core of the ISA: the exact behavior software is written against.</p>
+    </div></div></li>
+    <li class="step"><div class="sinner"><div class="scard">
+      <div class="snum">Step 3 — (b) Intel vs AMD pipelines</div>
+      <p class="move">(b) → <span class="org">organization</span>. Both chips run the <i>same</i> x86 binaries; the pipelines differ underneath.</p>
+      <p class="why"><b>WHY</b> — one architecture, two implementations. This is the textbook example: same contract, different machinery.</p>
+    </div></div></li>
+    <li class="step"><div class="sinner"><div class="scard">
+      <div class="snum">Step 4 — (c) ISA-visible register count</div>
+      <p class="move">(c) → <span class="arch">architecture</span>. Compilers allocate those registers by name; add or remove one and code generation changes.</p>
+      <p class="why"><b>WHY</b> — "ISA-visible" literally means the programmer can name it. Hidden <i>physical</i> rename registers, by contrast, would be organization.</p>
+    </div></div></li>
+    <li class="step"><div class="sinner"><div class="scard">
+      <div class="snum">Step 5 — (d) 7 nm → 5 nm</div>
+      <p class="move">(d) → <span class="org">organization</span> (implementation technology). No program can even detect the transistor size.</p>
+      <p class="why"><b>WHY</b> — process shrinks change cost, power, and clock headroom — exactly the things the lecture says organization optimizes.</p>
+    </div></div></li>
+    <li class="step"><div class="sinner"><div class="scard">
+      <div class="snum">Step 6 — (e) new SIMD extension</div>
+      <p class="move">(e) → <span class="arch">architecture</span>. New instructions exist only if software is rewritten (or recompiled) to emit them.</p>
+      <p class="why"><b>WHY</b> — an <i>extension</i> changes the instruction set itself. Software must opt in — the definition of a programmer-visible change.</p>
+    </div></div></li>
+    <li class="step"><div class="sinner"><div class="scard">
+      <div class="snum">Step 7 — (f) doubling L1 associativity</div>
+      <p class="move">(f) → <span class="org">organization</span>. Loads and stores behave identically; hit rate just improves.</p>
+      <p class="why"><b>WHY</b> — caches are (mostly) transparent: correctness never depends on them, only speed. Same ISA ⇒ same architecture.</p>
+    </div></div></li>
+  </ol>
+  <div class="answer"><div class="sinner"><div class="abox">
+    <div class="albl">Final answer</div>
+    (a) <span class="arch">Arch</span> · (b) <span class="org">Org</span> · (c) <span class="arch">Arch</span> ·
+    (d) <span class="org">Org</span> · (e) <span class="arch">Arch</span> · (f) <span class="org">Org</span> —
+    every call decided by one question: <i>does software have to change?</i>
+  </div></div></div>
+  <div class="exbtns">
+    <button class="next">Show next step</button>
+    <button class="small ra">Reveal all</button>
+    <button class="small co">Collapse</button>
+    <span class="progress"></span>
+  </div>
+  <div class="chips"><span class="clbl">connects to</span>
+    <a href="./lecture.html">The Interactive Lecture</a>
+    <a href="./cisc-risc.html">CISC vs RISC</a>
+  </div>
+</section>
+
+<!-- ============ E2 ============ -->
+<section class="panel ex" data-ex="2">
+  <h2><span class="tag">Exercise 2</span>Turing machine trace — binary increment</h2>
+  <p class="problem">Run the binary-increment machine from the Turing machine page on input tape
+  <span class="mono">1011</span> (head on the first cell, state <span class="st">q0</span>). Rules:
+  <span class="mono">(q0,0)→(0,R,q0)</span>, <span class="mono">(q0,1)→(1,R,q0)</span>,
+  <span class="mono">(q0,□)→(□,L,q1)</span>, <span class="mono">(q1,1)→(0,L,q1)</span>,
+  <span class="mono">(q1,0)→(1,N,halt)</span>, <span class="mono">(q1,□)→(1,N,halt)</span>.
+  Show the tape and state after every rule firing.</p>
+  <details class="hint"><summary>Try first — hint</summary>
+    <p>The machine is doing grade-school +1 in binary: find the rightmost digit, then <b>carry leftward</b>. Predict how many 1s will flip to 0 before you trace a single step.</p>
+  </details>
+  <ol class="steps">
+    <li class="step"><div class="sinner"><div class="scard">
+      <div class="snum">Step 0 — initial configuration</div>
+      <p class="move">State <span class="st">q0</span>, head on cell 0:&ensp;
+      <span class="tape"><span class="cell head">1</span><span class="cell">0</span><span class="cell">1</span><span class="cell">1</span></span>
+      &ensp;(<span class="mono">1011₂</span> = 8+2+1 = <b>11</b>)</p>
+      <p class="why"><b>WHY</b> — phase one (<span class="st">q0</span>) has one job: walk right past every digit to find the number's low end, where +1 must begin.</p>
+    </div></div></li>
+    <li class="step"><div class="sinner"><div class="scard">
+      <div class="snum">Step 1 — fire (q0,1)→(1,R,q0)</div>
+      <p class="move"><span class="st">q0</span>&ensp;
+      <span class="tape"><span class="cell">1</span><span class="cell head">0</span><span class="cell">1</span><span class="cell">1</span></span></p>
+      <p class="why"><b>WHY</b> — reading a 1 while scanning: leave it, keep moving right. Nothing is changed yet.</p>
+    </div></div></li>
+    <li class="step"><div class="sinner"><div class="scard">
+      <div class="snum">Step 2 — fire (q0,0)→(0,R,q0)</div>
+      <p class="move"><span class="st">q0</span>&ensp;
+      <span class="tape"><span class="cell">1</span><span class="cell">0</span><span class="cell head">1</span><span class="cell">1</span></span></p>
+      <p class="why"><b>WHY</b> — same scan, different symbol, same decision: pass over it. The rule table covers every (state, symbol) pair it might meet.</p>
+    </div></div></li>
+    <li class="step"><div class="sinner"><div class="scard">
+      <div class="snum">Step 3 — fire (q0,1)→(1,R,q0)</div>
+      <p class="move"><span class="st">q0</span>&ensp;
+      <span class="tape"><span class="cell">1</span><span class="cell">0</span><span class="cell">1</span><span class="cell head">1</span></span></p>
+      <p class="why"><b>WHY</b> — still hunting for the right edge. The machine can't "see" the whole tape — it only knows the cell under the head.</p>
+    </div></div></li>
+    <li class="step"><div class="sinner"><div class="scard">
+      <div class="snum">Step 4 — fire (q0,1)→(1,R,q0)</div>
+      <p class="move"><span class="st">q0</span>&ensp;
+      <span class="tape"><span class="cell">1</span><span class="cell">0</span><span class="cell">1</span><span class="cell">1</span><span class="cell head">□</span></span></p>
+      <p class="why"><b>WHY</b> — it stepped off the number onto blank tape. That blank is the only signal that the rightmost digit is behind it.</p>
+    </div></div></li>
+    <li class="step"><div class="sinner"><div class="scard">
+      <div class="snum">Step 5 — fire (q0,□)→(□,L,q1)</div>
+      <p class="move"><span class="st">q1</span>&ensp;
+      <span class="tape"><span class="cell">1</span><span class="cell">0</span><span class="cell">1</span><span class="cell head">1</span><span class="cell">□</span></span></p>
+      <p class="why"><b>WHY</b> — the state change IS the algorithm switching phases: <span class="st">q0</span> = "searching", <span class="st">q1</span> = "carrying". The head turns around onto the lowest digit.</p>
+    </div></div></li>
+    <li class="step"><div class="sinner"><div class="scard">
+      <div class="snum">Step 6 — fire (q1,1)→(0,L,q1)</div>
+      <p class="move"><span class="st">q1</span>&ensp;
+      <span class="tape"><span class="cell">1</span><span class="cell">0</span><span class="cell head">1</span><span class="cell">0</span><span class="cell">□</span></span>
+      &ensp;— tape is now <span class="mono">1010</span></p>
+      <p class="why"><b>WHY</b> — 1+1 = 10 in binary: write 0, carry the 1 left. Staying in <span class="st">q1</span> means "I am still holding a carry."</p>
+    </div></div></li>
+    <li class="step"><div class="sinner"><div class="scard">
+      <div class="snum">Step 7 — fire (q1,1)→(0,L,q1)</div>
+      <p class="move"><span class="st">q1</span>&ensp;
+      <span class="tape"><span class="cell">1</span><span class="cell head">0</span><span class="cell">0</span><span class="cell">0</span><span class="cell">□</span></span>
+      &ensp;— tape is now <span class="mono">1000</span></p>
+      <p class="why"><b>WHY</b> — the carry ripples: another 1 absorbs it and becomes 0, and the carry keeps traveling. Exactly the bead-cascade from the abacus page.</p>
+    </div></div></li>
+    <li class="step"><div class="sinner"><div class="scard">
+      <div class="snum">Step 8 — fire (q1,0)→(1,N,halt)</div>
+      <p class="move"><span class="st halt">halt</span>&ensp;
+      <span class="tape"><span class="cell">1</span><span class="cell head">1</span><span class="cell">0</span><span class="cell">0</span><span class="cell">□</span></span>
+      &ensp;— tape reads <span class="mono">1100</span></p>
+      <p class="why"><b>WHY</b> — a 0 can absorb the carry without creating a new one: write 1, done. Halting is a deliberate rule, not an accident — the machine <i>decides</i> it's finished.</p>
+    </div></div></li>
+  </ol>
+  <div class="answer"><div class="sinner"><div class="abox">
+    <div class="albl">Final answer</div>
+    Final tape <b class="mono">1100</b> after 8 rule firings.
+    Check: <span class="mono">1011₂</span> = 11, and <span class="mono">1100₂</span> = 8+4 = <b>12</b> = 11+1. ✓
+    Two states + six rules = a working +1 circuit.
+  </div></div></div>
+  <div class="exbtns">
+    <button class="next">Show next step</button>
+    <button class="small ra">Reveal all</button>
+    <button class="small co">Collapse</button>
+    <span class="progress"></span>
+  </div>
+  <div class="chips"><span class="clbl">connects to</span>
+    <a href="./turing-machine.html">The Turing Machine</a>
+    <a href="./abacus.html">The Abacus</a>
+  </div>
+</section>
+
+<!-- ============ E3 ============ -->
+<section class="panel ex" data-ex="3">
+  <h2><span class="tag">Exercise 3</span>Program the Z3 — <span class="math">z</span> = (<span class="math">a</span>+<span class="math">b</span>)·(<span class="math">a</span>−<span class="math">b</span>)</h2>
+  <p class="problem">Using only the real Z3 operations — <span class="mono">Lu</span> (keyboard→register),
+  <span class="mono">Pr Zn</span> (memory→register), <span class="mono">Ps Zn</span> (R1→memory, R1 clears),
+  <span class="mono">Ls1</span> (R1:=R1+R2), <span class="mono">Ls2</span> (R1:=R1−R2), <span class="mono">Lm</span>
+  (R1:=R1×R2), <span class="mono">Ld</span> (display R1) — and memory words Z1–Z3, write an instruction tape that
+  computes <span class="math">z</span> = (<span class="math">a</span>+<span class="math">b</span>)·(<span class="math">a</span>−<span class="math">b</span>)
+  for keyboard inputs <span class="math">a</span>=7, <span class="math">b</span>=3, then dry-run it.
+  (Loads auto-route: they fill R1 if it's free, otherwise R2.)</p>
+  <details class="hint"><summary>Try first — hint</summary>
+    <p>You need <span class="math">a</span> and <span class="math">b</span> <b>twice</b> each, but the keyboard gives them once and binary ops clear R2. Where must they live between uses? That's what Z1–Z3 are for.</p>
+  </details>
+  <ol class="steps">
+    <li class="step"><div class="sinner"><div class="scard">
+      <div class="snum">Step 1 — plan before punching film</div>
+      <p class="move">Three sub-results: <span class="math">s</span> = <span class="math">a</span>+<span class="math">b</span>, <span class="math">d</span> = <span class="math">a</span>−<span class="math">b</span>, then <span class="math">z</span> = <span class="math">s</span>·<span class="math">d</span>. Plan: park <span class="math">a</span>→Z1 and <span class="math">b</span>→Z2 immediately; compute the sum and park it in Z3; compute the difference; multiply by Z3; display.</p>
+      <p class="why"><b>WHY</b> — the Z3 has no branch and only two working registers, so a program is pure dataflow choreography: every value must be in the right place <i>before</i> the op that eats it.</p>
+    </div></div></li>
+    <li class="step"><div class="sinner"><div class="scard">
+      <div class="snum">Step 2 — punch the tape (14 frames)</div>
+      <div class="twrap"><table class="tt">
+        <tr><th>#</th><th>instr</th><th>effect</th><th>#</th><th>instr</th><th>effect</th></tr>
+        <tr><td>1</td><td>Lu</td><td class="dim">keyboard a → R1</td><td>8</td><td>Ps Z3</td><td class="dim">sum → Z3</td></tr>
+        <tr><td>2</td><td>Ps Z1</td><td class="dim">a → Z1</td><td>9</td><td>Pr Z1</td><td class="dim">a → R1</td></tr>
+        <tr><td>3</td><td>Lu</td><td class="dim">keyboard b → R1</td><td>10</td><td>Pr Z2</td><td class="dim">b → R2</td></tr>
+        <tr><td>4</td><td>Ps Z2</td><td class="dim">b → Z2</td><td>11</td><td>Ls2</td><td class="dim">R1 := a − b</td></tr>
+        <tr><td>5</td><td>Pr Z1</td><td class="dim">a → R1</td><td>12</td><td>Pr Z3</td><td class="dim">sum → R2</td></tr>
+        <tr><td>6</td><td>Pr Z2</td><td class="dim">b → R2</td><td>13</td><td>Lm</td><td class="dim">R1 := R1 × R2</td></tr>
+        <tr><td>7</td><td>Ls1</td><td class="dim">R1 := a + b</td><td>14</td><td>Ld</td><td class="dim">lamps ← R1</td></tr>
+      </table></div>
+      <p class="why"><b>WHY</b> — keyboard queue is <span class="mono">7, 3</span>. Frames 1–4 secure the inputs in memory <i>first</i>, because <span class="mono">Ls1/Ls2/Lm</span> destroy R2 and <span class="mono">Ps</span> drains R1 — nothing survives in registers.</p>
+    </div></div></li>
+    <li class="step"><div class="sinner"><div class="scard">
+      <div class="snum">Step 3 — trace frames 1–4: capture the inputs</div>
+      <div class="twrap"><table class="tt">
+        <tr><th>after</th><th>R1</th><th>R2</th><th>Z1</th><th>Z2</th><th>Z3</th></tr>
+        <tr><td>1 Lu</td><td class="res">7</td><td class="dim">—</td><td class="dim">—</td><td class="dim">—</td><td class="dim">—</td></tr>
+        <tr><td>2 Ps Z1</td><td class="dim">—</td><td class="dim">—</td><td class="res">7</td><td class="dim">—</td><td class="dim">—</td></tr>
+        <tr><td>3 Lu</td><td class="res">3</td><td class="dim">—</td><td>7</td><td class="dim">—</td><td class="dim">—</td></tr>
+        <tr><td>4 Ps Z2</td><td class="dim">—</td><td class="dim">—</td><td>7</td><td class="res">3</td><td class="dim">—</td></tr>
+      </table></div>
+      <p class="why"><b>WHY</b> — after frame 2, R1 is empty again (Ps clears it), so the second <span class="mono">Lu</span> auto-routes into R1, not R2. The hardware's routing rule dictates instruction order.</p>
+    </div></div></li>
+    <li class="step"><div class="sinner"><div class="scard">
+      <div class="snum">Step 4 — trace frames 5–8: the sum, parked</div>
+      <div class="twrap"><table class="tt">
+        <tr><th>after</th><th>R1</th><th>R2</th><th>Z1</th><th>Z2</th><th>Z3</th></tr>
+        <tr><td>5 Pr Z1</td><td class="res">7</td><td class="dim">—</td><td>7</td><td>3</td><td class="dim">—</td></tr>
+        <tr><td>6 Pr Z2</td><td>7</td><td class="res">3</td><td>7</td><td>3</td><td class="dim">—</td></tr>
+        <tr><td>7 Ls1</td><td class="res">10</td><td class="dim">—</td><td>7</td><td>3</td><td class="dim">—</td></tr>
+        <tr><td>8 Ps Z3</td><td class="dim">—</td><td class="dim">—</td><td>7</td><td>3</td><td class="res">10</td></tr>
+      </table></div>
+      <p class="why"><b>WHY</b> — 7+3 = 10 lands in R1 and R2 clears; but <span class="mono">Lm</span> isn't ready to run yet (no second factor exists), so the sum must wait in Z3 while we build <span class="math">a</span>−<span class="math">b</span>.</p>
+    </div></div></li>
+    <li class="step"><div class="sinner"><div class="scard">
+      <div class="snum">Step 5 — trace frames 9–11: the difference</div>
+      <div class="twrap"><table class="tt">
+        <tr><th>after</th><th>R1</th><th>R2</th><th>Z1</th><th>Z2</th><th>Z3</th></tr>
+        <tr><td>9 Pr Z1</td><td class="res">7</td><td class="dim">—</td><td>7</td><td>3</td><td>10</td></tr>
+        <tr><td>10 Pr Z2</td><td>7</td><td class="res">3</td><td>7</td><td>3</td><td>10</td></tr>
+        <tr><td>11 Ls2</td><td class="res">4</td><td class="dim">—</td><td>7</td><td>3</td><td>10</td></tr>
+      </table></div>
+      <p class="why"><b>WHY</b> — operand order matters for subtraction: <span class="mono">Ls2</span> computes R1−R2, so <span class="math">a</span> must be loaded <i>first</i> (it takes R1). Load them the other way round and you'd get −4.</p>
+    </div></div></li>
+    <li class="step"><div class="sinner"><div class="scard">
+      <div class="snum">Step 6 — trace frames 12–14: multiply and display</div>
+      <div class="twrap"><table class="tt">
+        <tr><th>after</th><th>R1</th><th>R2</th><th>Z1</th><th>Z2</th><th>Z3</th><th>lamps</th></tr>
+        <tr><td>12 Pr Z3</td><td>4</td><td class="res">10</td><td>7</td><td>3</td><td>10</td><td class="dim">—</td></tr>
+        <tr><td>13 Lm</td><td class="res">40</td><td class="dim">—</td><td>7</td><td>3</td><td>10</td><td class="dim">—</td></tr>
+        <tr><td>14 Ld</td><td>40</td><td class="dim">—</td><td>7</td><td>3</td><td>10</td><td class="res">40</td></tr>
+      </table></div>
+      <p class="why"><b>WHY</b> — with 4 sitting in R1, <span class="mono">Pr Z3</span> auto-routes the parked sum into R2; <span class="mono">Lm</span> multiplies 4×10 = 40; <span class="mono">Ld</span> stamps it onto the lamp display. Fetch–execute–advance, frame after frame — a 1941 relay machine running the same rhythm as your CPU.</p>
+    </div></div></li>
+    <li class="step"><div class="sinner"><div class="scard">
+      <div class="snum">Step 7 — verify</div>
+      <p class="move">(7+3)·(7−3) = 10·4 = <b>40</b>. And 7²−3² = 49−9 = <b>40</b> — the program is a hardware proof of the identity (<span class="math">a</span>+<span class="math">b</span>)(<span class="math">a</span>−<span class="math">b</span>) = <span class="math">a</span>²−<span class="math">b</span>².</p>
+      <p class="why"><b>WHY</b> — always check a trace against math you trust. If the table said anything but 40, the bug would be in the choreography, not the arithmetic units.</p>
+    </div></div></li>
+  </ol>
+  <div class="answer"><div class="sinner"><div class="abox">
+    <div class="albl">Final answer</div>
+    Tape: <span class="mono">Lu · Ps Z1 · Lu · Ps Z2 · Pr Z1 · Pr Z2 · Ls1 · Ps Z3 · Pr Z1 · Pr Z2 · Ls2 · Pr Z3 · Lm · Ld</span>
+    with keyboard queue <span class="mono">7, 3</span> → lamps show <b class="mono">z = 40</b>. ✓ Paste it into the Z3 simulator and watch the relays agree.
+  </div></div></div>
+  <div class="exbtns">
+    <button class="next">Show next step</button>
+    <button class="small ra">Reveal all</button>
+    <button class="small co">Collapse</button>
+    <span class="progress"></span>
+  </div>
+  <div class="chips"><span class="clbl">connects to</span>
+    <a href="./z3.html">Zuse's Z3</a>
+  </div>
+</section>
+
+<!-- ============ E4 ============ -->
+<section class="panel ex" data-ex="4">
+  <h2><span class="tag">Exercise 4</span>Mark I difference table — <span class="math">f</span>(<span class="math">x</span>) = <span class="math">x</span>² + 3<span class="math">x</span> + 1</h2>
+  <p class="problem">Using <em>only additions</em> (the method of finite differences, as on the Harvard Mark&nbsp;I),
+  produce the table of <span class="math">f</span>(<span class="math">x</span>) = <span class="math">x</span>²+3<span class="math">x</span>+1
+  for <span class="math">x</span> = 0…6. Set up the accumulators, give the loop, run it, and verify two values by direct computation.</p>
+  <details class="hint"><summary>Try first — hint</summary>
+    <p>Compute <span class="math">f</span>(0), <span class="math">f</span>(1), <span class="math">f</span>(2), <span class="math">f</span>(3) by hand and subtract neighbors twice. What do you notice about the <i>second</i> row of differences?</p>
+  </details>
+  <ol class="steps">
+    <li class="step"><div class="sinner"><div class="scard">
+      <div class="snum">Step 1 — the seed value</div>
+      <p class="move"><span class="math">f</span>(0) = 0² + 3·0 + 1 = <b>1</b>. That's the only value of <span class="math">f</span> we'll ever compute directly.</p>
+      <p class="why"><b>WHY</b> — the whole trick of a difference engine is to pay for one real evaluation up front, then coast on additions forever after.</p>
+    </div></div></li>
+    <li class="step"><div class="sinner"><div class="scard">
+      <div class="snum">Step 2 — find the difference pattern</div>
+      <p class="move">Δ(<span class="math">x</span>) = <span class="math">f</span>(<span class="math">x</span>+1) − <span class="math">f</span>(<span class="math">x</span>) = (2<span class="math">x</span>+4). So Δ starts at <b>4</b> and grows by <b>2</b> each step: 4, 6, 8, 10, 12, 14. The second difference Δ² = <b>2</b>, constant.</p>
+      <p class="why"><b>WHY</b> — the second difference of <i>any</i> quadratic is constant (here 2 = 2·1, twice the leading coefficient). Constant means "no more subtraction needed" — and that is the entire reason difference engines worked.</p>
+    </div></div></li>
+    <li class="step"><div class="sinner"><div class="scard">
+      <div class="snum">Step 3 — load the accumulators</div>
+      <p class="move">A1 ← 1 (current <span class="math">f</span>) · A2 ← 4 (current Δ) · C1 ← 2 (the constant Δ²).</p>
+      <p class="why"><b>WHY</b> — three storage counters hold the entire mathematical state: the value, its rate of change, and the rate of change of the rate of change. Nothing else about the polynomial needs to exist in the machine.</p>
+    </div></div></li>
+    <li class="step"><div class="sinner"><div class="scard">
+      <div class="snum">Step 4 — the loop (three tape lines)</div>
+      <p class="move"><span class="mono">TYPE A1</span> (print) → <span class="mono">A1 += A2</span> (value climbs by Δ) → <span class="mono">A2 += C1</span> (Δ climbs by 2) → repeat.</p>
+      <p class="why"><b>WHY</b> — squaring has vanished: two additions per table entry. The Mark I's 24-channel paper tape just repeated these lines; Babbage's engine did the same cascade in gears, a century earlier and unbuilt.</p>
+    </div></div></li>
+    <li class="step"><div class="sinner"><div class="scard">
+      <div class="snum">Step 5 — run it, seven passes</div>
+      <div class="twrap"><table class="tt">
+        <tr><th>pass</th><th>TYPE prints</th><th>A1 after +A2</th><th>A2 after +C1</th></tr>
+        <tr><td>1</td><td class="res">1</td><td>1+4 = 5</td><td>4+2 = 6</td></tr>
+        <tr><td>2</td><td class="res">5</td><td>5+6 = 11</td><td>6+2 = 8</td></tr>
+        <tr><td>3</td><td class="res">11</td><td>11+8 = 19</td><td>8+2 = 10</td></tr>
+        <tr><td>4</td><td class="res">19</td><td>19+10 = 29</td><td>10+2 = 12</td></tr>
+        <tr><td>5</td><td class="res">29</td><td>29+12 = 41</td><td>12+2 = 14</td></tr>
+        <tr><td>6</td><td class="res">41</td><td>41+14 = 55</td><td>14+2 = 16</td></tr>
+        <tr><td>7</td><td class="res">55</td><td class="dim">(stop)</td><td class="dim">—</td></tr>
+      </table></div>
+      <p class="why"><b>WHY</b> — watch A2 tick 4, 6, 8, 10, 12, 14: the machine is <i>integrating</i> the constant 2 twice. Twelve additions produced a seven-entry quadratic table.</p>
+    </div></div></li>
+    <li class="step"><div class="sinner"><div class="scard">
+      <div class="snum">Step 6 — verify two entries directly</div>
+      <p class="move"><span class="math">f</span>(4) = 16 + 12 + 1 = <b>29</b> ✓ &ensp;·&ensp; <span class="math">f</span>(6) = 36 + 18 + 1 = <b>55</b> ✓ — both match the printed column.</p>
+      <p class="why"><b>WHY</b> — spot-checking the middle and the end catches both a wrong seed and a drifting increment. Navy table-checkers did exactly this on "Bessie's" output.</p>
+    </div></div></li>
+  </ol>
+  <div class="answer"><div class="sinner"><div class="abox">
+    <div class="albl">Final answer</div>
+    Printed column: <b class="mono">1, 5, 11, 19, 29, 41, 55</b> — a full quadratic table from
+    additions alone, because Δ² of a quadratic is the constant 2.
+  </div></div></div>
+  <div class="exbtns">
+    <button class="next">Show next step</button>
+    <button class="small ra">Reveal all</button>
+    <button class="small co">Collapse</button>
+    <span class="progress"></span>
+  </div>
+  <div class="chips"><span class="clbl">connects to</span>
+    <a href="./mark1.html">Harvard Mark I</a>
+    <a href="./analytical-engine.html">The Analytical Engine</a>
+  </div>
+</section>
+
+<!-- ============ E5 ============ -->
+<section class="panel ex" data-ex="5">
+  <h2><span class="tag">Exercise 5</span>Moore's Law arithmetic — and the wall it hit</h2>
+  <p class="problem"><em>(i)</em> Intel's 4004 (1971) had 2,300 transistors. If counts double every 2 years,
+  derive the predicted transistor count for 2023 and compare with Apple's M2&nbsp;Ultra
+  (1.34&nbsp;×&nbsp;10¹¹ transistors, 2023). <em>(ii)</em> If clock speeds had kept doubling every 2 years from
+  3&nbsp;GHz in 2004, what clock would 2024 require? Why didn't it happen, and what did the industry do instead?</p>
+  <details class="hint"><summary>Try first — hint</summary>
+    <p>Both parts are the same one-liner: count the doublings <span class="math">n</span>, then multiply by 2<sup><span class="math">n</span></sup>. The interesting part is which prediction came true.</p>
+  </details>
+  <ol class="steps">
+    <li class="step"><div class="sinner"><div class="scard">
+      <div class="snum">Step 1 — (i) count the doublings</div>
+      <p class="move">2023 − 1971 = <b>52 years</b>. At one doubling per 2 years: 52 ÷ 2 = <b>26 doublings</b>.</p>
+      <p class="why"><b>WHY</b> — exponential claims become checkable the moment you convert "keeps doubling" into an integer exponent. Everything else is multiplication.</p>
+    </div></div></li>
+    <li class="step"><div class="sinner"><div class="scard">
+      <div class="snum">Step 2 — evaluate 2²⁶</div>
+      <p class="move">2¹⁰ = 1,024 → 2²⁰ = 1,048,576 → 2²⁶ = 2⁶ · 2²⁰ = 64 × 1,048,576 = <b>67,108,864</b>.</p>
+      <p class="why"><b>WHY</b> — memorizing 2¹⁰ ≈ 10³ lets you size any power of two in your head: 2²⁶ ≈ 64 × 10⁶ ≈ 6.7 × 10⁷. The exact value confirms the estimate.</p>
+    </div></div></li>
+    <li class="step"><div class="sinner"><div class="scard">
+      <div class="snum">Step 3 — the prediction</div>
+      <p class="move">2,300 × 67,108,864 = 23 × 67,108,864 × 100 = 1,543,503,872 × 100 = <b>154,350,387,200</b> ≈ <b>1.54 × 10¹¹</b> transistors.</p>
+      <p class="why"><b>WHY</b> — the 1965 back-of-envelope predicts ~154 <i>billion</i> transistors from a starting point of 2,300. No physical law forced this; it became a self-fulfilling industry roadmap.</p>
+    </div></div></li>
+    <li class="step"><div class="sinner"><div class="scard">
+      <div class="snum">Step 4 — compare with reality</div>
+      <p class="move">M2 Ultra: 1.34 × 10¹¹. Ratio: 1.34 ÷ 1.5435 ≈ 0.87 — reality is only ~13% below the naive extrapolation, comfortably within 15% after <b>52 years</b> and 26 doublings.</p>
+      <p class="why"><b>WHY</b> — an extrapolation across a factor of ~67 million landing within 15% is astonishing; almost no other engineering trend has ever held that long. That's why "Moore's Law" earned the name "law".</p>
+    </div></div></li>
+    <li class="step"><div class="sinner"><div class="scard">
+      <div class="snum">Step 5 — (ii) the clock counterfactual</div>
+      <p class="move">2024 − 2004 = 20 years → <b>10 doublings</b>. 2¹⁰ × 3 GHz = 1,024 × 3 GHz = 3,072 GHz ≈ <b>3 THz</b>.</p>
+      <p class="why"><b>WHY</b> — the same arithmetic that worked for transistors demands a three-<i>terahertz</i> CPU. Real 2024 desktop clocks: still ~3–6 GHz. Two identical extrapolations, one triumph, one flatline.</p>
+    </div></div></li>
+    <li class="step"><div class="sinner"><div class="scard">
+      <div class="snum">Step 6 — why the wall, and the industry's answer</div>
+      <p class="move">Dynamic power scales roughly with frequency × voltage² — pushing toward THz would concentrate more heat per mm² than we can remove; the chip would destroy itself. So around 2004 clocks plateaued and the industry pivoted: <b>more cores, not faster cores</b> — multicore CPUs, GPUs, clusters, accelerators.</p>
+      <p class="why"><b>WHY</b> — transistor <i>count</i> kept doubling (they got smaller), so the budget was spent sideways on parallelism. This single fork explains why modern performance belongs to whoever writes parallel software.</p>
+    </div></div></li>
+  </ol>
+  <div class="answer"><div class="sinner"><div class="abox">
+    <div class="albl">Final answer</div>
+    (i) Predicted 2,300 × 2²⁶ = 154,350,387,200 ≈ <b>1.54 × 10¹¹</b>; M2 Ultra's 1.34 × 10¹¹ is within ~15% —
+    the transistor prediction held for 52 years. (ii) Clocks would need 2¹⁰ × 3 GHz ≈ <b>3 THz</b> — impossible
+    (power/heat wall), so the industry went <b>multicore</b> instead.
+  </div></div></div>
+  <div class="exbtns">
+    <button class="next">Show next step</button>
+    <button class="small ra">Reveal all</button>
+    <button class="small co">Collapse</button>
+    <span class="progress"></span>
+  </div>
+  <div class="chips"><span class="clbl">connects to</span>
+    <a href="./moore.html">Moore's Law</a>
+    <a href="./cisc-risc.html">CISC vs RISC</a>
+  </div>
+</section>
+
+<!-- ============ INSIGHTS ============ -->
+<section class="insights">
+  <div class="card">
+    <h3 class="c-yellow">Reading ≠ owning</h3>
+    <p>Every step above made sense as you read it — that feeling is not knowledge, it's recognition.
+    Tomorrow, take a blank sheet and redo E2's trace and E4's table from nothing. Whatever you can't
+    reproduce is exactly what you haven't learned yet.</p>
+  </div>
+  <div class="card">
+    <h3 class="c-green">Each exercise is one lecture claim, made operational</h3>
+    <p>E1 is the architecture/organization definition, E2 is Turing's rule table, E3 is the Z3's
+    branch-free dataflow, E4 is why difference engines worked, E5 is Moore's Law and the power wall.
+    If a step surprised you, the linked interactive page is precisely the gap — go drag things until it doesn't.</p>
+  </div>
+</section>
+
+</div><!-- /solutions -->
+
+<footer>
+  Interactive companion to the lecture <em>Introduction to Computers &amp; Computer Systems Architecture</em> · CCSA T1
+  <div class="nav">
+    <a href="./quiz.html">← Formative Quiz</a>
+    <a href="./index.html">All explorations</a>
+    <a href="./prompt-studio.html">Prompt Studio →</a>
+  </div>
+</footer>
+
+</div>
+
+<script>
+(function(){
+'use strict';
+var KEY='ccsa-quiz-best', OKEY='ccsa-solutions-override', CODE='TSI-CCSA', THRESH=80;
+var gate=document.getElementById('gatePanel'),
+    sols=document.getElementById('solutions'),
+    bestVal=document.getElementById('bestVal'),
+    gateIcon=document.getElementById('gateIcon'),
+    gateTitle=document.getElementById('gateTitle'),
+    gateMsg=document.getElementById('gateMsg');
+var unlocked=false;
+
+function bestScore(){
+  var v=parseInt(localStorage.getItem(KEY),10);
+  return isNaN(v)?null:v;
+}
+function hasOverride(){ return localStorage.getItem(OKEY)==='1'; }
+function shouldUnlock(){ var b=bestScore(); return (b!==null&&b>=THRESH)||hasOverride(); }
+
+function paintScore(){
+  var b=bestScore();
+  if(b===null){ bestVal.textContent='no attempt yet'; bestVal.style.color='var(--muted)'; }
+  else{ bestVal.textContent=b+'%'; bestVal.style.color=(b>=THRESH)?'var(--green)':'var(--red)'; }
+}
+
+function unlock(animated){
+  if(unlocked) return;
+  unlocked=true;
+  var showSols=function(){
+    gate.style.display='none';
+    sols.style.display='block';
+    requestAnimationFrame(function(){ requestAnimationFrame(function(){ sols.classList.add('on'); }); });
+  };
+  if(animated){
+    gate.classList.add('granted');
+    gateIcon.textContent='🔓';
+    gateTitle.textContent='Unlocked — nicely earned.';
+    gateMsg.innerHTML=hasOverride()&&!(bestScore()>=THRESH)
+      ? 'Instructor override accepted. Welcome.'
+      : 'Your quiz score cleared the bar. The solutions are yours.';
+    paintScore();
+    setTimeout(function(){ gate.classList.add('dissolve'); setTimeout(showSols,520); },900);
+  } else {
+    showSols();
+  }
+}
+
+function checkGate(animated){
+  paintScore();
+  if(shouldUnlock()) unlock(animated);
+}
+
+/* live re-check: another tab (the quiz) raises the score, or user tabs back */
+window.addEventListener('storage',function(e){
+  if(!e.key||e.key===KEY||e.key===OKEY) checkGate(true);
+});
+window.addEventListener('focus',function(){ checkGate(true); });
+
+/* instructor override */
+document.getElementById('instructorLink').addEventListener('click',function(){
+  var v=prompt('Instructor code:');
+  if(v===null) return;
+  if(v.trim()===CODE){
+    localStorage.setItem(OKEY,'1');
+    checkGate(true);
+  } else {
+    alert('That code was not recognized.');
+  }
+});
+
+/* ---------- progressive step reveal ---------- */
+var exes=[];
+Array.prototype.forEach.call(document.querySelectorAll('.ex'),function(ex){
+  var steps=Array.prototype.slice.call(ex.querySelectorAll('.step')),
+      answer=ex.querySelector('.answer'),
+      next=ex.querySelector('.exbtns .next'),
+      ra=ex.querySelector('.exbtns .ra'),
+      co=ex.querySelector('.exbtns .co'),
+      prog=ex.querySelector('.exbtns .progress');
+  var obj={
+    shown:0,
+    update:function(){
+      prog.textContent=this.shown+' / '+steps.length+' steps';
+      if(this.shown>=steps.length){
+        next.disabled=true; next.textContent='All steps shown ✓';
+        answer.classList.add('shown');
+      } else {
+        next.disabled=false;
+        next.textContent=this.shown===0?'Show first step':'Show next step';
+        answer.classList.remove('shown');
+      }
+    },
+    reveal:function(n){
+      var target=Math.max(0,Math.min(steps.length,n));
+      steps.forEach(function(s,i){ s.classList.toggle('shown',i<target); });
+      this.shown=target; this.update();
+    }
+  };
+  next.addEventListener('click',function(){
+    obj.reveal(obj.shown+1);
+    var el=(obj.shown>=steps.length)?answer:steps[obj.shown-1];
+    setTimeout(function(){
+      var r=el.getBoundingClientRect();
+      if(r.bottom>window.innerHeight) el.scrollIntoView({behavior:'smooth',block:'nearest'});
+    },80);
+  });
+  ra.addEventListener('click',function(){ obj.reveal(steps.length); });
+  co.addEventListener('click',function(){ obj.reveal(0); });
+  obj.update();
+  exes.push(obj);
+});
+document.getElementById('btnRevealAll').addEventListener('click',function(){
+  exes.forEach(function(o){ o.reveal(1e9); });
+});
+document.getElementById('btnCollapseAll').addEventListener('click',function(){
+  exes.forEach(function(o){ o.reveal(0); });
+});
+
+/* initial gate check (no animation on first paint) */
+checkGate(false);
+})();
+</script>
+</body>
+</html>
