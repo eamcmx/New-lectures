@@ -69,6 +69,27 @@ Three more concept widgets plus the CourseForge **PAAL** (Progressive AI-Augment
 | ↳ | 14 · Study Buddy (Socratic in-page tutor, bring-your-own Mistral key) | [Open](https://eamcmx.github.io/New-lectures/lectures/qc-linear-algebra/study-buddy.html) |
 | ↳ | 15 · Flashcards (24 definitions, Leitner boxes, local progress) | [Open](https://eamcmx.github.io/New-lectures/lectures/qc-linear-algebra/flashcards.html) |
 
+## Computer Systems Architecture — Introduction (CCSA T1)
+
+Thirteen interactive explorations for the introduction lecture — the road from mechanical calculation to modern architecture, including **six full working simulators of the first computers**, each programmable the way the real machine was. Companion to the [CPU simulators](https://eamcmx.github.io/New-lectures/sim/index.html) under `/sim/`.
+
+| Folder | Page | Published page |
+|--------|------|----------------|
+| `lectures/ccsa-intro` | **Landing page — all 13 explorations** | [Open](https://eamcmx.github.io/New-lectures/lectures/ccsa-intro/) |
+| ↳ | 1 · The Grand Timeline (2500 BCE → 2025, time-warp scale) | [Open](https://eamcmx.github.io/New-lectures/lectures/ccsa-intro/timeline.html) |
+| ↳ | 2 · The Abacus (working soroban, guided carries) | [Open](https://eamcmx.github.io/New-lectures/lectures/ccsa-intro/abacus.html) |
+| ↳ | 3 · The Slide Rule (draggable log scales) | [Open](https://eamcmx.github.io/New-lectures/lectures/ccsa-intro/slide-rule.html) |
+| ↳ | 4 · Punch Cards (Jacquard loom + Hollerith tabulator) | [Open](https://eamcmx.github.io/New-lectures/lectures/ccsa-intro/punch-card.html) |
+| ↳ | 5 · The Analytical Engine simulator (1837, card chains) | [Open](https://eamcmx.github.io/New-lectures/lectures/ccsa-intro/analytical-engine.html) |
+| ↳ | 6 · The Turing Machine simulator (1936, rule tables) | [Open](https://eamcmx.github.io/New-lectures/lectures/ccsa-intro/turing-machine.html) |
+| ↳ | 7 · The Atanasoff–Berry Computer simulator (1939, be the operator) | [Open](https://eamcmx.github.io/New-lectures/lectures/ccsa-intro/abc.html) |
+| ↳ | 8 · The Zuse Z3 simulator (1941, punched film tape) | [Open](https://eamcmx.github.io/New-lectures/lectures/ccsa-intro/z3.html) |
+| ↳ | 9 · The Harvard Mark I simulator (1944, paper-tape tables) | [Open](https://eamcmx.github.io/New-lectures/lectures/ccsa-intro/mark1.html) |
+| ↳ | 10 · ENIAC simulator (1945, plugboard wiring) | [Open](https://eamcmx.github.io/New-lectures/lectures/ccsa-intro/eniac.html) |
+| ↳ | 11 · The Stored-Program Idea (1945, self-modifying code demo) | [Open](https://eamcmx.github.io/New-lectures/lectures/ccsa-intro/stored-program.html) |
+| ↳ | 12 · Moore's Law (real transistor counts, linear/log reveal) | [Open](https://eamcmx.github.io/New-lectures/lectures/ccsa-intro/moore.html) |
+| ↳ | 13 · CISC vs RISC (pipeline race) | [Open](https://eamcmx.github.io/New-lectures/lectures/ccsa-intro/cisc-risc.html) |
+
 ---
 
 *Pages are served from the `main` branch via GitHub Pages. To add a new lecture, drop an `index.html` into a new folder under `lectures/` and add a row to the table above.*
