@@ -1,0 +1,1090 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Teacher Deck — Introduction to Computers &amp; CSA</title>
+<style>
+:root{
+  --bg:#0e1117;
+  --panel:#161b26;
+  --panel2:#1c2230;
+  --ink:#e6e9f0;
+  --muted:#8b94a7;
+  --grid:#232b3b;
+  --axis:#4a5568;
+  --blue:#58c4dd;
+  --yellow:#ffd35a;
+  --red:#fc6255;
+  --green:#83c167;
+  --purple:#c688eb;
+  --orange:#ff9f4b;
+  --line:#2a3347;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  background:var(--bg); color:var(--ink);
+  font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
+  line-height:1.55; overflow:hidden;
+}
+.math{font-family:Georgia,'Times New Roman',serif; font-style:italic;}
+
+/* ---------- deck stage ---------- */
+#stage{position:fixed; inset:0;}
+.slide{
+  position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+  opacity:0; visibility:hidden; transform:translateY(28px);
+  transition:opacity .35s ease, transform .35s ease, visibility 0s linear .35s;
+  overflow:hidden;
+}
+.slide.before{transform:translateY(-28px)}
+.slide.active{
+  opacity:1; visibility:visible; transform:none;
+  transition:opacity .35s ease, transform .35s ease, visibility 0s;
+}
+.inner{
+  max-width:1100px; width:100%;
+  padding:clamp(20px,5vh,56px) clamp(22px,5vw,60px) clamp(70px,12vh,110px);
+}
+.kicker{
+  font-size:clamp(.7rem,1.3vw,.9rem); letter-spacing:.14em; text-transform:uppercase;
+  color:var(--muted); margin-bottom:clamp(10px,2vh,20px);
+}
+.kicker b{color:var(--blue); font-weight:600}
+.slide h1{
+  font-size:clamp(2rem,5.6vw,4rem); line-height:1.12; font-weight:700;
+  margin-bottom:clamp(12px,2.5vh,24px);
+}
+.slide h2{
+  font-size:clamp(1.7rem,4.4vw,3.1rem); line-height:1.15; font-weight:700;
+  margin-bottom:clamp(14px,3vh,28px);
+}
+.when{
+  font-size:.5em; font-weight:400; color:var(--muted); white-space:nowrap;
+  font-family:Georgia,'Times New Roman',serif; font-style:italic;
+}
+.slide ul{list-style:none; margin-top:clamp(8px,1.5vh,16px)}
+.slide li{
+  font-size:clamp(1.1rem,2.3vw,1.62rem); margin:clamp(9px,1.8vh,18px) 0;
+  padding-left:1.35em; position:relative;
+}
+.slide li::before{content:'▸'; position:absolute; left:0; color:var(--blue)}
+.slide li b{color:var(--yellow); font-weight:600}
+.slide li .hl{color:var(--blue)}
+.statement{
+  font-size:clamp(1.45rem,3.3vw,2.5rem); line-height:1.35;
+  margin:clamp(12px,3vh,28px) 0;
+}
+.statement .hl{color:var(--blue)} .statement .hy{color:var(--yellow)}
+.statement .hg{color:var(--green)} .statement .hr{color:var(--red)}
+.analogy{
+  margin-top:clamp(16px,3.5vh,32px);
+  font-family:Georgia,'Times New Roman',serif; font-style:italic;
+  font-size:clamp(1.1rem,2.4vw,1.7rem); color:var(--yellow);
+  border-left:3px solid var(--yellow); padding-left:16px;
+}
+.sub{color:var(--muted); font-size:clamp(.95rem,1.8vw,1.25rem); margin-top:clamp(10px,2vh,18px)}
+
+/* chips */
+.chips{display:flex; flex-wrap:wrap; gap:10px; margin-top:clamp(14px,3vh,26px)}
+.chip{
+  background:var(--panel2); border:1px solid var(--line); border-radius:999px;
+  padding:7px 16px; font-size:clamp(.85rem,1.7vw,1.1rem); color:var(--ink);
+}
+.chip b{color:var(--blue); font-weight:600}
+
+/* two-column contrast */
+.cols{display:grid; grid-template-columns:1fr 1fr; gap:clamp(14px,2.5vw,32px); margin-top:clamp(10px,2vh,20px)}
+.col{
+  background:var(--panel); border:1px solid var(--line); border-radius:14px;
+  padding:clamp(14px,2.5vh,24px) clamp(16px,2vw,26px);
+}
+.col h3{
+  font-size:clamp(1rem,2vw,1.4rem); letter-spacing:.06em; text-transform:uppercase;
+  margin-bottom:clamp(8px,1.5vh,14px);
+}
+.col.blue{border-color:rgba(88,196,221,.45)} .col.blue h3{color:var(--blue)}
+.col.yellow{border-color:rgba(255,211,90,.45)} .col.yellow h3{color:var(--yellow)}
+.col ul li{font-size:clamp(.95rem,1.9vw,1.3rem); margin:clamp(6px,1.2vh,12px) 0}
+.col.blue li::before{color:var(--blue)} .col.yellow li::before{color:var(--yellow)}
+.punch{
+  margin-top:clamp(14px,3vh,26px); text-align:center;
+  font-size:clamp(1.05rem,2.3vw,1.6rem);
+  font-family:Georgia,'Times New Roman',serif; font-style:italic;
+}
+.punch .hl{color:var(--blue)} .punch .hy{color:var(--yellow)}
+@media (max-width:640px){.cols{grid-template-columns:1fr}}
+
+/* the arc */
+.arc{display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:clamp(8px,1.5vw,18px); margin-top:clamp(20px,4vh,40px)}
+.arc .step{
+  background:var(--panel); border:1px solid var(--line); border-radius:14px;
+  padding:clamp(12px,2.2vh,22px) clamp(14px,2vw,26px); text-align:center;
+}
+.arc .step b{display:block; font-size:clamp(1rem,2.2vw,1.5rem)}
+.arc .step span{color:var(--muted); font-size:clamp(.75rem,1.4vw,.95rem)}
+.arc .a1 b{color:var(--blue)} .arc .a2 b{color:var(--yellow)} .arc .a3 b{color:var(--green)} .arc .a4 b{color:var(--purple)}
+.arc .arrow{color:var(--axis); font-size:clamp(1.3rem,3vw,2.2rem)}
+
+/* demo button */
+.demo{
+  display:inline-flex; align-items:center; gap:12px;
+  margin-top:clamp(20px,4vh,38px);
+  background:rgba(88,196,221,.08); border:2px solid var(--blue); color:var(--blue);
+  border-radius:14px; padding:clamp(12px,2.2vh,18px) clamp(20px,3vw,34px);
+  font-size:clamp(1.05rem,2.2vw,1.5rem); font-weight:600; text-decoration:none;
+  cursor:pointer; transition:background .18s, transform .18s;
+}
+.demo:hover{background:rgba(88,196,221,.18); transform:translateY(-2px)}
+.demo small{font-weight:400; font-size:.68em; color:var(--muted)}
+.demo.alt{border-color:var(--green); color:var(--green); background:rgba(131,193,103,.08)}
+.demo.alt:hover{background:rgba(131,193,103,.18)}
+.demo-row{display:flex; flex-wrap:wrap; gap:14px; align-items:center}
+.demo-row .demo{margin-top:clamp(20px,4vh,38px)}
+
+/* title slide */
+.crumb{
+  color:var(--muted); text-decoration:none; font-size:clamp(.85rem,1.6vw,1rem);
+  display:inline-block; margin-bottom:clamp(14px,3vh,26px);
+}
+.crumb:hover{color:var(--blue)}
+.badge{
+  display:inline-block; font-size:.72rem; letter-spacing:.08em; text-transform:uppercase;
+  color:var(--purple); border:1px solid var(--purple); border-radius:999px;
+  padding:3px 10px; margin:clamp(8px,1.5vh,14px) 0 clamp(14px,3vh,26px);
+}
+.course{
+  font-size:clamp(.9rem,1.8vw,1.15rem); letter-spacing:.18em; text-transform:uppercase;
+  color:var(--blue); margin-bottom:clamp(8px,1.5vh,14px);
+}
+.companion{
+  display:inline-flex; align-items:center; gap:10px;
+  margin-top:clamp(18px,4vh,36px);
+  background:var(--panel); border:1px solid var(--line); border-radius:12px;
+  padding:12px 22px; text-decoration:none; color:var(--ink);
+  font-size:clamp(.95rem,1.9vw,1.25rem); transition:border-color .18s;
+}
+.companion:hover{border-color:var(--blue)}
+.companion code{
+  font-family:ui-monospace,Consolas,monospace; color:var(--green); font-size:.92em;
+}
+.keyhint{color:var(--muted); font-size:clamp(.8rem,1.5vw,1rem); margin-top:clamp(20px,5vh,44px)}
+.keyhint kbd{
+  background:var(--panel2); border:1px solid var(--line); border-bottom-width:2px;
+  border-radius:6px; padding:1px 8px; font-family:inherit; font-size:.9em; color:var(--ink);
+}
+
+/* toolkit buttons on last slide */
+.toolkit{display:flex; flex-wrap:wrap; gap:14px; margin-top:clamp(16px,3vh,28px)}
+.toolkit a{
+  background:var(--panel2); border:1px solid var(--line); color:var(--ink);
+  border-radius:12px; padding:14px 24px; text-decoration:none;
+  font-size:clamp(1rem,2vw,1.3rem); transition:border-color .18s, color .18s;
+}
+.toolkit a:hover{border-color:var(--blue); color:var(--blue)}
+.homework{
+  margin-top:clamp(18px,3.5vh,32px); background:rgba(255,211,90,.07);
+  border:1px solid rgba(255,211,90,.4); border-radius:14px;
+  padding:clamp(14px,2.5vh,22px) clamp(16px,2.5vw,28px);
+  font-size:clamp(1.05rem,2.2vw,1.5rem);
+}
+.homework b{color:var(--yellow)}
+.kitfoot{
+  margin-top:clamp(22px,4.5vh,44px); padding-top:clamp(12px,2vh,20px);
+  border-top:1px solid var(--line); color:var(--muted);
+  font-size:clamp(.75rem,1.4vw,.92rem);
+}
+.kitfoot .navrow{display:flex; flex-wrap:wrap; gap:8px 24px; margin-top:8px}
+.kitfoot a{color:var(--muted); text-decoration:none}
+.kitfoot a:hover{color:var(--blue)}
+
+/* ---------- HUD ---------- */
+#hud{
+  position:fixed; right:16px; bottom:14px; z-index:40;
+  display:flex; align-items:center; gap:8px; user-select:none;
+}
+#hud button{
+  background:var(--panel2); border:1px solid var(--line); color:var(--ink);
+  border-radius:9px; padding:6px 13px; cursor:pointer; font-size:1rem;
+  transition:border-color .18s, color .18s;
+}
+#hud button:hover{border-color:var(--blue); color:var(--blue)}
+#counter{
+  background:var(--panel2); border:1px solid var(--line); color:var(--muted);
+  border-radius:9px; padding:6px 13px; cursor:pointer; font-size:.9rem;
+  font-variant-numeric:tabular-nums;
+}
+#counter:hover{border-color:var(--blue); color:var(--blue)}
+#hinthud{
+  position:fixed; left:16px; bottom:16px; z-index:40; color:var(--muted);
+  font-size:.75rem; letter-spacing:.04em; opacity:.75; pointer-events:none;
+}
+#progress{
+  position:fixed; left:0; bottom:0; height:4px; width:0%;
+  background:linear-gradient(90deg,var(--blue),var(--purple)); z-index:50;
+  transition:width .35s ease;
+}
+
+/* ---------- notes drawer ---------- */
+#notes{
+  position:fixed; left:0; right:0; bottom:0; z-index:45;
+  background:var(--panel); border-top:1px solid var(--line);
+  padding:16px clamp(20px,5vw,60px) 22px;
+  transform:translateY(105%); transition:transform .3s ease;
+  max-height:34vh; overflow:auto;
+}
+#notes.open{transform:none}
+#notes .ntitle{
+  font-size:.72rem; letter-spacing:.1em; text-transform:uppercase;
+  color:var(--purple); margin-bottom:6px;
+}
+#notes .ntext{color:var(--muted); font-size:clamp(.9rem,1.7vw,1.05rem); max-width:1100px}
+
+/* ---------- grid overview ---------- */
+#gridview{
+  position:fixed; inset:0; z-index:60; background:rgba(14,17,23,.97);
+  overflow:auto; padding:40px clamp(16px,4vw,48px) 60px; display:none;
+}
+#gridview.open{display:block}
+#gridview h2{font-size:1.1rem; color:var(--muted); font-weight:400; margin-bottom:20px; letter-spacing:.06em}
+#gridview .cells{
+  display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,240px));
+  gap:18px; justify-content:center;
+}
+.thumb{
+  width:240px; cursor:pointer; border-radius:10px; overflow:hidden;
+  border:1px solid var(--line); background:var(--bg);
+  transition:border-color .15s, transform .15s;
+}
+.thumb:hover{border-color:var(--blue); transform:translateY(-3px)}
+.thumb.current{border-color:var(--yellow)}
+.thumb .frame{width:240px; height:150px; overflow:hidden; position:relative; pointer-events:none}
+.thumb .clone{
+  width:1100px; height:688px; transform:scale(0.21818); transform-origin:0 0;
+  overflow:hidden; display:flex; align-items:center;
+}
+.thumb .tlabel{
+  font-size:.72rem; color:var(--muted); padding:6px 10px;
+  border-top:1px solid var(--line); background:var(--panel);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.thumb .tlabel b{color:var(--blue); font-weight:600}
+
+/* ---------- help overlay ---------- */
+#help{
+  position:fixed; inset:0; z-index:70; background:rgba(14,17,23,.9);
+  display:none; align-items:center; justify-content:center;
+}
+#help.open{display:flex}
+#help .card{
+  background:var(--panel); border:1px solid var(--line); border-radius:14px;
+  padding:26px 34px; max-width:440px; width:90%;
+}
+#help h2{font-size:1.15rem; margin-bottom:16px; color:var(--blue)}
+#help table{width:100%; border-collapse:collapse}
+#help td{padding:6px 4px; font-size:.95rem; color:var(--muted)}
+#help td:first-child{width:120px}
+#help kbd{
+  background:var(--panel2); border:1px solid var(--line); border-bottom-width:2px;
+  border-radius:6px; padding:1px 9px; font-family:inherit; font-size:.85rem; color:var(--ink);
+}
+#help .close{margin-top:16px; text-align:center; color:var(--muted); font-size:.8rem}
+
+.notes-src{display:none}
+</style>
+</head>
+<body>
+
+<div id="stage">
+
+<!-- ============ 1 · TITLE ============ -->
+<section class="slide" data-title="Title">
+  <div class="inner">
+    <a class="crumb" href="./index.html">← Intro to Computer Systems Architecture</a>
+    <div class="course">Computer Systems Architecture · Term 1</div>
+    <h1>Introduction to Computers<br>&amp; Computer Systems Architecture</h1>
+    <div><span class="badge">PAAL · CourseForge session kit</span></div>
+    <p class="sub">Teacher deck — from counting beads to quantum bits, and why the blueprint matters.</p>
+    <a class="companion" href="./index.html" target="_blank" rel="noopener">🧭 Interactive companion at: <code>lectures/ccsa-intro/</code></a>
+    <p class="keyhint"><kbd>→</kbd> next &nbsp; <kbd>N</kbd> notes &nbsp; <kbd>G</kbd> grid &nbsp; <kbd>F</kbd> fullscreen &nbsp; <kbd>?</kbd> all keys</p>
+  </div>
+  <aside class="notes-src">Welcome the class and open the companion site in a second tab before you start — every "live demo" button in this deck opens one of its simulators. Ask the room a cold-open question: "What is the oldest computer you can think of?" Most will say something with a screen; by slide six you will have taken them back 4,500 years. Keep this deck in fullscreen (F) and your speaking notes on N.</aside>
+</section>
+
+<!-- ============ 2 · WHAT IS ARCHITECTURE ============ -->
+<section class="slide" data-title="What is computer architecture?">
+  <div class="inner">
+    <div class="kicker"><b>S1</b> · Definitions</div>
+    <h2>What is computer architecture?</h2>
+    <p class="statement">The <span class="hl">design, organization and implementation</span> of a computer system — the blueprint the <span class="hy">programmer can see</span>.</p>
+    <div class="chips">
+      <span class="chip"><b>ISA</b> — instructions, opcodes, addressing modes, registers</span>
+      <span class="chip"><b>Memory</b> — hierarchy, caches, virtual memory</span>
+      <span class="chip"><b>I/O</b> — how data gets in and out</span>
+      <span class="chip"><b>Parallelism</b> — pipelining, superscalar, multiprocessing</span>
+      <span class="chip"><b>Buses</b> — communication protocols</span>
+    </div>
+  </div>
+  <aside class="notes-src">Stress the word "blueprint": an architect of a building decides where the doors and rooms are, not which brand of brick. Ask students what they think a programmer can actually "see" of the hardware — most will guess RAM size or clock speed, which tees up the architecture-vs-organization distinction two slides from now. The five chips are the syllabus map for the whole term; each becomes its own week later.</aside>
+</section>
+
+<!-- ============ 3 · WHY STUDY IT ============ -->
+<section class="slide" data-title="Why study it?">
+  <div class="inner">
+    <div class="kicker"><b>S1</b> · Definitions</div>
+    <h2>Why study it?</h2>
+    <ul>
+      <li>Write <b>efficient software</b> — code that fits how the machine actually works</li>
+      <li>Design <b>better hardware</b> — know which choices cost what</li>
+      <li><b>Benchmark</b> systems — compare machines on evidence, not marketing</li>
+      <li>Understand what's coming — <span class="hl">RISC → multicore → neuromorphic → quantum</span></li>
+    </ul>
+  </div>
+  <aside class="notes-src">A good anecdote here: two loops over the same array, one row-major and one column-major, can differ 10x in speed purely because of caches — the language never tells you that, the architecture does. Ask who in the room has wondered why their phone chip is "ARM" and their laptop is "x86"; promise the answer arrives in the modern-era section. This slide is the motivation contract for the course.</aside>
+</section>
+
+<!-- ============ 4 · ARCHITECTURE VS ORGANIZATION ============ -->
+<section class="slide" data-title="Architecture vs Organization">
+  <div class="inner">
+    <div class="kicker"><b>S1</b> · The exam distinction</div>
+    <h2>Architecture <span class="when">vs</span> Organization</h2>
+    <div class="cols">
+      <div class="col blue">
+        <h3>Architecture</h3>
+        <ul>
+          <li><b>What</b> the system does</li>
+          <li>Programmer-visible: ISA, registers, memory model</li>
+          <li>Fixed <b>early</b> — shapes all software</li>
+          <li>Optimizes <span class="hl">performance &amp; capability</span></li>
+        </ul>
+      </div>
+      <div class="col yellow">
+        <h3>Organization</h3>
+        <ul>
+          <li><b>How</b> it's physically built</li>
+          <li>Circuits, gates, RTL, microarchitecture</li>
+          <li>Changes with <b>IC technology</b></li>
+          <li>Optimizes <span class="hl">cost, power, size, reliability</span></li>
+        </ul>
+      </div>
+    </div>
+    <p class="punch"><span class="hl">Architecture</span> buys capability. <span class="hy">Organization</span> buys efficiency.</p>
+  </div>
+  <aside class="notes-src">This is THE exam distinction — flag it explicitly and slow down. Use the multiplication example: whether an ISA has a multiply instruction is architecture; whether that multiply is a dedicated circuit or repeated addition underneath is organization. Point out that every x86 chip from 1978 to today runs largely the same architecture while the organization has been rebuilt dozens of times — that is exactly why old software still runs.</aside>
+</section>
+
+<!-- ============ 5 · ASK THE ROOM ============ -->
+<section class="slide" data-title="Ask the room: cache size?">
+  <div class="inner">
+    <div class="kicker"><b>S1</b> · Ask the room</div>
+    <h2 style="color:var(--yellow)">Is cache <em>size</em> architecture…<br>or organization?</h2>
+    <p class="statement">🖐️ Take a vote.</p>
+    <p class="sub">Trick question — capacity <em>visible to the ISA</em> is architecture; a pure implementation choice invisible to software is organization. The border is exactly where programmer visibility ends.</p>
+  </div>
+  <aside class="notes-src">Actually run the vote — hands up for each side — before saying anything. Whichever side wins, play devil's advocate: cache size is usually a transparent organizational choice, yet the moment the ISA exposes it (cache-control instructions, documented capacities software depends on) it hardens into architecture. The takeaway to say out loud: the line is not a property of the component, it is a property of what the programmer is promised.</aside>
+</section>
+
+<!-- ============ 6 · ABACUS ============ -->
+<section class="slide" data-title="The abacus">
+  <div class="inner">
+    <div class="kicker"><b>S2</b> · Early mechanical devices</div>
+    <h2>The abacus <span class="when">c. 2500 BCE, Mesopotamia</span></h2>
+    <ul>
+      <li>Beads = <b>register values</b></li>
+      <li>Columns = <b>orders of magnitude</b></li>
+    </ul>
+    <p class="analogy">A register file you flick with your fingers — the operator is the ALU.</p>
+    <a class="demo" href="abacus.html" target="_blank" rel="noopener">🔬 Live demo <small>abacus.html</small></a>
+  </div>
+  <aside class="notes-src">Open the demo and add two numbers live — deliberately make a carry mistake and let the class catch it, because the carry IS the algorithm. Point out that the abacus stores state but does not compute: every operation lives in the trained fingers of the operator. That split — dumb storage plus a smart agent — is the theme every machine in this lecture tries to erase.</aside>
+</section>
+
+<!-- ============ 7 · ANTIKYTHERA ============ -->
+<section class="slide" data-title="Antikythera mechanism">
+  <div class="inner">
+    <div class="kicker"><b>S2</b> · Early mechanical devices</div>
+    <h2>Antikythera mechanism <span class="when">c. 100 BCE, Greece</span></h2>
+    <ul>
+      <li><b>30+ bronze gears</b> — a geared analog computer</li>
+      <li>Predicted <b>eclipses</b> and Olympiad dates</li>
+    </ul>
+    <p class="analogy">Each gear ratio is a hard-wired function — the geartrain is mechanical software.</p>
+    <a class="demo" href="timeline.html" target="_blank" rel="noopener">🔬 Live demo <small>timeline.html — find it on the timeline</small></a>
+  </div>
+  <aside class="notes-src">Tell the shipwreck story: sponge divers pulled a corroded lump out of the Aegean in 1901, and it took a century plus X-ray tomography to reveal 30-plus precision gears — nothing that sophisticated appears again for 1,400 years. Ask the room what "programming" this machine would mean; the answer is cutting new gears, which makes the point that here the hardware IS the program. Open the timeline demo and let them see how alone it sits in its era.</aside>
+</section>
+
+<!-- ============ 8 · ASTROLABE ============ -->
+<section class="slide" data-title="The astrolabe">
+  <div class="inner">
+    <div class="kicker"><b>S2</b> · Early mechanical devices</div>
+    <h2>The astrolabe <span class="when">c. 200 BCE</span></h2>
+    <ul>
+      <li>Sight a star along the <b>alidade</b>, read its angle</li>
+      <li>Rotating plates turn the angle into <b>time, latitude, star positions</b></li>
+    </ul>
+    <p class="analogy">An analog-to-digital converter you hold up to the sky.</p>
+    <a class="demo" href="timeline.html" target="_blank" rel="noopener">🔬 Live demo <small>timeline.html — see it in context</small></a>
+  </div>
+  <aside class="notes-src">The concept to land is measurement-as-input: the astrolabe takes a continuous physical quantity (a star's altitude) and converts it into usable numbers — the ancestor of every sensor and ADC in the room's phones. Mention it was the GPS of the medieval world for both navigation and prayer times, refined for centuries in the Islamic world. Quick question for the room: what does your phone use instead of an alidade? (Accelerometers, GPS receivers — same job, new physics.)</aside>
+</section>
+
+<!-- ============ 9 · SLIDE RULE ============ -->
+<section class="slide" data-title="The slide rule">
+  <div class="inner">
+    <div class="kicker"><b>S2</b> · Early mechanical devices</div>
+    <h2>The slide rule <span class="when">1600s – 1970s</span></h2>
+    <ul>
+      <li>Logarithmic scales: <b>multiplication becomes addition</b> of lengths</li>
+      <li>Analog computation — answers by alignment, not counting</li>
+      <li>Flew on the <b>Apollo program</b></li>
+    </ul>
+    <p class="analogy">Three centuries of engineering ran on a stick.</p>
+    <a class="demo" href="slide-rule.html" target="_blank" rel="noopener">🔬 Live demo <small>slide-rule.html</small></a>
+  </div>
+  <aside class="notes-src">Do a live multiplication in the demo — 2 × 3 — and show the answer is found, not calculated: log(a)+log(b) as physical distance. The Apollo detail always lands: engineers carried slide rules as backup while flying to the Moon, and Buzz Aldrin had one aboard. Preempt the misconception that analog means primitive — analog computing is currently returning in neuromorphic chips, so this slide is secretly about the future too.</aside>
+</section>
+
+<!-- ============ 10 · DIFFERENCE ENGINE ============ -->
+<section class="slide" data-title="Babbage: Difference Engine">
+  <div class="inner">
+    <div class="kicker"><b>S3</b> · The mechanical era</div>
+    <h2>Babbage's Difference Engine <span class="when">1822</span></h2>
+    <ul>
+      <li>Steam-powered <b>polynomial tabulator</b></li>
+      <li>Method of <b>finite differences</b> — only additions, cranked repeatedly</li>
+      <li>Goal: error-free mathematical tables</li>
+    </ul>
+    <p class="analogy">A fixed-function accelerator: one algorithm, cast in iron.</p>
+  </div>
+  <aside class="notes-src">Motivate with the problem: Victorian navigation and engineering ran on printed log tables full of human copying errors, and errors sank ships — Babbage's line was "I wish to God these calculations had been executed by steam." Explain finite differences in one breath: any polynomial can be tabulated with nothing but repeated additions, which is why a crank sufficed. Note the machine was never finished in his lifetime — but the London Science Museum built one in 1991 from his plans and it works perfectly.</aside>
+</section>
+
+<!-- ============ 11 · ANALYTICAL ENGINE ============ -->
+<section class="slide" data-title="Babbage: Analytical Engine">
+  <div class="inner">
+    <div class="kicker"><b>S3</b> · The mechanical era</div>
+    <h2>The Analytical Engine <span class="when">1837</span></h2>
+    <ul>
+      <li>First <b>general-purpose programmable</b> design</li>
+      <li><span class="hl">Mill</span> = CPU &nbsp;·&nbsp; <span class="hl">Store</span> = memory &nbsp;·&nbsp; <span class="hl">cards</span> = program</li>
+      <li>Loops and conditional <b>branching</b> — on paper, in 1837</li>
+    </ul>
+    <p class="analogy">A full computer, designed a century early — in brass.</p>
+    <a class="demo" href="analytical-engine.html" target="_blank" rel="noopener">🔬 Live demo <small>analytical-engine.html</small></a>
+  </div>
+  <aside class="notes-src">The jump from the Difference Engine matters more than either machine: Babbage went from "a machine for one calculation" to "a machine for ANY calculation" — that conceptual leap is the birth of the computer. Map Mill/Store/cards onto CPU/memory/program explicitly and tell them this vocabulary comes back on the von Neumann slide. Run the demo and step a short program so they see loops and branching in brass.</aside>
+</section>
+
+<!-- ============ 12 · ADA LOVELACE ============ -->
+<section class="slide" data-title="Ada Lovelace">
+  <div class="inner">
+    <div class="kicker"><b>S3</b> · The mechanical era</div>
+    <h2>Ada Lovelace <span class="when">1843, Note G</span></h2>
+    <ul>
+      <li>Published the <b>first algorithm</b> for the Analytical Engine (Bernoulli numbers)</li>
+      <li>The <b>first programmer</b> — for a machine that was never built</li>
+      <li>Saw computing <b>beyond numbers</b>: symbols, music, anything encodable</li>
+    </ul>
+    <p class="analogy">"The Engine might compose elaborate pieces of music…" — a century before software.</p>
+  </div>
+  <aside class="notes-src">The astonishing part to emphasize: she wrote and debugged a program for a machine that existed only on paper — pure reasoning about an architecture, which is exactly the skill this course teaches. Her deeper insight in Note G is that the Engine manipulates symbols, not just quantities: if music can be encoded, the Engine could compose. Ask the room what she was describing — they will realize it is software, general-purpose computing, and arguably AI speculation, in 1843.</aside>
+</section>
+
+<!-- ============ 13 · JACQUARD ============ -->
+<section class="slide" data-title="Jacquard loom">
+  <div class="inner">
+    <div class="kicker"><b>S3</b> · The mechanical era</div>
+    <h2>The Jacquard loom <span class="when">1801</span></h2>
+    <ul>
+      <li>Punched cards control <b>every thread</b> of the weave</li>
+      <li>Hole / no-hole = <b>binary instruction storage</b></li>
+      <li>Change the cards → change the pattern — <b>no rebuilding</b></li>
+    </ul>
+    <p class="analogy">The program is the cards. Babbage was watching.</p>
+    <a class="demo" href="punch-card.html" target="_blank" rel="noopener">🔬 Live demo <small>punch-card.html</small></a>
+  </div>
+  <aside class="notes-src">Note the date — this is BEFORE Babbage, and he explicitly borrowed the card idea; he even owned a woven portrait of Jacquard made from 24,000 cards. The loom separates the machine from the task: one loom, infinite patterns, which is the essence of programmability. In the demo, punch a few holes and show the pattern change — hole/no-hole is the same 1/0 the room's laptops are running right now.</aside>
+</section>
+
+<!-- ============ 14 · HOLLERITH ============ -->
+<section class="slide" data-title="Hollerith → IBM">
+  <div class="inner">
+    <div class="kicker"><b>S3</b> · The mechanical era</div>
+    <h2>Hollerith's tabulator <span class="when">1890 US Census</span></h2>
+    <ul>
+      <li>Punched cards read <b>electrically</b> — pins through holes close circuits</li>
+      <li>Census done in <b>years, not a decade</b></li>
+      <li>His company became <b>IBM</b> <span class="when">1924</span></li>
+    </ul>
+    <p class="analogy">Data processing becomes an industry — before computing does.</p>
+    <a class="demo" href="punch-card.html" target="_blank" rel="noopener">🔬 Live demo <small>punch-card.html</small></a>
+  </div>
+  <aside class="notes-src">Set up the crisis: the 1880 census took about eight years to tabulate by hand, and the 1890 one was projected to overrun the decade — the state literally could not count its own people. Hollerith's twist on Jacquard is electrical reading: a pin through a hole closes a circuit, marrying punch cards to electricity for the first time. Punchline for the room: the "machines" in International Business Machines meant tabulators — IBM is older than the computer it became famous for.</aside>
+</section>
+
+<!-- ============ 15 · TURING ============ -->
+<section class="slide" data-title="Turing 1936">
+  <div class="inner">
+    <div class="kicker"><b>S4</b> · Birth of digital</div>
+    <h2>Turing, <em>On Computable Numbers</em> <span class="when">1936</span></h2>
+    <ul>
+      <li>Tape + head + state table = <b>a machine that computes anything computable</b></li>
+      <li>Defined <b>computability</b> — and its limits — before any computer existed</li>
+      <li>The <b>universal machine</b>: one machine simulating every other</li>
+    </ul>
+    <p class="analogy">The idea of the computer, proved as a theorem.</p>
+    <a class="demo" href="turing-machine.html" target="_blank" rel="noopener">🔬 Live demo <small>turing-machine.html</small></a>
+  </div>
+  <aside class="notes-src">Frame the irony: the most important computer of the 1930s was imaginary — Turing built it out of mathematics to answer Hilbert's decision problem, and the computer fell out as a by-product. The universal machine idea deserves a full stop: ONE machine that, fed a description of any other machine, becomes it — that is why your laptop can be a typewriter, a synthesizer and a flight simulator. Step the demo machine a few transitions live; students are always surprised how little machinery "universal" requires.</aside>
+</section>
+
+<!-- ============ 16 · ABC ============ -->
+<section class="slide" data-title="ABC 1939">
+  <div class="inner">
+    <div class="kicker"><b>S4</b> · Birth of digital</div>
+    <h2>Atanasoff–Berry Computer <span class="when">1939</span></h2>
+    <ul>
+      <li>First <b>electronic digital</b> computing device — 300+ vacuum tubes</li>
+      <li>Solved systems of <b>linear equations</b></li>
+      <li><span style="color:var(--red)">Not programmable</span> — one job, wired in</li>
+    </ul>
+    <p class="analogy">Electronic: yes. Digital: yes. A computer as we mean it: not yet.</p>
+    <a class="demo" href="abc.html" target="_blank" rel="noopener">🔬 Live demo <small>abc.html</small></a>
+  </div>
+  <aside class="notes-src">Use this slide to sharpen definitions: ask the room whether the ABC is "a computer," and let them argue — it is electronic and digital but not programmable, so the answer depends on which property you think is essential. Worth mentioning: a 1973 court case (Honeywell v. Sperry Rand) invalidated the ENIAC patent partly by crediting Atanasoff, so even the law had to decide what "first computer" means. The demo shows its one trick — Gaussian elimination in tubes and capacitors.</aside>
+</section>
+
+<!-- ============ 17 · Z3 ============ -->
+<section class="slide" data-title="Zuse Z3 1941">
+  <div class="inner">
+    <div class="kicker"><b>S4</b> · Birth of digital</div>
+    <h2>Zuse's Z3 <span class="when">1941, Berlin</span></h2>
+    <ul>
+      <li>First <b>working programmable</b> automatic digital computer</li>
+      <li><b>2,400 relays</b> · binary <b>floating point</b> · 5–10 Hz</li>
+      <li>Program on <b>punched film</b> — but <span style="color:var(--red)">no conditional branch</span></li>
+    </ul>
+    <p class="analogy">Built in a Berlin flat, from telephone parts, ignored by everyone.</p>
+    <a class="demo" href="z3.html" target="_blank" rel="noopener">🔬 Live demo <small>z3.html</small></a>
+  </div>
+  <aside class="notes-src">The human story sells it: Zuse built the Z3 in his parents' living room from salvaged telephone relays, the German government saw no war value in it, and the original was destroyed in a 1943 air raid. Technically he was ahead of everyone — binary and floating point in 1941, choices we still use — at a majestic 5 to 10 Hz. Ask why "no conditional branch" matters: without it a program cannot make decisions, so the Z3 runs recipes, not algorithms with choices (though it was later proven Turing-complete via a clever hack).</aside>
+</section>
+
+<!-- ============ 18 · MARK I ============ -->
+<section class="slide" data-title="Harvard Mark I 1944">
+  <div class="inner">
+    <div class="kicker"><b>S4</b> · Birth of digital</div>
+    <h2>Harvard Mark I <span class="when">1944</span></h2>
+    <ul>
+      <li>IBM-built, <b>750,000 parts</b>, 15&nbsp;m long — electromechanical</li>
+      <li>Program on <b>24-channel paper tape</b></li>
+      <li>Computed tables for the <b>US Navy</b> — crew called her <b>"Bessie"</b></li>
+    </ul>
+    <p class="analogy">Instructions on tape, data in counters — "Harvard architecture" still means separate paths.</p>
+    <a class="demo" href="mark1.html" target="_blank" rel="noopener">🔬 Live demo <small>mark1.html</small></a>
+  </div>
+  <aside class="notes-src">Play the sound in their heads: 750,000 parts clacking in sync, described as "a roomful of ladies knitting" — computation you could hear. This machine is why we say "Harvard architecture" today: program on tape, data in counters, two separate paths — connect it forward to microcontrollers and CPU caches that still split instructions from data. Grace Hopper programmed Bessie, and the famous logbook "bug" — an actual moth taped into the log — comes from this lineage.</aside>
+</section>
+
+<!-- ============ 19 · ENIAC MACHINE ============ -->
+<section class="slide" data-title="ENIAC — the machine">
+  <div class="inner">
+    <div class="kicker"><b>S4</b> · Birth of digital</div>
+    <h2>ENIAC <span class="when">1945</span></h2>
+    <ul>
+      <li>First <b>general-purpose all-electronic</b> computer</li>
+      <li><b>17,468 tubes</b> · 30 tons · a room-sized machine</li>
+      <li><b>5,000 additions/s</b> — ~1000× faster than anything before</li>
+    </ul>
+    <p class="analogy">The moment computing left mechanical time and entered electronic time.</p>
+    <a class="demo" href="eniac.html" target="_blank" rel="noopener">🔬 Live demo <small>eniac.html</small></a>
+  </div>
+  <aside class="notes-src">Give the scale a body: 30 tons, 17,468 tubes, and the (exaggerated but tellable) legend that Philadelphia's lights dimmed when it switched on. The real headline is the factor of ~1000 — mechanical relays click at tens of hertz, tubes switch in microseconds, and no single jump in computing history is bigger. Preempt the "tubes always burning out" myth: run gently, ENIAC often went days between failures, which for 17,468 hot glass bottles is astonishing engineering.</aside>
+</section>
+
+<!-- ============ 20 · ENIAC PROGRAMMERS ============ -->
+<section class="slide" data-title="ENIAC — the programmers">
+  <div class="inner">
+    <div class="kicker"><b>S4</b> · Birth of digital</div>
+    <h2>The six who programmed it</h2>
+    <ul>
+      <li><b>Six women</b> — McNulty, Jennings, Snyder, Wescoff, Bilas, Lichterman</li>
+      <li>"Programming" = <b>rewiring plugboards</b> and setting thousands of switches</li>
+      <li>Mission: <b>artillery firing tables</b> — a trajectory computed faster than the shell flies</li>
+    </ul>
+    <p class="analogy">The hardware got the headlines. The software was invented at the plugboard.</p>
+  </div>
+  <aside class="notes-src">Tell it straight: the six were hired as human "computers" calculating trajectories by hand, then handed wiring diagrams and told to make ENIAC do it — no manuals, no training, they reverse-engineered the machine and invented debugging, subroutine thinking and program planning on the way. At the 1946 press unveiling they went largely uncredited; some were assumed to be models posing with the machine. Ask the room what "programming" even means when there is no stored program — the answer (physically reshaping the machine) sets up the next slide perfectly.</aside>
+</section>
+
+<!-- ============ 21 · VON NEUMANN ============ -->
+<section class="slide" data-title="Von Neumann: stored program">
+  <div class="inner">
+    <div class="kicker"><b>S4</b> · Birth of digital</div>
+    <h2>The stored-program concept <span class="when">1945, EDVAC report</span></h2>
+    <ul>
+      <li>Data <b>and instructions</b> in <span class="hl">one memory</span></li>
+      <li>CPU (<b>ALU + registers + control</b>) · memory · I/O · a <b>system bus</b></li>
+      <li>Programs become <b>data</b>: loadable, editable, self-modifying</li>
+    </ul>
+    <p class="analogy">Turing's universal machine, realized in hardware — the blueprint we still use.</p>
+    <div class="demo-row">
+      <a class="demo" href="stored-program.html" target="_blank" rel="noopener">🔬 Live demo <small>stored-program.html</small></a>
+      <a class="demo alt" href="../../sim/vnmsim.html" target="_blank" rel="noopener">🖥️ CPU simulator <small>sim/vnmsim.html</small></a>
+    </div>
+  </div>
+  <aside class="notes-src">This is the hinge of the entire lecture — say so. Contrast with the previous slide: reprogramming ENIAC meant days of rewiring, whereas a stored program is just different bytes in memory — the machine reshapes itself in microseconds. Emphasize the philosophical jolt that instructions ARE data (that is what makes compilers, operating systems and loading an app from disk possible), then run stored-program.html and show an instruction being modified in memory. Credit note: the ideas drew heavily on Eckert and Mauchly, but the report carried von Neumann's name alone.</aside>
+</section>
+
+<!-- ============ 22 · THE ARC ============ -->
+<section class="slide" data-title="The arc">
+  <div class="inner">
+    <div class="kicker"><b>S4</b> · The story so far</div>
+    <h2>The arc</h2>
+    <div class="arc">
+      <div class="step a1"><b>Automation</b><span>abacus → Babbage</span></div>
+      <div class="arrow">→</div>
+      <div class="step a2"><b>Electronics</b><span>ABC, tubes</span></div>
+      <div class="arrow">→</div>
+      <div class="step a3"><b>Programmability</b><span>Z3, ENIAC</span></div>
+      <div class="arrow">→</div>
+      <div class="step a4"><b>Stored program</b><span>von Neumann</span></div>
+    </div>
+    <p class="punch">Each step asks: <span class="hl">what should the machine do</span> — and <span class="hy">what should stay flexible?</span></p>
+  </div>
+  <aside class="notes-src">Pause here and let the class breathe — this one slide is the whole first half of the lecture. Walk the four steps and ask which single step they would call "the invention of the computer"; there is no right answer, and the argument itself teaches the definitions. Point out that the question at the bottom — what is fixed versus what stays flexible — is literally the architecture-versus-organization question from slide 4, now visible across 4,000 years.</aside>
+</section>
+
+<!-- ============ 23 · TRANSISTOR ============ -->
+<section class="slide" data-title="The transistor">
+  <div class="inner">
+    <div class="kicker"><b>S5</b> · Evolution</div>
+    <h2>The transistor <span class="when">1947, Bell Labs</span></h2>
+    <ul>
+      <li>Bardeen, Brattain, Shockley — <b>Nobel Prize 1956</b></li>
+      <li>No heat, no glass, no warm-up: a <b>solid-state switch</b></li>
+      <li>TRADIC <span class="when">1954</span> — first transistorized computer, <b>800 transistors</b></li>
+    </ul>
+    <p class="analogy">The tube dies; the switch shrinks. And shrinks. And shrinks.</p>
+  </div>
+  <aside class="notes-src">Compare the switch physically: a vacuum tube is a hot, fist-sized glass bottle that dies like a lightbulb; a transistor is a sliver of silicon with no filament to burn out. Then flip the frame — the transistor's real gift is not speed but SCALE, because you can make billions of them at once by printing. Fun fact for the room: their phone holds more transistors than there are stars in the Milky Way, every one descended from a 1947 lab bench in New Jersey.</aside>
+</section>
+
+<!-- ============ 24 · INTEGRATED CIRCUIT ============ -->
+<section class="slide" data-title="The integrated circuit">
+  <div class="inner">
+    <div class="kicker"><b>S5</b> · Evolution</div>
+    <h2>The integrated circuit <span class="when">1958–59</span></h2>
+    <ul>
+      <li><b>Kilby</b> (Texas Instruments) — first working IC, on germanium</li>
+      <li><b>Noyce</b> (Fairchild) — the practical, plantable silicon version</li>
+      <li>Whole circuits <b>on one chip</b> — wiring becomes printing</li>
+    </ul>
+    <p class="analogy">Stop assembling computers. Start printing them.</p>
+  </div>
+  <aside class="notes-src">The problem the IC solved was the "tyranny of numbers": a computer needs millions of connections, and humans soldering them by hand was the bottleneck and the reliability killer. Kilby demonstrated the idea (and got the Nobel in 2000); Noyce made it manufacturable and co-founded Intel — a nice case of invention versus engineering. One sentence to plant: once circuits are printed like photographs, making them smaller makes them cheaper, faster AND lower-power simultaneously — which is the engine behind the next slide.</aside>
+</section>
+
+<!-- ============ 25 · MOORE'S LAW ============ -->
+<section class="slide" data-title="Moore's Law">
+  <div class="inner">
+    <div class="kicker"><b>S5</b> · Evolution</div>
+    <h2>Moore's Law <span class="when">1965</span></h2>
+    <p class="statement">Transistor count doubles roughly <span class="hl">every two years</span>.</p>
+    <p class="sub">Not physics — an observation that became a business plan, and then a self-fulfilling prophecy for 50 years.</p>
+    <a class="demo" href="moore.html" target="_blank" rel="noopener">🔬 Live demo <small>moore.html — ride the exponential</small></a>
+  </div>
+  <aside class="notes-src">Open the demo and toggle the log scale — the "straight line" IS the story, because a straight line on a log plot means exponential growth. Stress that Moore's Law is not a law of nature: it was a 1965 extrapolation from four data points that the industry adopted as a shared roadmap, and everyone invested as if it were true, which made it true. Ask the room to estimate the doubling factor over 50 years (2^25 ≈ 33 million times) — nobody's intuition survives contact with an exponential.</aside>
+</section>
+
+<!-- ============ 26 · 4004 + PC ERA ============ -->
+<section class="slide" data-title="4004 and the PC era">
+  <div class="inner">
+    <div class="kicker"><b>S5</b> · Evolution</div>
+    <h2>The microprocessor &amp; the PC <span class="when">1971–1980s</span></h2>
+    <ul>
+      <li><b>Intel 4004</b> <span class="when">1971</span> — an entire CPU on one chip</li>
+      <li><b>Altair 8800</b> <span class="when">1975</span> — the first personal computer</li>
+      <li><b>Apple II · PET · TRS-80</b> — computing lands on desks</li>
+    </ul>
+    <p class="analogy">The CPU becomes a component — and the computer becomes personal.</p>
+  </div>
+  <aside class="notes-src">The 4004 was designed for a Japanese desk calculator — Intel talked the client into a general-purpose chip instead of custom logic, accidentally creating the microprocessor market. The Altair shipped as a kit with switches and lights, no keyboard, no screen — and sold thousands in weeks, which told everyone the demand was real; two readers named Gates and Allen wrote its BASIC. Note the architectural inversion for the room: for the first time the CPU is a cheap standard part and the VALUE moves to software.</aside>
+</section>
+
+<!-- ============ 27 · CLOCK PLATEAU ============ -->
+<section class="slide" data-title="Clock plateau → multicore">
+  <div class="inner">
+    <div class="kicker"><b>S5</b> · Evolution</div>
+    <h2>The clock plateau <span class="when">early 2000s</span></h2>
+    <ul>
+      <li>Heat and power end the <b>GHz race</b> — ~4 GHz, then a wall</li>
+      <li>The answer is <b>parallel</b>: multicore, GPUs, clusters, accelerators</li>
+      <li>Free speed is over — <b>software must now find the parallelism</b></li>
+    </ul>
+    <p class="analogy">"The free lunch is over." — the day architecture became everyone's problem.</p>
+  </div>
+  <aside class="notes-src">Explain the wall in one line: power grows roughly with the cube of clock frequency, so past ~4 GHz a CPU approaches the power density of a nuclear reactor's core — physics said no. The industry's pivot: instead of one faster core, ship two, then four, then sixty-four slower ones. The consequence students must feel: before 2004 old programs got faster with each new chip automatically; after it, only parallel programs improve — which is why this course exists and why their code cares about threads.</aside>
+</section>
+
+<!-- ============ 28 · CISC VS RISC ============ -->
+<section class="slide" data-title="CISC vs RISC">
+  <div class="inner">
+    <div class="kicker"><b>S6</b> · Modern era</div>
+    <h2>CISC <span class="when">vs</span> RISC</h2>
+    <div class="cols">
+      <div class="col blue">
+        <h3>CISC — x86</h3>
+        <ul>
+          <li>Many <b>complex</b> instructions</li>
+          <li>Multi-cycle; hardware does the work</li>
+        </ul>
+      </div>
+      <div class="col yellow">
+        <h3>RISC — ARM, SPARC, PowerPC</h3>
+        <ul>
+          <li>Few <b>simple</b> single-cycle instructions</li>
+          <li>Pipelines + the <b>compiler</b> does the work</li>
+        </ul>
+      </div>
+    </div>
+    <p class="punch">Patterson &amp; Ditzel, 1980. Today: <span class="hy">RISC cores</span> behind <span class="hl">CISC front-ends</span>.</p>
+    <a class="demo" href="cisc-risc.html" target="_blank" rel="noopener">🔬 Live demo <small>cisc-risc.html</small></a>
+  </div>
+  <aside class="notes-src">Use the kitchen analogy: CISC is a food processor with a button per recipe; RISC is a sharp knife and technique — fewer tools, used faster. The 1980 Patterson & Ditzel insight was empirical: compilers mostly used the simple instructions anyway, so silicon spent on complex ones was wasted. Resolve the war honestly with the demo: modern x86 chips translate CISC instructions into internal RISC-like micro-ops, so the answer to "who won?" is "both — RISC inside, CISC outside," and their phone (ARM) versus laptop (x86) question from slide 3 is now answered.</aside>
+</section>
+
+<!-- ============ 29 · NETWORKED ============ -->
+<section class="slide" data-title="The networked computer">
+  <div class="inner">
+    <div class="kicker"><b>S6</b> · Modern era</div>
+    <h2>The networked computer</h2>
+    <ul>
+      <li><b>Internet + TCP/IP + the Web</b> — machines stop being islands</li>
+      <li>Computation becomes <b>distributed</b> across many systems</li>
+      <li>The architecture question grows: not one CPU, but <b>thousands cooperating</b></li>
+    </ul>
+    <p class="analogy">"The network is the computer."</p>
+  </div>
+  <aside class="notes-src">The shift to voice: for forty years "computer architecture" meant one box, and networking quietly dissolved the box — a Google search runs on more machines in 0.2 seconds than existed on Earth in 1960. TCP/IP is an architecture lesson in itself: a fixed, minimal interface (like an ISA) with endless freedom of implementation beneath it, which is why 1970s protocols still run today's Web. Ask where a Google search "happens" — the room will realize there is no single place, and that is the point.</aside>
+</section>
+
+<!-- ============ 30 · MOBILE & EMBEDDED ============ -->
+<section class="slide" data-title="Mobile & embedded">
+  <div class="inner">
+    <div class="kicker"><b>S6</b> · Modern era</div>
+    <h2>Mobile &amp; embedded</h2>
+    <ul>
+      <li>Constraint flips: not speed, but <b>power, heat, battery</b></li>
+      <li><b>Specialized</b> silicon: signal processors, camera ISPs, NPUs</li>
+      <li><b>Real-time</b> guarantees — the airbag cannot buffer</li>
+    </ul>
+    <p class="analogy">The architecture in your pocket outruns ENIAC a billion times over — on a battery.</p>
+  </div>
+  <aside class="notes-src">Get the census done live: ask everyone to count the computers they carried into the room — phone, watch, earbuds, laptop — then add the invisible ones (a modern car ships with 50–100 processors; even a phone charger contains one). Embedded machines outnumber PCs enormously; the "typical computer" has no screen and no keyboard. Land the constraint flip: on a battery, performance-per-watt replaces raw performance as the design goal — a different optimization target produces a different architecture, which is exactly the organization lesson from slide 4.</aside>
+</section>
+
+<!-- ============ 31 · CLOUD ============ -->
+<section class="slide" data-title="Cloud & virtualization">
+  <div class="inner">
+    <div class="kicker"><b>S6</b> · Modern era</div>
+    <h2>Cloud &amp; virtualization</h2>
+    <ul>
+      <li><b>Virtualization</b>: one physical machine hosts many simulated ones</li>
+      <li><b>Cloud</b>: on-demand, elastic resources — computing as a utility (IaaS)</li>
+      <li>Rent a supercomputer <b>by the minute</b></li>
+    </ul>
+    <p class="analogy">The stored-program idea, one level up: even the machine is now software.</p>
+  </div>
+  <aside class="notes-src">Connect it back deliberately: von Neumann made programs into data; virtualization makes entire MACHINES into data — a VM is a file you can copy, pause and email. The economics is the second punch: before the cloud a startup bought servers up front, now it rents a thousand cores for an hour for the price of a pizza, and elasticity changed who gets to build big systems. Preempt the misconception that "the cloud" is fluffy — it is warehouses of very physical machines, and someone architects every rack.</aside>
+</section>
+
+<!-- ============ 32 · EDGE ============ -->
+<section class="slide" data-title="Edge computing">
+  <div class="inner">
+    <div class="kicker"><b>S6</b> · Modern era</div>
+    <h2>Edge computing</h2>
+    <ul>
+      <li>Process <b>near the data source</b>, not in a distant datacenter</li>
+      <li>Why: <b>latency</b> — light is fast, but not fast enough</li>
+      <li>Enablers: <b>5G, IoT</b>, capable tiny devices</li>
+    </ul>
+    <p class="analogy">The pendulum swings back: from the mainframe to the cloud… and out to the edge.</p>
+  </div>
+  <aside class="notes-src">Make latency physical: a round trip to a datacenter 1,500 km away costs ~20–30 ms even at light speed with perfect networks — fine for email, fatal for a self-driving car deciding whether to brake. Show them the pendulum: centralized mainframes → personal PCs → centralized cloud → distributed edge; computing keeps oscillating between "put it in one big place" and "put it where the action is." Ask for examples they already use — voice assistants doing wake-word detection on-device is edge computing in their pocket right now.</aside>
+</section>
+
+<!-- ============ 33 · QUANTUM ============ -->
+<section class="slide" data-title="Quantum computing">
+  <div class="inner">
+    <div class="kicker"><b>S6</b> · Modern era</div>
+    <h2>Quantum computing</h2>
+    <ul>
+      <li><b>Qubits</b>: 0, 1 — or a <span class="hl">superposition</span> of both; plus <b>entanglement</b></li>
+      <li>Known wins: <b>Shor</b> (factoring), <b>Grover</b> (search)</li>
+      <li><b>NISQ era</b>: fragile qubits, error correction still open</li>
+    </ul>
+    <p class="analogy">Not a faster computer — a different kind of computation.</p>
+  </div>
+  <aside class="notes-src">Kill the biggest misconception first: a quantum computer is NOT "a computer that tries all answers at once" — it choreographs interference so wrong answers cancel and right ones amplify, which only works for special problem structures (hence Shor and Grover, not "everything"). Be honest about NISQ: today's qubits decohere in microseconds and error correction may need a thousand physical qubits per logical one — we are in the vacuum-tube era of quantum. Close the loop: it took 70 years from ENIAC to your phone; ask the room where quantum's ENIAC moment is on that clock.</aside>
+</section>
+
+<!-- ============ 34 · RECAP ============ -->
+<section class="slide" data-title="Recap">
+  <div class="inner">
+    <div class="kicker"><b>S7</b> · Conclusion</div>
+    <h2>Recap</h2>
+    <ul>
+      <li><b>Architecture</b> = what the programmer sees; <b>organization</b> = how it's built</li>
+      <li>The arc: <span class="hl">automation → electronics → programmability → stored program</span></li>
+      <li>Moore's Law drove 50 years — then the plateau made <b>parallelism</b> mandatory</li>
+      <li>Now: <b>RISC-hearted CPUs</b>, networks, cloud, edge — and quantum on the horizon</li>
+    </ul>
+  </div>
+  <aside class="notes-src">Run this as retrieval practice, not a lecture: ask the room to reconstruct each bullet before you reveal your phrasing — "what was the exam distinction?", "what were the four steps of the arc?". If time is short, sacrifice anything on this slide except the architecture-versus-organization line; it anchors the quiz. Remind them the interactive lecture page covers everything here at their own pace.</aside>
+</section>
+
+<!-- ============ 35 · WHY HISTORY MATTERS ============ -->
+<section class="slide" data-title="Why history matters">
+  <div class="inner">
+    <div class="kicker"><b>S7</b> · Conclusion</div>
+    <h2>Why history matters</h2>
+    <p class="statement">Every <span class="hy">"new"</span> idea in architecture is an <span class="hl">old idea</span> whose technology finally arrived.</p>
+    <ul>
+      <li>Paradigm shifts to watch for: <b>stored program · ICs · RISC · cloud</b></li>
+      <li>The next shift will look obvious — <b>afterwards</b></li>
+    </ul>
+  </div>
+  <aside class="notes-src">Prove the claim with cases they now know: Babbage designed a general-purpose computer 110 years before the hardware could exist; Lovelace described software in 1843; neural networks waited from the 1950s until GPUs arrived. The skill this course builds is recognizing which "impossible" ideas are merely early — that is what made von Neumann, Patterson and the cloud pioneers right. Send them off with the thought that someone in this room will be deciding what the post-Moore machine looks like.</aside>
+</section>
+
+<!-- ============ 36 · TOOLKIT + HOMEWORK ============ -->
+<section class="slide" data-title="Your toolkit + homework">
+  <div class="inner">
+    <div class="kicker"><b>S7</b> · Before you go</div>
+    <h2>Your toolkit</h2>
+    <div class="toolkit">
+      <a href="lecture.html" target="_blank" rel="noopener">📖 The Interactive Lecture</a>
+      <a href="quiz.html" target="_blank" rel="noopener">✅ Formative Quiz — score ≥ 80% to unlock solutions</a>
+      <a href="prompt-studio.html" target="_blank" rel="noopener">✨ Prompt Studio</a>
+    </div>
+    <div class="homework">📝 <b>Homework:</b> pick <u>one</u> machine simulator — Analytical Engine, Turing machine, Z3, Mark I, ENIAC, or the stored-program CPU — and <b>program it</b>. Bring what broke.</div>
+    <div class="kitfoot">
+      Interactive companion to the lecture <em>Introduction to Computers &amp; Computer Systems Architecture</em> · CCSA T1
+      <div class="navrow">
+        <a href="lecture.html">← The Interactive Lecture</a>
+        <a href="./index.html">All explorations</a>
+        <a href="quiz.html">Formative Quiz →</a>
+      </div>
+    </div>
+  </div>
+  <aside class="notes-src">Walk the toolkit links live so nobody can claim they could not find them: the interactive lecture is the self-paced version of today, the quiz gates the worked solutions at 80%, and Prompt Studio helps them interrogate the material with an AI. Frame the homework as play, not assessment — "bring what broke" is the real deliverable, because a simulator fighting back teaches more than one that obeys. Suggest pairing up: one drives the simulator, one predicts what each step will do before it happens.</aside>
+</section>
+
+</div><!-- /stage -->
+
+<!-- HUD -->
+<div id="hinthud">N notes · G grid · ? keys</div>
+<div id="hud">
+  <button id="prevBtn" aria-label="Previous slide">‹</button>
+  <div id="counter" title="Grid overview (G)">1 / 36</div>
+  <button id="nextBtn" aria-label="Next slide">›</button>
+</div>
+<div id="progress"></div>
+
+<!-- notes drawer -->
+<div id="notes">
+  <div class="ntitle">Presenter notes — <span id="ntitle-num"></span></div>
+  <div class="ntext" id="ntext"></div>
+</div>
+
+<!-- grid overview -->
+<div id="gridview">
+  <h2>Grid overview — click a slide to jump · G or Esc to close</h2>
+  <div class="cells" id="cells"></div>
+</div>
+
+<!-- help overlay -->
+<div id="help">
+  <div class="card">
+    <h2>Deck controls</h2>
+    <table>
+      <tr><td><kbd>→</kbd> <kbd>Space</kbd> <kbd>PgDn</kbd></td><td>next slide</td></tr>
+      <tr><td><kbd>←</kbd> <kbd>PgUp</kbd></td><td>previous slide</td></tr>
+      <tr><td><kbd>Home</kbd> / <kbd>End</kbd></td><td>first / last slide</td></tr>
+      <tr><td><kbd>N</kbd></td><td>presenter notes drawer</td></tr>
+      <tr><td><kbd>G</kbd> or click counter</td><td>grid overview of all slides</td></tr>
+      <tr><td><kbd>F</kbd></td><td>fullscreen</td></tr>
+      <tr><td><kbd>?</kbd></td><td>this cheat-sheet</td></tr>
+      <tr><td><kbd>Esc</kbd></td><td>close overlays</td></tr>
+      <tr><td><kbd>#12</kbd> in URL</td><td>deep-link to slide 12</td></tr>
+    </table>
+    <div class="close">press any key to close</div>
+  </div>
+</div>
+
+<script>
+(function(){
+  'use strict';
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  const N = slides.length;
+  const counter = document.getElementById('counter');
+  const progress = document.getElementById('progress');
+  const notes = document.getElementById('notes');
+  const ntext = document.getElementById('ntext');
+  const ntitleNum = document.getElementById('ntitle-num');
+  const gridview = document.getElementById('gridview');
+  const cells = document.getElementById('cells');
+  const help = document.getElementById('help');
+
+  const state = { i: 0, notesOpen: false, gridOpen: false, helpOpen: false, gridBuilt: false };
+
+  function clampIdx(i){ return Math.max(0, Math.min(N-1, i)); }
+
+  function render(){
+    slides.forEach((s, k) => {
+      s.classList.toggle('active', k === state.i);
+      s.classList.toggle('before', k < state.i);
+    });
+    counter.textContent = (state.i+1) + ' / ' + N;
+    progress.style.width = ((state.i+1)/N*100) + '%';
+    const src = slides[state.i].querySelector('.notes-src');
+    ntext.textContent = src ? src.textContent.trim() : '(no notes for this slide)';
+    ntitleNum.textContent = 'slide ' + (state.i+1) + ' · ' + (slides[state.i].dataset.title || '');
+    if (history.replaceState) history.replaceState(null, '', '#' + (state.i+1));
+    else location.hash = '#' + (state.i+1);
+    if (state.gridOpen) markCurrentThumb();
+  }
+
+  function go(i){ state.i = clampIdx(i); render(); }
+  function next(){ go(state.i+1); }
+  function prev(){ go(state.i-1); }
+
+  /* ---- hash deep-link ---- */
+  function fromHash(){
+    const m = location.hash.match(/^#(\d+)$/);
+    if (m) go(parseInt(m[1],10)-1);
+  }
+  window.addEventListener('hashchange', fromHash);
+
+  /* ---- notes ---- */
+  function toggleNotes(force){
+    state.notesOpen = (force !== undefined) ? force : !state.notesOpen;
+    notes.classList.toggle('open', state.notesOpen);
+  }
+
+  /* ---- grid overview ---- */
+  function buildGrid(){
+    if (state.gridBuilt) return;
+    slides.forEach((s, k) => {
+      const cell = document.createElement('div');
+      cell.className = 'thumb';
+      cell.dataset.idx = k;
+      const frame = document.createElement('div');
+      frame.className = 'frame';
+      const clone = document.createElement('div');
+      clone.className = 'clone';
+      const innerSrc = s.querySelector('.inner');
+      if (innerSrc){
+        const c = innerSrc.cloneNode(true);
+        c.querySelectorAll('a').forEach(a => { a.removeAttribute('href'); a.removeAttribute('target'); });
+        clone.appendChild(c);
+      }
+      frame.appendChild(clone);
+      const label = document.createElement('div');
+      label.className = 'tlabel';
+      label.innerHTML = '<b>' + (k+1) + '</b> · ' + (s.dataset.title || 'Slide');
+      cell.appendChild(frame);
+      cell.appendChild(label);
+      cell.addEventListener('click', () => { toggleGrid(false); go(k); });
+      cells.appendChild(cell);
+    });
+    state.gridBuilt = true;
+  }
+  function markCurrentThumb(){
+    cells.querySelectorAll('.thumb').forEach(t =>
+      t.classList.toggle('current', parseInt(t.dataset.idx,10) === state.i));
+  }
+  function toggleGrid(force){
+    state.gridOpen = (force !== undefined) ? force : !state.gridOpen;
+    if (state.gridOpen){
+      buildGrid(); markCurrentThumb();
+      gridview.classList.add('open');
+      const cur = cells.querySelector('.thumb.current');
+      if (cur) cur.scrollIntoView({block:'center'});
+    } else {
+      gridview.classList.remove('open');
+    }
+  }
+
+  /* ---- help ---- */
+  function toggleHelp(force){
+    state.helpOpen = (force !== undefined) ? force : !state.helpOpen;
+    help.classList.toggle('open', state.helpOpen);
+  }
+
+  /* ---- fullscreen with graceful fallback ---- */
+  function toggleFullscreen(){
+    try {
+      const el = document.documentElement;
+      if (!document.fullscreenElement && !document.webkitFullscreenElement){
+        if (el.requestFullscreen) el.requestFullscreen();
+        else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+      } else {
+        if (document.exitFullscreen) document.exitFullscreen();
+        else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+      }
+    } catch(e){ /* fullscreen unsupported — deck still works windowed */ }
+  }
+
+  /* ---- keyboard ---- */
+  document.addEventListener('keydown', (e) => {
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    if (state.helpOpen){ toggleHelp(false); e.preventDefault(); return; }
+    if (state.gridOpen){
+      if (e.key === 'Escape' || e.key === 'g' || e.key === 'G'){ toggleGrid(false); e.preventDefault(); }
+      return;
+    }
+    switch (e.key){
+      case 'ArrowRight': case ' ': case 'PageDown': next(); e.preventDefault(); break;
+      case 'ArrowLeft': case 'PageUp': prev(); e.preventDefault(); break;
+      case 'Home': go(0); e.preventDefault(); break;
+      case 'End': go(N-1); e.preventDefault(); break;
+      case 'n': case 'N': toggleNotes(); e.preventDefault(); break;
+      case 'g': case 'G': toggleGrid(); e.preventDefault(); break;
+      case 'f': case 'F': toggleFullscreen(); e.preventDefault(); break;
+      case '?': toggleHelp(true); e.preventDefault(); break;
+      case 'Escape': toggleNotes(false); break;
+    }
+  });
+
+  /* ---- buttons / clicks ---- */
+  document.getElementById('nextBtn').addEventListener('click', next);
+  document.getElementById('prevBtn').addEventListener('click', prev);
+  counter.addEventListener('click', () => toggleGrid());
+  help.addEventListener('click', () => toggleHelp(false));
+  gridview.addEventListener('click', (e) => { if (e.target === gridview) toggleGrid(false); });
+
+  /* ---- touch swipe ---- */
+  let tx = null;
+  document.addEventListener('pointerdown', (e) => {
+    if (state.gridOpen || state.helpOpen) return;
+    if (e.target.closest('a,button,#notes,#hud')) return;
+    tx = e.clientX;
+  });
+  document.addEventListener('pointerup', (e) => {
+    if (tx === null) return;
+    const dx = e.clientX - tx; tx = null;
+    if (Math.abs(dx) > 60){ if (dx < 0) next(); else prev(); }
+  });
+
+  /* ---- init ---- */
+  const m = location.hash.match(/^#(\d+)$/);
+  state.i = m ? clampIdx(parseInt(m[1],10)-1) : 0;
+  render();
+})();
+</script>
+</body>
+</html>
