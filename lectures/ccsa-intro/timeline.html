@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Grand Timeline — Intro to Computer Systems Architecture</title>
+<style>
+:root{
+  --bg:#0e1117; --panel:#161b26; --panel2:#1c2230; --ink:#e6e9f0; --muted:#8b94a7;
+  --grid:#232b3b; --axis:#4a5568; --blue:#58c4dd; --yellow:#ffd35a; --red:#fc6255;
+  --green:#83c167; --purple:#c688eb; --orange:#ff9f4b; --line:#2a3347;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:'Segoe UI',system-ui,-apple-system,sans-serif;line-height:1.55}
+.wrap{max-width:1100px;margin:0 auto;padding:24px}
+a{color:var(--blue);text-decoration:none}
+a:hover{text-decoration:underline}
+header a.crumb{color:var(--muted);font-size:14px}
+header a.crumb:hover{color:var(--blue);text-decoration:none}
+h1{margin:10px 0 6px;font-size:32px;letter-spacing:.3px}
+.subtitle{color:var(--muted);max-width:78ch;margin:0 0 22px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin-bottom:22px}
+.math{font-family:Georgia,'Times New Roman',serif;font-style:italic}
+h2{font-size:15px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);margin:0 0 12px}
+h2 .accent{color:var(--yellow)}
+.lede{color:var(--muted);font-size:14px;max-width:84ch;margin:10px 0 0}
+.lede b{color:var(--ink);font-weight:600}
+
+/* controls */
+.controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:0 0 10px}
+button{background:var(--panel2);border:1px solid var(--line);color:var(--ink);border-radius:9px;padding:8px 14px;cursor:pointer;font-size:14px;font-family:inherit}
+button:hover{border-color:var(--blue)}
+button.on{border-color:var(--blue);color:var(--blue);background:rgba(88,196,221,.08)}
+button.go{border-color:rgba(131,193,103,.5);color:var(--green);font-weight:600}
+button.go:hover{border-color:var(--green)}
+#warpcap{color:var(--muted);font-size:13.5px;margin:0 0 14px;max-width:84ch}
+#warpcap b{color:var(--yellow);font-weight:600}
+
+/* era filter chips */
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 14px}
+.chips button{padding:5px 12px;border-radius:999px;font-size:13px;display:inline-flex;align-items:center;gap:7px}
+.chips button i{width:9px;height:9px;border-radius:50%;display:inline-block}
+
+/* timeline canvas + card */
+#tlwrap{position:relative}
+#tl{display:block;width:100%;height:470px;border-radius:10px;background:#0b0e14;cursor:default;touch-action:pan-y}
+@media(max-width:640px){#tl{height:430px}}
+#card{position:absolute;display:none;width:min(330px,calc(100% - 16px));background:var(--panel2);border:1px solid #39445c;border-radius:12px;padding:12px 14px 13px;z-index:6;box-shadow:0 12px 32px rgba(0,0,0,.55)}
+#card.pinned{border-color:#4c5a78}
+#card h3{margin:7px 0 1px;font-size:16.5px}
+#card .yr{color:var(--muted);font-size:12.5px;margin-bottom:7px}
+#card p{margin:0 0 9px;font-size:13.5px;color:var(--ink)}
+#card p.desc{color:#c6cddb}
+#card .pill{display:inline-block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;border:1px solid;border-radius:999px;padding:2px 9px}
+#card .echo{font-style:italic;color:var(--muted);border-left:3px solid;padding:4px 0 4px 10px;background:rgba(255,255,255,.02);border-radius:0 6px 6px 0}
+#card .echo .tag{font-style:normal;font-weight:600}
+#card a.go{font-size:13px;font-weight:600}
+#card .cx{position:absolute;top:6px;right:8px;border:none;background:none;color:var(--muted);font-size:16px;padding:2px 6px;line-height:1}
+#card .cx:hover{color:var(--ink)}
+
+/* speed-of-change strip */
+.speedwrap{overflow-x:auto;padding-bottom:4px}
+.speed{position:relative;height:172px;min-width:660px;margin:4px 2px 0}
+.sbar{position:absolute;left:0;right:0;top:84px;height:2px;opacity:.85;
+  background:linear-gradient(90deg,var(--yellow) 0%,var(--red) 6%,var(--blue) 31%,var(--green) 44%,var(--purple) 93%)}
+.stick{position:absolute;top:78px;width:1px;height:14px;background:var(--axis)}
+.stlbl{position:absolute;top:94px;transform:translateX(-50%);color:var(--muted);font-size:11.5px;white-space:nowrap}
+.spk{position:absolute;top:0;bottom:0;width:0}
+.spk .dot{position:absolute;top:85px;left:0;width:10px;height:10px;border-radius:50%;transform:translate(-50%,-50%);box-shadow:0 0 8px rgba(0,0,0,.6)}
+.spk .stem{position:absolute;left:-.5px;width:1px;opacity:.55}
+.spk.up .stem{top:36px;height:44px}
+.spk.dn .stem{top:91px;height:16px}
+.spk .lbl{position:absolute;left:0;transform:translateX(-50%);text-align:center;white-space:nowrap;font-size:12px;color:var(--muted);line-height:1.35}
+.spk .lbl b{color:var(--ink);font-weight:600}
+.spk.up .lbl{top:4px}
+.spk.dn .lbl{top:110px}
+.spk.el .lbl{transform:translateX(-8%)}
+.spk.er .lbl{transform:translateX(-88%)}
+.spk.q .stem{border-left:1px dashed var(--purple);background:none;width:0}
+
+/* insights */
+.insights{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin-bottom:22px}
+.insights .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px}
+.insights .card h3{margin:0 0 8px;font-size:14px}
+.insights .card p{margin:0;font-size:14px;color:var(--muted)}
+.insights .card p b{color:var(--ink);font-weight:600}
+footer{color:var(--muted);font-size:13px;border-top:1px solid var(--line);padding-top:16px;margin-top:8px}
+.navrow{display:flex;justify-content:space-between;gap:12px;margin-top:8px;flex-wrap:wrap}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <a class="crumb" href="./index.html">← Intro to Computer Systems Architecture</a>
+  <h1>The Grand Timeline — 4,500 years from beads to qubits</h1>
+  <p class="subtitle">Hover any dot to meet a machine — click to pin its card. Flip between <b>linear</b> and <b>warped</b> time to feel forty-five centuries of acceleration, then press ▶ Play the story and let history run from Mesopotamian beads to superposed qubits.</p>
+</header>
+
+<div class="panel">
+  <h2><span class="accent">One axis,</span> forty-five centuries</h2>
+  <div class="controls">
+    <button id="btnLog" class="on">Warped time (log years-ago)</button>
+    <button id="btnLin">Linear time</button>
+    <button id="btnPlay" class="go">▶ Play the story</button>
+  </div>
+  <p id="warpcap"><b>Time, warped:</b> each pixel toward the left covers more years than the one before, so every era gets room to breathe. Flip to linear time to see the problem this solves.</p>
+  <div class="chips" id="chips"></div>
+  <div id="tlwrap">
+    <canvas id="tl"></canvas>
+    <div id="card"></div>
+  </div>
+  <p class="lede">Stems point from each machine down to its true place on the axis. Notice how, in <b>linear time</b>, the stems fan out desperately from the last sliver of the axis — history accelerates: on the linear scale, everything interesting hides in the last 1%.</p>
+</div>
+
+<div class="panel">
+  <h2><span class="accent">Speed of change</span> — operations per second, log scale</h2>
+  <div class="speedwrap">
+    <div class="speed">
+      <div class="sbar"></div>
+      <div class="stick" style="left:0.4%"></div><div class="stlbl" style="left:0.4%">1&nbsp;op/s</div>
+      <div class="stick" style="left:25%"></div><div class="stlbl" style="left:25%">10³</div>
+      <div class="stick" style="left:50%"></div><div class="stlbl" style="left:50%">10⁶</div>
+      <div class="stick" style="left:75%"></div><div class="stlbl" style="left:75%">10⁹</div>
+      <div class="stick" style="left:99.6%"></div><div class="stlbl" style="left:98.6%">10¹²</div>
+
+      <div class="spk up el" style="left:0.6%;color:var(--yellow)"><span class="lbl"><b>Abacus</b><br>~1 op/s, human-paced</span><span class="stem" style="background:var(--yellow)"></span><span class="dot" style="background:var(--yellow)"></span></div>
+      <div class="spk dn el" style="left:4%;color:var(--red)"><span class="lbl"><b>Harvard Mark I</b> · 1944<br>~3 op/s</span><span class="stem" style="background:var(--red)"></span><span class="dot" style="background:var(--red)"></span></div>
+      <div class="spk up" style="left:30.8%;color:var(--blue)"><span class="lbl"><b>ENIAC</b> · 1945<br>~5×10³ op/s</span><span class="stem" style="background:var(--blue)"></span><span class="dot" style="background:var(--blue)"></span></div>
+      <div class="spk dn" style="left:41.7%;color:var(--green)"><span class="lbl"><b>Intel 4004</b> · 1971<br>~10⁵ instr/s</span><span class="stem" style="background:var(--green)"></span><span class="dot" style="background:var(--green)"></span></div>
+      <div class="spk up er" style="left:91.7%;color:var(--purple)"><span class="lbl"><b>Modern multicore CPU</b><br>~10¹¹ instr/s</span><span class="stem" style="background:var(--purple)"></span><span class="dot" style="background:var(--purple)"></span></div>
+      <div class="spk dn er q" style="left:99%;color:var(--purple)"><span class="lbl"><b>Quantum</b> — a different game<br>entirely (qubits, not ops/s)</span><span class="stem"></span><span class="dot" style="background:none;border:2px dashed var(--purple);width:8px;height:8px"></span></div>
+    </div>
+  </div>
+  <p class="lede">Honest orders of magnitude: a practised abacus user moves about one bead per second; the Mark I managed ~3 additions; ENIAC hit ~5,000 operations — its famous 1000× jump; the 4004 ran ~10⁵ instructions; a modern multicore CPU sustains ~10¹¹. Quantum machines don't join this race at all — a qubit's superposition trades raw ops/s for a different kind of parallelism.</p>
+</div>
+
+<section class="insights">
+  <div class="card">
+    <h3 style="color:var(--yellow)">Every era solved the last era's bottleneck</h3>
+    <p>Human speed capped the abacus and slide rule, so Babbage <b>automated</b>. Gears and relays wore, stuck and drifted, so the 1940s went <b>electronic</b> for reliability. Tubes ran hot, huge and costly, so transistors and ICs shrank <b>size and cost</b>. And when shrinking, ever-faster cores hit the <b>heat wall</b>, we went parallel. Notice how each era's headline feature is exactly the previous era's headache.</p>
+  </div>
+  <div class="card">
+    <h3 style="color:var(--blue)">Programmability was the true revolution</h3>
+    <p>Jacquard's punched cards and Babbage's Analytical Engine did something subtler than speed: they <b>separated the machine from the task</b>. One loom, any pattern; one Mill, any formula. Every device before them was built for a single job — everything after is one machine wearing endless costumes. Ada Lovelace saw it first: a symbol machine need not stop at numbers.</p>
+  </div>
+  <div class="card">
+    <h3 style="color:var(--green)">Architecture outlives organization</h3>
+    <p>The 1945 Von Neumann blueprint — one memory holding <b>both data and instructions</b>, marched through a fetch–decode–execute cycle — still describes your laptop, your phone, and the server behind this page. <i>How</i> machines are built (tubes → transistors → billions of FinFETs) changes every decade; <i>what</i> they do has held for 80 years. See it run in the <a href="../../sim/vnmsim.html">Von Neumann simulator</a>.</p>
+  </div>
+</section>
+
+<footer>
+  <div>Interactive companion to the lecture <i>Introduction to Computers &amp; Computer Systems Architecture</i> · CCSA T1</div>
+  <div class="navrow">
+    <a href="./cisc-risc.html">← CISC vs RISC</a>
+    <a href="./index.html">All explorations</a>
+    <a href="./abacus.html">The Abacus →</a>
+  </div>
+</footer>
+
+</div>
+<script>
+(function(){
+'use strict';
+const css=getComputedStyle(document.documentElement);
+const col=n=>css.getPropertyValue(n).trim();
+const C={yellow:col('--yellow'),orange:col('--orange'),red:col('--red'),blue:col('--blue'),
+         green:col('--green'),purple:col('--purple'),ink:col('--ink'),muted:col('--muted'),
+         grid:col('--grid'),axis:col('--axis')};
+
+const eras=[
+ {id:'analog', name:'Mechanical analog',          color:C.yellow, from:-2500, to:1780},
+ {id:'mprog',  name:'Mechanical programmable',    color:C.orange, from:1795,  to:1928},
+ {id:'theory', name:'Theory & electromechanical', color:C.red,    from:1930,  to:1944.6},
+ {id:'elec',   name:'Electronic',                 color:C.blue,   from:1944.8,to:1969},
+ {id:'micro',  name:'Micro & parallel',           color:C.green,  from:1970,  to:2004.5},
+ {id:'modern', name:'Modern & emerging',          color:C.purple, from:2005,  to:2025},
+];
+const eraOf=id=>eras.find(e=>e.id===id);
+
+const events=[
+ {year:-2500,yr:'≈2500 BCE',era:'analog',name:'Abacus',short:'Abacus',
+  desc:'Beads on wires in Mesopotamia — humanity’s first hardware for arithmetic. All the state lives in bead positions; computing is moving them by rule.',
+  echo:'beads on wires are registers storing values, and each bead move is a signal passing through a logic gate.',
+  link:'abacus.html',linkName:'The Abacus'},
+ {year:-200,yr:'≈200 BCE',era:'analog',name:'Astrolabe',short:'Astrolabe',
+  desc:'A layered brass instrument for measuring the positions of the sun and stars — the continuous sky, read off as usable numbers.',
+  echo:'the sighting alidade works like an analog-to-digital converter: continuous angle in, discrete reading out.'},
+ {year:-100,yr:'≈100 BCE',era:'analog',name:'Antikythera mechanism',short:'Antikythera',
+  desc:'A Greek geared analog computer that predicted eclipses and Olympic Games dates using 30+ interlocking bronze gears.',
+  echo:'each gear ratio acts like a logic gate, and the whole geartrain is “mechanical software” — a program cast in bronze.'},
+ {year:1620,yr:'1600s',era:'analog',name:'Slide rule',short:'Slide rule',
+  desc:'Logarithmic scales sliding past each other turn multiplication into addition. Standard engineering kit until the 1970s — it even flew on the Apollo program.',
+  echo:'a pocket analog computer: quantities live as continuous lengths, not digits.',
+  link:'slide-rule.html',linkName:'The Slide Rule'},
+
+ {year:1801,yr:'1801',era:'mprog',name:'Jacquard loom',short:'Jacquard',
+  desc:'A loom steered by chains of punched cards — hole or no hole decided each thread. Binary instruction storage, decades before electronics.',
+  echo:'a punched hole is a stored bit; the chain of cards is a program the hardware executes.',
+  link:'punch-card.html',linkName:'Punch Cards'},
+ {year:1822,yr:'1822',era:'mprog',name:'Difference Engine',short:'Difference Eng.',
+  desc:'Babbage’s steam-powered machine for tabulating polynomials automatically — mechanizing the error-prone work of human “computers”.'},
+ {year:1837,yr:'1837',era:'mprog',name:'Analytical Engine',short:'Analytical Eng.',
+  desc:'Babbage’s design for a general-purpose programmable computer: an arithmetic “Mill”, a memory “Store”, punch-card input, even loops and branching. Never built — fully imagined.',
+  echo:'the Mill is the CPU and the Store is memory: the block diagram of your laptop, drawn in the age of steam.',
+  link:'analytical-engine.html',linkName:'The Analytical Engine'},
+ {year:1843,yr:'1843',era:'mprog',name:'Ada Lovelace',short:'Ada Lovelace',
+  desc:'Published the first program — computing Bernoulli numbers on the Analytical Engine — and saw past Babbage: a machine on symbols could compute far more than numbers.'},
+ {year:1890,yr:'1890',era:'mprog',name:'Hollerith tabulator',short:'Hollerith',
+  desc:'Punched-card machines crunched the 1890 US census in record time. Hollerith’s company merged into what, in 1924, became IBM.',
+  echo:'the birth of data processing as an industry — batch jobs, decades before electronics did the math.',
+  link:'punch-card.html',linkName:'Punch Cards'},
+
+ {year:1936,yr:'1936',era:'theory',name:'Turing machine',short:'Turing',
+  desc:'“On Computable Numbers” gave computation a formal model — an endless tape, a read/write head, a table of rules — and with it a precise boundary of what is computable at all.',
+  link:'turing-machine.html',linkName:'The Turing Machine'},
+ {year:1939,yr:'1939',era:'theory',name:'Atanasoff–Berry Computer',short:'ABC',
+  desc:'The first electronic digital computing device: 300+ vacuum tubes, binary arithmetic. But it wasn’t programmable — it solved systems of linear equations, and only that.',
+  link:'abc.html',linkName:'The ABC'},
+ {year:1941,yr:'1941',era:'theory',name:'Zuse Z3',short:'Z3',
+  desc:'Konrad Zuse’s Berlin machine: the first working programmable, automatic digital computer. 2,400 relays, binary floating point, ticking along at 5–10 Hz.',
+  link:'z3.html',linkName:'The Z3'},
+ {year:1944,yr:'1944',era:'theory',name:'Harvard Mark I',short:'Mark I',
+  desc:'IBM-built electromechanical giant: 750,000 parts, with the program fed in on 24-channel punched paper tape. Reliable, slow, and famously loud.',
+  link:'mark1.html',linkName:'The Mark I'},
+
+ {year:1945,yr:'1945',era:'elec',name:'ENIAC',short:'ENIAC',
+  desc:'The first general-purpose all-electronic digital computer: 17,468 vacuum tubes, 30 tons, ~5,000 operations per second — roughly 1000× faster than the electromechanical machines. “Reprogramming” meant days of re-plugging cables.',
+  link:'eniac.html',linkName:'ENIAC'},
+ {year:1945.6,yr:'1945',era:'elec',name:'Stored-program concept',short:'Stored-program',
+  desc:'Von Neumann’s EDVAC report proposes one memory holding data AND instructions. A program becomes just another kind of data — loadable, swappable, even self-modifying.',
+  link:'stored-program.html',linkName:'The Stored-Program Machine'},
+ {year:1947,yr:'1947',era:'elec',name:'Transistor',short:'Transistor',
+  desc:'Bardeen, Brattain and Shockley at Bell Labs replace the hot, fragile vacuum tube with a tiny sliver of solid state.'},
+ {year:1954,yr:'1954',era:'elec',name:'TRADIC',short:'TRADIC',
+  desc:'The first transistorized computer: about 800 transistors doing the work of racks of tubes, at a fraction of the power and the failures.'},
+ {year:1958.5,yr:'1958–59',era:'elec',name:'Integrated circuit',short:'IC',
+  desc:'Kilby at Texas Instruments and Noyce at Fairchild independently put many components onto one piece of semiconductor. Circuits printed like photographs, not soldered by hand.'},
+ {year:1965,yr:'1965',era:'elec',name:'Moore’s Law',short:'Moore’s Law',
+  desc:'Gordon Moore observes that the number of components on a chip doubles roughly every two years — an observation that became the industry’s self-fulfilling production schedule.',
+  link:'moore.html',linkName:'Moore’s Law'},
+
+ {year:1971,yr:'1971',era:'micro',name:'Intel 4004',short:'4004',
+  desc:'An entire CPU on one chip — the first single-chip microprocessor. The computer stops being a room and becomes a component.'},
+ {year:1975,yr:'1975',era:'micro',name:'MITS Altair 8800',short:'Altair 8800',
+  desc:'The first personal computer: a mail-order kit with toggle switches and blinking lights. The Apple II, Commodore PET and TRS-80 followed within two years.'},
+ {year:1980,yr:'1980',era:'micro',name:'RISC',short:'RISC',
+  desc:'Patterson & Ditzel argue for fewer, simpler instructions that each finish in a single cycle and pipeline beautifully — a counterpoint to the complex-instruction (CISC) x86 tradition.',
+  link:'cisc-risc.html',linkName:'CISC vs RISC'},
+ {year:1983,yr:'1983',era:'micro',name:'Internet & TCP/IP',short:'TCP/IP',
+  desc:'ARPANET adopts TCP/IP and computing becomes networked; the Web arrives in 1991. From then on, part of every computer is somewhere else.'},
+ {year:2002,yr:'early 2000s',era:'micro',name:'Multicore era',short:'Multicore',
+  desc:'Clock speeds hit a heat wall, and the free lunch ends: instead of faster cores we get more of them — multicore CPUs and massively parallel GPUs.'},
+
+ {year:2006,yr:'2006+',era:'modern',name:'Cloud computing',short:'Cloud',
+  desc:'Computing becomes a utility: virtualized machines rented on demand, scaling elastically in someone else’s data center.'},
+ {year:2007,yr:'2007+',era:'modern',name:'Mobile & embedded',short:'Mobile',
+  desc:'The smartphone puts a networked supercomputer in every pocket, while embedded processors quietly spread into everything else (IoT).'},
+ {year:2016,yr:'2016+',era:'modern',name:'Edge computing',short:'Edge',
+  desc:'Processing moves back out toward the data — sensors, phones, base stations — cutting latency and bandwidth, hand in hand with 5G.'},
+ {year:2019,yr:'2019+',era:'modern',name:'Quantum computing',short:'Quantum',
+  desc:'Qubits can be 0, 1, or a superposition of both; algorithms like Shor’s and Grover’s exploit it. We’re in the noisy NISQ era — early innings of a different game.'},
+];
+
+/* ---------- scales ---------- */
+const Y0=-2500, Y1=2025, REF=2027;
+const LNMAX=Math.log(REF-Y0), LNMIN=Math.log(REF-Y1);
+const fracLin=y=>(y-Y0)/(Y1-Y0);
+const fracLog=y=>{const ago=Math.max(REF-y,REF-Y1);return 1-(Math.log(ago)-LNMIN)/(LNMAX-LNMIN);};
+const smooth=t=>t*t*(3-2*t);
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const fmtYear=y=>y<0?(-y)+' BCE':(y===1?'1 CE':''+Math.round(y));
+const ticksLin=[-2500,-2000,-1500,-1000,-500,1,500,1000,1500,2025];
+const ticksLog=[-2500,-500,1,1000,1600,1850,1950,1990,2010,2025];
+
+/* ---------- state ---------- */
+const state={warpVal:1,warpFrom:1,warpTo:1,warpT0:-1e9,
+  filter:'all',hover:-1,pinned:-1,shown:-1,
+  playing:false,playIdx:-1,lastStep:0,markFrom:null,markT0:0};
+
+const canvas=document.getElementById('tl'), ctx=canvas.getContext('2d');
+const wrapEl=document.getElementById('tlwrap'), cardEl=document.getElementById('card');
+const view={w:0,h:0};
+const PADL=32,PADR=22,LANES=4;
+
+function resize(){
+  const dpr=window.devicePixelRatio||1;
+  view.w=canvas.clientWidth; view.h=canvas.clientHeight;
+  canvas.width=Math.round(view.w*dpr); canvas.height=Math.round(view.h*dpr);
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+}
+new ResizeObserver(resize).observe(canvas); resize();
+
+const visOk=ev=>state.filter==='all'||ev.era===state.filter;
+const visList=()=>events.map((e,i)=>i).filter(i=>visOk(events[i]));
+
+/* ---------- layout: true x + collision-resolved dot positions ---------- */
+function layout(w){
+  const plotW=view.w-PADL-PADR, axisY=view.h-58;
+  const fr=y=>fracLin(y)*(1-w)+fracLog(y)*w;
+  events.forEach(ev=>{ev.tx=PADL+fr(ev.year)*plotW;});
+  for(let k=0;k<LANES;k++){
+    const arr=events.filter((e,i)=>i%LANES===k), gap=27;
+    for(let i=0;i<arr.length;i++)
+      arr[i].dx=Math.max(i?arr[i-1].dx+gap:PADL+4,arr[i].tx);
+    let maxX=view.w-PADR-4;
+    for(let i=arr.length-1;i>=0;i--){arr[i].dx=Math.min(arr[i].dx,maxX);maxX=arr[i].dx-gap;}
+    arr.forEach(e=>{e.dy=axisY-48-k*44;});
+  }
+  return {axisY,plotW,fr};
+}
+
+/* ---------- drawing ---------- */
+function draw(now){
+  const wt=clamp((now-state.warpT0)/1000,0,1);
+  const w=state.warpFrom+(state.warpTo-state.warpFrom)*smooth(wt);
+  state.warpVal=w;
+  const {axisY,plotW,fr}=layout(w);
+  ctx.clearRect(0,0,view.w,view.h);
+
+  // era bands
+  ctx.textAlign='center'; ctx.textBaseline='alphabetic';
+  for(const er of eras){
+    const x1=PADL+fr(er.from)*plotW, x2=PADL+fr(er.to)*plotW;
+    ctx.globalAlpha=.05; ctx.fillStyle=er.color;
+    ctx.fillRect(x1,42,x2-x1,axisY-42);
+    ctx.globalAlpha=.9; ctx.fillRect(x1,axisY-2,x2-x1,4);
+    ctx.font='600 11px "Segoe UI",system-ui,sans-serif';
+    const tw=ctx.measureText(er.name.toUpperCase()).width;
+    if(x2-x1>tw+12){ctx.globalAlpha=.85;ctx.fillText(er.name.toUpperCase(),(x1+x2)/2,32);}
+  }
+  ctx.globalAlpha=1;
+
+  // ticks (cross-faded linear/log sets)
+  const drawTicks=(list,a)=>{
+    if(a<.02)return;
+    ctx.font='11px "Segoe UI",system-ui,sans-serif';
+    for(const y of list){
+      const x=PADL+fr(y)*plotW;
+      ctx.globalAlpha=a*.5; ctx.strokeStyle=C.grid; ctx.lineWidth=1;
+      ctx.beginPath();ctx.moveTo(x,44);ctx.lineTo(x,axisY);ctx.stroke();
+      ctx.globalAlpha=a; ctx.strokeStyle=C.axis;
+      ctx.beginPath();ctx.moveTo(x,axisY);ctx.lineTo(x,axisY+6);ctx.stroke();
+      ctx.fillStyle=C.muted; ctx.fillText(fmtYear(y),x,axisY+20);
+    }
+  };
+  drawTicks(ticksLin,1-w); drawTicks(ticksLog,w);
+  ctx.globalAlpha=1;
+
+  // axis
+  ctx.strokeStyle=C.axis; ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.moveTo(PADL-8,axisY);ctx.lineTo(view.w-PADR+8,axisY);ctx.stroke();
+
+  // play marker glide
+  if(state.playIdx>=0){
+    const ev=events[state.playIdx];
+    const t=clamp((now-state.markT0)/900,0,1);
+    const from=state.markFrom==null?ev.tx:state.markFrom;
+    const mx=from+(ev.tx-from)*smooth(t);
+    const ecol=eraOf(ev.era).color;
+    ctx.globalAlpha=.12+.04*Math.sin(now/300);
+    ctx.strokeStyle=ecol; ctx.lineWidth=3;
+    ctx.beginPath();ctx.moveTo(mx,46);ctx.lineTo(mx,axisY);ctx.stroke();
+    ctx.globalAlpha=1; ctx.fillStyle=ecol;
+    ctx.beginPath();ctx.moveTo(mx,axisY+3);ctx.lineTo(mx-6,axisY+12);ctx.lineTo(mx+6,axisY+12);ctx.closePath();ctx.fill();
+  }
+
+  // stems + dots
+  events.forEach((ev,i)=>{
+    const ok=visOk(ev), ecol=eraOf(ev.era).color;
+    ctx.globalAlpha=ok?.5:.07; ctx.strokeStyle=ecol; ctx.lineWidth=1.4;
+    ctx.beginPath();ctx.moveTo(ev.tx,axisY-4);ctx.lineTo(ev.dx,ev.dy+9);ctx.stroke();
+    ctx.globalAlpha=ok?1:.15; ctx.fillStyle=ecol;
+    ctx.beginPath();ctx.arc(ev.dx,ev.dy,7,0,7);ctx.fill();
+    ctx.globalAlpha=ok?.9:.15; ctx.strokeStyle='#0b0e14'; ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.arc(ev.dx,ev.dy,7,0,7);ctx.stroke();
+    if(i===state.hover||i===state.pinned){
+      ctx.globalAlpha=1; ctx.strokeStyle='rgba(255,255,255,.85)'; ctx.lineWidth=2;
+      ctx.beginPath();ctx.arc(ev.dx,ev.dy,10.5,0,7);ctx.stroke();
+    }
+  });
+
+  // labels on isolated dots
+  ctx.font='11px "Segoe UI",system-ui,sans-serif'; ctx.fillStyle=C.ink;
+  events.forEach((ev,i)=>{
+    if(!visOk(ev))return;
+    let md=1e9;
+    for(let j=0;j<events.length;j++){ if(j===i)continue;
+      const d=Math.hypot(ev.dx-events[j].dx,ev.dy-events[j].dy); if(d<md)md=d; }
+    const a=clamp((md-44)/26,0,1)*.85;
+    if(a>.05){ctx.globalAlpha=a;ctx.fillText(ev.short,clamp(ev.dx,PADL+14,view.w-PADR-14),ev.dy-14);}
+  });
+  ctx.globalAlpha=1;
+}
+
+/* ---------- info card ---------- */
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;');}
+function buildCard(ev){
+  const er=eraOf(ev.era);
+  cardEl.innerHTML=
+    '<button class="cx" title="close">×</button>'+
+    '<span class="pill" style="color:'+er.color+';border-color:'+er.color+'66;background:'+er.color+'14">'+esc(er.name)+'</span>'+
+    '<h3>'+esc(ev.name)+'</h3><div class="yr">'+esc(ev.yr)+'</div>'+
+    '<p class="desc">'+esc(ev.desc)+'</p>'+
+    (ev.echo?'<p class="echo" style="border-left-color:'+er.color+'"><span class="tag" style="color:'+er.color+'">⟂ modern echo:</span> '+esc(ev.echo)+'</p>':'')+
+    (ev.link?'<a class="go" href="./'+ev.link+'">Explore: '+esc(ev.linkName)+' →</a>':'');
+}
+function updateCard(){
+  const s=state.pinned>=0?state.pinned:state.hover;
+  if(s<0){cardEl.style.display='none';state.shown=-1;return;}
+  if(s!==state.shown){buildCard(events[s]);state.shown=s;}
+  cardEl.classList.toggle('pinned',state.pinned>=0);
+  cardEl.style.display='block';
+  const ev=events[s], cw=cardEl.offsetWidth, ch=cardEl.offsetHeight;
+  let x,y;
+  if(ev.dx+18+cw<=view.w-6) x=ev.dx+18;
+  else if(ev.dx-18-cw>=6)   x=ev.dx-18-cw;
+  else x=clamp(ev.dx-cw/2,6,view.w-cw-6);
+  if(x<=ev.dx-8&&x+cw>=ev.dx+8) y=(ev.dy+20+ch<=view.h-6)?ev.dy+20:ev.dy-ch-20;
+  else y=clamp(ev.dy-ch/2,6,view.h-6-ch);
+  cardEl.style.left=x+'px'; cardEl.style.top=clamp(y,6,view.h-ch-6)+'px';
+}
+cardEl.addEventListener('click',e=>{
+  if(e.target.classList.contains('cx')){state.pinned=-1;state.hover=-1;updateCard();}
+});
+
+/* ---------- pointer interaction ---------- */
+function hit(px,py){
+  let best=-1,bd=18;
+  events.forEach((ev,i)=>{
+    if(!visOk(ev))return;
+    const d=Math.hypot(px-ev.dx,py-ev.dy);
+    if(d<bd){bd=d;best=i;}
+  });
+  return best;
+}
+function ptr(e){const r=canvas.getBoundingClientRect();return [e.clientX-r.left,e.clientY-r.top];}
+canvas.addEventListener('pointermove',e=>{
+  const [x,y]=ptr(e), h=hit(x,y);
+  state.hover=h; canvas.style.cursor=h>=0?'pointer':'default';
+});
+canvas.addEventListener('pointerleave',()=>{state.hover=-1;});
+canvas.addEventListener('pointerdown',e=>{
+  const [x,y]=ptr(e), h=hit(x,y);
+  if(state.playing)stopPlay();
+  if(h>=0){state.pinned=(state.pinned===h)?-1:h;state.playIdx=-1;}
+  else {state.pinned=-1;state.playIdx=-1;}
+});
+
+/* ---------- warp toggle ---------- */
+const btnLog=document.getElementById('btnLog'), btnLin=document.getElementById('btnLin'),
+      warpcap=document.getElementById('warpcap');
+function setWarp(target){
+  if(state.warpTo===target)return;
+  state.warpFrom=state.warpVal; state.warpTo=target; state.warpT0=performance.now();
+  btnLog.classList.toggle('on',target===1); btnLin.classList.toggle('on',target===0);
+  warpcap.innerHTML = target===1
+   ? '<b>Time, warped:</b> each pixel toward the left covers more years than the one before, so every era gets room to breathe. Flip to linear time to see the problem this solves.'
+   : '<b>Honest, linear time:</b> equal pixels, equal years — and everything interesting hides in the last 1% of the axis. Watch the stems fan out from that final sliver: history accelerates.';
+}
+btnLog.addEventListener('click',()=>setWarp(1));
+btnLin.addEventListener('click',()=>setWarp(0));
+
+/* ---------- era filter chips ---------- */
+const chipsEl=document.getElementById('chips');
+const chips=[];
+function addChip(label,id,color){
+  const b=document.createElement('button');
+  b.className='chip';
+  b.innerHTML=(color?'<i style="background:'+color+'"></i>':'')+label;
+  b.addEventListener('click',()=>{
+    state.filter=id;
+    chips.forEach(c=>{c.el.classList.toggle('on',c.id===id);
+      c.el.style.borderColor=c.id===id&&c.color?c.color:'';
+      c.el.style.color=c.id===id&&c.color?c.color:'';});
+    if(state.pinned>=0&&!visOk(events[state.pinned]))state.pinned=-1;
+    if(state.playing&&state.playIdx>=0&&!visOk(events[state.playIdx])){state.playIdx=-1;state.lastStep=0;}
+  });
+  chipsEl.appendChild(b); chips.push({el:b,id,color});
+}
+addChip('All eras','all',null);
+eras.forEach(er=>addChip(er.name,er.id,er.color));
+chips[0].el.classList.add('on');
+
+/* ---------- play the story ---------- */
+const btnPlay=document.getElementById('btnPlay');
+function stopPlay(){state.playing=false;btnPlay.textContent='▶ Play the story';btnPlay.classList.remove('on');}
+function stepPlay(now){
+  const vis=visList();
+  if(!vis.length){stopPlay();return;}
+  const pos=vis.indexOf(state.playIdx);
+  if(pos===vis.length-1){stopPlay();return;}
+  const prev=state.playIdx>=0?events[state.playIdx].tx:null;
+  state.playIdx=vis[pos+1]??vis[0];
+  state.markFrom=prev; state.markT0=now; state.lastStep=now;
+  state.pinned=state.playIdx;
+}
+btnPlay.addEventListener('click',()=>{
+  if(state.playing){stopPlay();return;}
+  state.playing=true; btnPlay.textContent='⏸ Pause'; btnPlay.classList.add('on');
+  const vis=visList();
+  if(state.playIdx<0||!vis.includes(state.playIdx)){state.playIdx=-1;stepPlay(performance.now());}
+  else state.lastStep=performance.now();
+});
+
+/* ---------- main loop ---------- */
+function frame(now){
+  if(state.playing&&now-state.lastStep>2500)stepPlay(now);
+  draw(now);
+  updateCard();
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

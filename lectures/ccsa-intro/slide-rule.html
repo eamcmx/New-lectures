@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Slide Rule — Intro to Computer Systems Architecture</title>
+<style>
+:root{
+  --bg:#0e1117; --panel:#161b26; --panel2:#1c2230; --ink:#e6e9f0; --muted:#8b94a7;
+  --grid:#232b3b; --axis:#4a5568; --blue:#58c4dd; --yellow:#ffd35a; --red:#fc6255;
+  --green:#83c167; --purple:#c688eb; --orange:#ff9f4b; --line:#2a3347;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:'Segoe UI',system-ui,-apple-system,sans-serif;line-height:1.55}
+.wrap{max-width:1100px;margin:0 auto;padding:24px}
+a{color:var(--blue);text-decoration:none}
+a:hover{text-decoration:underline}
+header a.crumb{color:var(--muted);font-size:14px}
+header a.crumb:hover{color:var(--blue);text-decoration:none}
+h1{margin:10px 0 6px;font-size:32px;letter-spacing:.3px}
+.subtitle{color:var(--muted);max-width:78ch;margin:0 0 22px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin-bottom:22px}
+h2{font-size:15px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);margin:0 0 12px}
+.math{font-family:Georgia,'Times New Roman',serif;font-style:italic}
+canvas{display:block;width:100%;touch-action:none}
+#rule{height:250px;cursor:crosshair;transition:height .25s ease}
+.controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:14px}
+button{background:var(--panel2);border:1px solid var(--line);color:var(--ink);border-radius:9px;padding:8px 14px;cursor:pointer;font-size:14px;font-family:inherit}
+button:hover{border-color:var(--blue)}
+button.on{border-color:var(--blue);color:var(--blue);background:rgba(88,196,221,.08)}
+.chip-group{display:flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.chip-group button{border:none;border-radius:0;padding:9px 18px;font-weight:600;font-size:14.5px}
+.chip-group button+button{border-left:1px solid var(--line)}
+.chip-group button.on{color:var(--blue);background:rgba(88,196,221,.12)}
+.caption{margin-top:12px;padding:10px 14px;border-radius:9px;background:var(--panel2);border:1px solid var(--line);font-size:14px;color:var(--muted)}
+.caption .ca{color:var(--blue);font-weight:600}.caption .cb{color:var(--yellow);font-weight:600}.caption .cr{color:var(--green);font-weight:600}
+.readout{margin-top:12px;padding:12px 14px;border-radius:9px;background:var(--panel2);border:1px solid var(--line);font-size:15px}
+.ra{color:var(--blue);font-weight:600}.rb{color:var(--yellow);font-weight:600}.rr{color:var(--green);font-weight:700}.rm{color:var(--muted);font-size:13px}
+.note{margin-top:10px;padding:10px 14px;border-radius:9px;border:1px solid rgba(255,159,75,.45);background:rgba(255,159,75,.07);font-size:13.5px}
+.note b{color:var(--orange)}
+input[type=number]{background:var(--panel2);border:1px solid var(--line);color:var(--ink);border-radius:9px;padding:8px 10px;width:92px;font-size:15px;font-family:inherit}
+input[type=number]:focus{outline:none;border-color:var(--blue)}
+.op{font-family:Georgia,'Times New Roman',serif;font-style:italic;font-size:18px;color:var(--muted)}
+.lab-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-top:14px}
+.stat{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.stat .k{font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:5px}
+.stat .num{font-size:22px;font-weight:700;line-height:1.2}
+.stat.c-yellow .num{color:var(--yellow)}.stat.c-green .num{color:var(--green)}.stat.c-red .num{color:var(--red)}
+.insights{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin-bottom:22px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px;font-size:14.5px}
+.card h3{margin:0 0 8px;font-size:14px;letter-spacing:.04em}
+.card h3.t-blue{color:var(--blue)}.card h3.t-yellow{color:var(--yellow)}.card h3.t-green{color:var(--green)}
+.card p{margin:0;color:var(--muted)}
+.card p b{color:var(--ink);font-weight:600}
+footer{color:var(--muted);font-size:13px;margin-top:26px;border-top:1px solid var(--line);padding-top:16px}
+footer .nav{display:flex;justify-content:space-between;gap:12px;margin-top:8px;flex-wrap:wrap}
+@media(max-width:640px){h1{font-size:26px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <a class="crumb" href="./index.html">&larr; Intro to Computer Systems Architecture</a>
+  <h1>The Slide Rule — multiplication you can slide</h1>
+  <p class="subtitle">
+    Drag the middle slide left and right, and drag the glass cursor with the red hairline.
+    Invented in the 1620s — barely a decade after logarithms themselves — the slide rule lived in every
+    engineer's pocket until the 1970s, and rode along through the Mercury, Gemini and Apollo programs.
+    It multiplies by <em>adding distances</em>: each scale is ruled so that distance = log of the number,
+    and log&nbsp;<span class="math">a</span> + log&nbsp;<span class="math">b</span> = log&nbsp;<span class="math">ab</span>.
+  </p>
+</header>
+
+<div class="panel">
+  <h2>A working slide rule — C over D</h2>
+  <canvas id="rule"></canvas>
+  <div class="controls">
+    <div class="chip-group">
+      <button id="btnMul" class="on">Multiply</button>
+      <button id="btnDiv">Divide</button>
+    </div>
+    <button id="btnWhy">Show the why</button>
+    <span class="rm" style="font-size:13px">grab the <b style="color:var(--ink)">slide</b> (middle band) or the <b style="color:var(--red)">hairline</b></span>
+  </div>
+  <div class="caption" id="instr"></div>
+  <div class="readout" id="readout"></div>
+  <div class="note" id="note" style="display:none"></div>
+</div>
+
+<div class="panel">
+  <h2>Solve it for me</h2>
+  <div class="controls" style="margin-top:0">
+    <input type="number" id="inA" value="2" min="1" max="9.99" step="0.01" aria-label="a">
+    <span class="op" id="opSym">&times;</span>
+    <input type="number" id="inB" value="3" min="1" max="9.99" step="0.01" aria-label="b">
+    <button id="btnSolve">Solve</button>
+    <span class="rm">watch the slide set itself, then the hairline find the answer</span>
+  </div>
+  <div class="caption">If the product runs past the end of the D scale (<span class="math">a·b</span> &gt; 10), the rule folds:
+    you set C's <b style="color:var(--ink)">right</b> index over <span class="ca math">a</span> instead. The rule then gives the
+    <b style="color:var(--ink)">digits</b>; the human tracks the decimal point — precision vs range, a very modern trade-off. Try 4 &times; 7.</div>
+</div>
+
+<div class="panel">
+  <h2>Precision mini-lab</h2>
+  <p style="margin:0 0 4px;font-size:14.5px">A ten-inch rule reads to about <b>3 significant figures</b> — that was enough to size bridges, engines
+  and re-entry trajectories. Try <span class="math">2.34 &times; 3.67</span> and compare against exact arithmetic.</p>
+  <div class="controls">
+    <button id="btnLab">Try 2.34 &times; 3.67</button>
+  </div>
+  <div class="lab-grid">
+    <div class="stat c-yellow"><div class="k">the rule reads (~3 s.f.)</div><div class="num" id="labRule">—</div></div>
+    <div class="stat c-green"><div class="k">exact answer</div><div class="num" id="labExact">—</div></div>
+    <div class="stat c-red"><div class="k">error</div><div class="num" id="labErr">—</div></div>
+  </div>
+  <div class="caption">Analog trades exactness for <b style="color:var(--ink)">speed and simplicity</b>; digital trades circuitry for
+  <b style="color:var(--ink)">exactness</b>. Three good figures, instantly, with zero electricity — that bargain held for 350 years.</div>
+</div>
+
+<section class="insights">
+  <div class="card">
+    <h3 class="t-blue">Logarithms turn &times; into +</h3>
+    <p>Napier's theorem — log&nbsp;<span class="math">ab</span> = log&nbsp;<span class="math">a</span> + log&nbsp;<span class="math">b</span> —
+    is usually a line in a textbook. The slide rule is that theorem <b>made physical</b>: two sticks ruled in logarithms,
+    so that laying distances end-to-end adds logs, and adding logs multiplies numbers. Notice how the ticks crowd
+    together toward 10 — that crowding <em>is</em> the logarithm.</p>
+  </div>
+  <div class="card">
+    <h3 class="t-yellow">It's an analog computer</h3>
+    <p>The answer is a <b>position, not a symbol</b> — the scales encode the math the way op-amp circuits embody equations,
+    and reading the hairline is like reading a voltage. Your eye is the analog-to-digital converter, the same job the
+    astrolabe asked of its user. No clock, no steps, no program: the relationship is built into the hardware, and the
+    answer simply <em>is where it is</em>.</p>
+  </div>
+  <div class="card">
+    <h3 class="t-green">To the Moon on three figures</h3>
+    <p>Engineers carried slide rules through Mercury, Gemini and Apollo — a Pickett N600-ES flew on Apollo 13.
+    Digital computers won in the 1970s not because they were more elegant, but on <b>accuracy and automation</b>:
+    ten digits instead of three, and no human needed to track the decimal point. Elegance lost to exactness — and
+    that is most of the story of this course.</p>
+  </div>
+</section>
+
+<footer>
+  Interactive companion to the lecture <em>Introduction to Computers &amp; Computer Systems Architecture</em> · CCSA T1
+  <div class="nav">
+    <a href="./abacus.html">&larr; The Abacus</a>
+    <a href="./index.html">All explorations</a>
+    <a href="./punch-card.html">Punch Cards &rarr;</a>
+  </div>
+</footer>
+
+</div>
+<script>
+'use strict';
+const canvas = document.getElementById('rule');
+const ctx = canvas.getContext('2d');
+const lg = Math.log10;
+const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
+const smooth = t=>t*t*(3-2*t);
+const fmt = v=>v>=9.995?v.toFixed(1):v.toFixed(2);
+
+/* ---------- state (log units: slide offset in [-1,1], hairline in [0,1]) ---------- */
+const state = {
+  mode:'mul',            // 'mul' | 'div'
+  showWhy:false,
+  slide:lg(2),           // C's 1 sits over 10^slide on D
+  hair:lg(6),            // hairline sits over 10^hair on D
+  drag:null,
+  queue:[],              // animation queue
+  flash:null,
+};
+
+/* ---------- layout ---------- */
+let W=600, Hc=250, M=40, L=520, dpr=1;
+const Y = { top:8, slideTop:78, J:158, ruleBot:232, curTop:2, curBot:242,
+            row1:264, row1lab:281, row2:302, row2lab:319 };
+
+function layout(){
+  dpr = window.devicePixelRatio||1;
+  W = canvas.clientWidth; Hc = canvas.clientHeight;
+  canvas.width = Math.round(W*dpr); canvas.height = Math.round(Hc*dpr);
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  M = Math.max(34, Math.min(50, W*0.05));
+  L = W - 2*M;
+}
+new ResizeObserver(layout).observe(canvas);
+layout();
+
+const snap = x => Math.round(x*dpr)/dpr + (dpr===1?0.5:0);
+const slidePx = ()=>state.slide*L;
+const hairPx  = ()=>M+state.hair*L;
+const xD = v => M + L*lg(v);                 // value -> px on D
+const xC = v => M + slidePx() + L*lg(v);     // value -> px on C
+
+/* ---------- tick tables (i = value in hundredths, 100..1000) ---------- */
+function buildTicks(dense){
+  const t=[];
+  for(let i=100;i<=1000;i++){
+    let tier=-1, label=null;
+    if(i%100===0){ tier=0; label=String(i/100); }
+    else if(i<200){
+      if(i%10===0){ tier=1; label=String((i-100)/10); }   // real rules label 1.1–1.9 as small 1–9
+      else if(i%5===0){ tier=2; }
+      else if(dense && i%2===0){ tier=3; }
+    }else if(i<400){
+      if(i%50===0){ tier=1; }
+      else if(i%10===0){ tier=2; }
+      else if(dense && i%5===0){ tier=3; }
+    }else{
+      if(i%50===0){ tier=1; }
+      else if(dense && i%10===0){ tier=2; }
+      else if(!dense && i%20===0){ tier=2; }
+    }
+    if(tier>=0) t.push({v:i/100, tier, label});
+  }
+  return t;
+}
+const TICKS_DENSE = buildTicks(true), TICKS_SPARSE = buildTicks(false);
+const TLEN = [24,16,11,7];
+
+/* ---------- drawing ---------- */
+function rrect(x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath();
+}
+function tickLine(x,y1,y2){ const s=snap(x); ctx.beginPath(); ctx.moveTo(s,y1); ctx.lineTo(s,y2); ctx.stroke(); }
+
+function drawScale(offset, up){          // up=true: C (ticks rise from junction); false: D
+  const ticks = L>=560 ? TICKS_DENSE : TICKS_SPARSE;
+  const labelSmall = L>=380;
+  ctx.lineWidth=1;
+  for(const t of ticks){
+    const x = M + offset + L*lg(t.v);
+    if(x<-24||x>W+24) continue;
+    const len = TLEN[t.tier];
+    ctx.strokeStyle = t.tier===0 ? '#dfe4ee' : (t.tier===1?'#aeb7c8':'#7c8598');
+    if(up) tickLine(x, Y.J-1, Y.J-1-len); else tickLine(x, Y.J+1, Y.J+1+len);
+    if(t.label){
+      if(t.tier===0){
+        ctx.fillStyle='#dfe4ee'; ctx.font='600 13px "Segoe UI",system-ui,sans-serif'; ctx.textAlign='center';
+        ctx.fillText(t.label, x, up ? Y.J-30 : Y.J+39);
+      }else if(labelSmall){
+        ctx.fillStyle='#8b94a7'; ctx.font='8.5px "Segoe UI",system-ui,sans-serif'; ctx.textAlign='center';
+        ctx.fillText(t.label, x, up ? Y.J-21 : Y.J+30);
+      }
+    }
+  }
+}
+
+function bracket(x1,x2,y,color,label){
+  const w = x2-x1;
+  ctx.strokeStyle=color; ctx.fillStyle=color; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.moveTo(x1,y); ctx.lineTo(x2,y); ctx.stroke();
+  ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.moveTo(snap(x1),y-5); ctx.lineTo(snap(x1),y+5); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(snap(x2),y-5); ctx.lineTo(snap(x2),y+5); ctx.stroke();
+  if(Math.abs(w)>10){
+    const d = Math.sign(w);
+    ctx.beginPath(); ctx.moveTo(x2,y); ctx.lineTo(x2-7*d,y-4); ctx.lineTo(x2-7*d,y+4); ctx.closePath(); ctx.fill();
+  }
+  if(label){
+    ctx.font='italic 12px Georgia,"Times New Roman",serif'; ctx.textAlign='center';
+    const cx = clamp((x1+x2)/2, 60, W-60);
+    ctx.fillText(label, cx, y+17);
+  }
+}
+function guide(x){
+  ctx.strokeStyle='rgba(139,148,167,.38)'; ctx.lineWidth=1; ctx.setLineDash([3,4]);
+  ctx.beginPath(); ctx.moveTo(snap(x),Y.ruleBot+2); ctx.lineTo(snap(x),Y.row2+6); ctx.stroke();
+  ctx.setLineDash([]);
+}
+
+/* current interpretation of the rule position */
+function reading(){
+  const sRight = state.slide<0;                        // is C's RIGHT index the one over D?
+  const idxLog = sRight ? state.slide+1 : state.slide; // log of D value under active C index
+  const bLog = state.hair - state.slide;               // log of C value at hairline
+  return {
+    sRight, idxLog,
+    idx: Math.pow(10,idxLog),
+    bLog, bValid: bLog>=-1e-9 && bLog<=1+1e-9,
+    b: Math.pow(10,bLog),
+    r: Math.pow(10,state.hair),                        // D reading at hairline
+  };
+}
+
+function drawWhy(){
+  const rd = reading();
+  const aIdxX = M + rd.idxLog*L;
+  const css = getComputedStyle(document.documentElement);
+  const BLUE=css.getPropertyValue('--blue').trim(), YEL=css.getPropertyValue('--yellow').trim(), GRN=css.getPropertyValue('--green').trim();
+
+  if(state.mode==='mul'){
+    const a=rd.idx, la=rd.idxLog, b=rd.b, lb=rd.bLog;
+    guide(M); guide(aIdxX); guide(hairPx());
+    bracket(M, aIdxX, Y.row1, BLUE, `log ${fmt(a)} = ${la.toFixed(3)}`);
+    if(rd.bValid && Math.abs(hairPx()-aIdxX)>2){
+      const yl = rd.sRight ? `log ${fmt(b)} − log 10 = ${(lb-1).toFixed(3)}` : `log ${fmt(b)} = ${lb.toFixed(3)}`;
+      bracket(aIdxX, hairPx(), Y.row1, YEL, yl);
+    }
+    const gl = rd.sRight
+      ? `log ${fmt(a)} + log ${fmt(b)} − log 10 = ${state.hair.toFixed(3)} = log ${fmt(rd.r)}  (digits of ab)`
+      : `log ${fmt(a)} + log ${fmt(b)} = ${state.hair.toFixed(3)} = log ${fmt(rd.r)}`;
+    bracket(M, hairPx(), Y.row2, GRN, rd.bValid?gl:`log ${fmt(rd.r)} = ${state.hair.toFixed(3)}`);
+  }else{
+    const a=rd.r, la=state.hair, b=rd.b, lb=rd.bLog, res=rd.idx;
+    guide(M); guide(aIdxX); guide(hairPx());
+    bracket(M, hairPx(), Y.row1, BLUE, `log ${fmt(a)} = ${la.toFixed(3)}`);
+    if(rd.bValid && Math.abs(hairPx()-aIdxX)>2){
+      bracket(hairPx(), aIdxX, Y.row1, YEL, `− log ${fmt(b)} = −${lb.toFixed(3)}`);
+    }
+    const gl = rd.sRight
+      ? `log ${fmt(a)} − log ${fmt(b)} + log 10 = ${rd.idxLog.toFixed(3)} = log ${fmt(res)}  (digits of a/b)`
+      : `log ${fmt(a)} − log ${fmt(b)} = ${rd.idxLog.toFixed(3)} = log ${fmt(res)}`;
+    bracket(M, aIdxX, Y.row2, GRN, rd.bValid?gl:'');
+  }
+}
+
+function draw(){
+  ctx.clearRect(0,0,W,Hc);
+
+  /* stator body */
+  rrect(2, Y.top, W-4, Y.ruleBot-Y.top, 10);
+  ctx.fillStyle='#1a2030'; ctx.fill();
+  ctx.strokeStyle='#2a3347'; ctx.lineWidth=1; ctx.stroke();
+
+  /* slide channel (recess) */
+  ctx.fillStyle='#10141d';
+  ctx.fillRect(2, Y.slideTop, W-4, Y.J-Y.slideTop);
+  ctx.strokeStyle='rgba(0,0,0,.5)';
+  ctx.beginPath(); ctx.moveTo(2,snap(Y.slideTop)); ctx.lineTo(W-2,snap(Y.slideTop)); ctx.stroke();
+
+  /* brand line on the top stator */
+  ctx.fillStyle='rgba(139,148,167,.55)'; ctx.font='10px "Segoe UI",system-ui,sans-serif';
+  ctx.textAlign='center';
+  ctx.fillText('T H E   C C S A   “ A P O L L O ”  ·  T E N - I N C H   S I M P L E X  ·  E S T .  1 6 2 2', W/2, Y.top+26);
+
+  /* the slide (carries the C scale) */
+  const sx = slidePx();
+  rrect(2+sx, Y.slideTop+2, W-4, Y.J-Y.slideTop-3, 5);
+  ctx.fillStyle='#212a3d'; ctx.fill();
+  ctx.strokeStyle='#33405c'; ctx.lineWidth=1; ctx.stroke();
+
+  /* D scale (fixed, ticks up-facing edge of the bottom stator) */
+  drawScale(0, false);
+  /* C scale (on the slide, ticks meet D at the junction) */
+  drawScale(sx, true);
+
+  /* scale letters */
+  ctx.font='italic 700 14px Georgia,"Times New Roman",serif'; ctx.textAlign='left';
+  ctx.fillStyle='#ffd35a'; ctx.fillText('C', 12+sx, Y.J-32);
+  ctx.fillStyle='#58c4dd'; ctx.fillText('D', 12, Y.J+40);
+
+  /* index markers on C (its 1 and 10) */
+  ctx.fillStyle='rgba(255,211,90,.9)';
+  for(const ix of [xC(1), xC(10)]){
+    if(ix>-10 && ix<W+10){
+      ctx.beginPath(); ctx.moveTo(ix, Y.slideTop+6); ctx.lineTo(ix-4, Y.slideTop+1); ctx.lineTo(ix+4, Y.slideTop+1); ctx.closePath(); ctx.fill();
+    }
+  }
+
+  /* the why overlay */
+  if(state.showWhy) drawWhy();
+
+  /* cursor (glass + hairline) */
+  const hx = hairPx(), cw=54;
+  rrect(hx-cw/2, Y.curTop, cw, Y.curBot-Y.curTop, 8);
+  ctx.fillStyle='rgba(190,212,255,.055)'; ctx.fill();
+  ctx.strokeStyle='rgba(230,233,240,.25)'; ctx.lineWidth=1; ctx.stroke();
+  ctx.fillStyle='rgba(230,233,240,.10)';
+  ctx.fillRect(hx-cw/2+1, Y.curTop+1, cw-2, 9);
+  ctx.fillRect(hx-cw/2+1, Y.curBot-10, cw-2, 9);
+  ctx.strokeStyle='#fc6255'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(snap(hx), Y.curTop+3); ctx.lineTo(snap(hx), Y.curBot-3); ctx.stroke();
+
+  /* live D reading pill on the cursor */
+  const rd = reading();
+  rrect(hx-24, 14, 48, 17, 6);
+  ctx.fillStyle='rgba(14,17,23,.88)'; ctx.fill();
+  ctx.strokeStyle='rgba(131,193,103,.5)'; ctx.stroke();
+  ctx.fillStyle='#83c167'; ctx.font='700 11px "Segoe UI",system-ui,sans-serif'; ctx.textAlign='center';
+  ctx.fillText(fmt(rd.r), hx, 26.5);
+
+  /* result flash */
+  if(state.flash){
+    const p = (performance.now()-state.flash.t0)/state.flash.dur;
+    if(p>=1){ state.flash=null; }
+    else{
+      const pulse = Math.sin(p*Math.PI*3);
+      ctx.strokeStyle=`rgba(131,193,103,${(1-p)*.9})`; ctx.lineWidth=2.5;
+      ctx.beginPath(); ctx.arc(state.flash.x, Y.J, 10+26*p, 0, Math.PI*2); ctx.stroke();
+      ctx.fillStyle=`rgba(131,193,103,${.55+.45*Math.abs(pulse)})`;
+      ctx.font='700 15px "Segoe UI",system-ui,sans-serif'; ctx.textAlign='center';
+      ctx.fillText(state.flash.text, state.flash.x, Y.J-46);
+    }
+  }
+}
+
+/* ---------- DOM readout ---------- */
+const elReadout=document.getElementById('readout'), elNote=document.getElementById('note'),
+      elInstr=document.getElementById('instr');
+let lastHTML='', lastNote='', lastInstr='';
+
+function updateDOM(){
+  const rd = reading();
+  const side = rd.sRight ? 'right' : 'left';
+  const bStr = rd.bValid ? fmt(rd.b) : '—';
+  let html, note='';
+
+  if(state.mode==='mul'){
+    html = `<span class="ra math">a = ${fmt(rd.idx)}</span> <span class="rm">(on D, under C's ${side} index)</span>
+      &nbsp;&times;&nbsp; <span class="rb math">b = ${bStr}</span> <span class="rm">(on C, at the hairline)</span>
+      &nbsp;&rarr;&nbsp; <span class="rr math">read ${fmt(rd.r)}</span> <span class="rm">(on D, at the hairline)</span>`;
+    if(!rd.bValid){
+      note = `The hairline is off the C scale — slide the hairline back over the slide to read <b>b</b>.`;
+    }else if(rd.sRight){
+      note = `<b>Right index in play:</b> the product overflowed the D scale, so D now shows the <b>digits</b> of
+        <span class="math">a·b</span> — true product &asymp; ${fmt(rd.r)} &times; 10 = ${(rd.r*10).toFixed(1)}.
+        The rule gives digits; the human tracks the decimal point — precision vs range, a very modern trade-off.`;
+    }
+  }else{
+    html = `<span class="ra math">a = ${fmt(rd.r)}</span> <span class="rm">(on D, at the hairline)</span>
+      &nbsp;&divide;&nbsp; <span class="rb math">b = ${bStr}</span> <span class="rm">(on C, at the hairline)</span>
+      &nbsp;&rarr;&nbsp; <span class="rr math">read ${fmt(rd.idx)}</span> <span class="rm">(on D, under C's ${side} index)</span>`;
+    if(!rd.bValid){
+      note = `The hairline is off the C scale — slide C (or the hairline) so a value of C sits under the hairline.`;
+    }else if(rd.sRight){
+      note = `<b>Quotient below 1:</b> <span class="math">a &lt; b</span>, so read the <b>digits</b> under C's right index —
+        true quotient &asymp; ${fmt(rd.idx)} &divide; 10 = ${(rd.idx/10).toFixed(3)}. You place the decimal.`;
+    }
+  }
+
+  const instr = state.mode==='mul'
+    ? `<b style="color:var(--ink)">Multiplication:</b> slide C's <span class="cb">1</span> over <span class="ca math">a</span> on D,
+       bring the hairline to <span class="cb math">b</span> on C, read <span class="cr math">a·b</span> on D under the hairline.
+       Adding the two distances adds the two logarithms.`
+    : `<b style="color:var(--ink)">Division:</b> bring the hairline to <span class="ca math">a</span> on D, slide C until
+       <span class="cb math">b</span> sits under the hairline, read <span class="cr math">a&nbsp;&divide;&nbsp;b</span> on D under C's index.
+       Subtracting distances subtracts logarithms.`;
+
+  if(html!==lastHTML){ elReadout.innerHTML=html; lastHTML=html; }
+  if(note!==lastNote){ elNote.innerHTML=note; elNote.style.display=note?'block':'none'; lastNote=note; }
+  if(instr!==lastInstr){ elInstr.innerHTML=instr; lastInstr=instr; }
+}
+
+/* ---------- animation ---------- */
+function runQueue(t){
+  if(!state.queue.length) return;
+  const q = state.queue[0];
+  if(q.type==='move'){
+    if(q.t0===undefined){ q.t0=t; q.from=state[q.prop]; }
+    const p = clamp((t-q.t0)/q.dur, 0, 1);
+    state[q.prop] = q.from + (q.to-q.from)*smooth(p);
+    if(p>=1){ state[q.prop]=q.to; state.queue.shift(); }
+  }else if(q.type==='flash'){
+    const rd = reading();
+    const x = q.at==='hair' ? hairPx() : M+rd.idxLog*L;
+    const val = q.at==='hair' ? rd.r : rd.idx;
+    state.flash = { x, t0:t, dur:1100, text:fmt(val) };
+    state.queue.shift();
+  }
+}
+
+function frame(t){
+  runQueue(t);
+  draw();
+  updateDOM();
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+/* ---------- pointer interaction ---------- */
+function ptr(e){ const r=canvas.getBoundingClientRect(); return {x:e.clientX-r.left, y:e.clientY-r.top}; }
+
+canvas.addEventListener('pointerdown', e=>{
+  const {x,y}=ptr(e);
+  state.queue=[];                                  // user takes over: cancel animation
+  const hx=hairPx();
+  if(Math.abs(x-hx)<=20 && y<=Y.curBot+14){
+    state.drag={kind:'hair', off:x-hx};
+  }else if(y>=Y.slideTop-12 && y<=Y.J+12){
+    state.drag={kind:'slide', off:x-slidePx()};
+  }else{
+    state.hair=clamp((x-M)/L, 0, 1);
+    state.drag={kind:'hair', off:0};
+  }
+  canvas.setPointerCapture(e.pointerId);
+  canvas.style.cursor='grabbing';
+});
+canvas.addEventListener('pointermove', e=>{
+  const {x,y}=ptr(e);
+  if(state.drag){
+    if(state.drag.kind==='hair') state.hair=clamp((x-state.drag.off-M)/L, 0, 1);
+    else state.slide=clamp((x-state.drag.off)/L, -1, 1);
+  }else{
+    canvas.style.cursor = (Math.abs(x-hairPx())<=20 && y<=Y.curBot+14) ? 'ew-resize'
+      : (y>=Y.slideTop-12 && y<=Y.J+12) ? 'grab' : 'crosshair';
+  }
+});
+function endDrag(){ state.drag=null; canvas.style.cursor='crosshair'; }
+canvas.addEventListener('pointerup', endDrag);
+canvas.addEventListener('pointercancel', endDrag);
+
+/* ---------- controls ---------- */
+const btnMul=document.getElementById('btnMul'), btnDiv=document.getElementById('btnDiv'),
+      btnWhy=document.getElementById('btnWhy'), btnSolve=document.getElementById('btnSolve'),
+      btnLab=document.getElementById('btnLab'),
+      inA=document.getElementById('inA'), inB=document.getElementById('inB'),
+      opSym=document.getElementById('opSym');
+
+function setMode(m){
+  state.mode=m;
+  btnMul.classList.toggle('on', m==='mul');
+  btnDiv.classList.toggle('on', m==='div');
+  opSym.innerHTML = m==='mul' ? '&times;' : '&divide;';
+}
+btnMul.addEventListener('click', ()=>setMode('mul'));
+btnDiv.addEventListener('click', ()=>setMode('div'));
+
+btnWhy.addEventListener('click', ()=>{
+  state.showWhy=!state.showWhy;
+  btnWhy.classList.toggle('on', state.showWhy);
+  btnWhy.textContent = state.showWhy ? 'Hide the why' : 'Show the why';
+  canvas.style.height = state.showWhy ? '340px' : '250px';
+});
+
+function readInputs(){
+  let a=parseFloat(inA.value), b=parseFloat(inB.value);
+  if(!isFinite(a)) a=2; if(!isFinite(b)) b=3;
+  a=clamp(a,1,9.99); b=clamp(b,1,9.99);
+  inA.value=a; inB.value=b;
+  return {a,b};
+}
+
+function solve(){
+  const {a,b}=readInputs();
+  state.drag=null;
+  if(state.mode==='mul'){
+    const fold = a*b>10;
+    const tS = lg(a)-(fold?1:0);
+    const tH = lg(a)+lg(b)-(fold?1:0);
+    state.queue=[
+      {type:'move', prop:'slide', to:tS, dur:1200},
+      {type:'move', prop:'hair',  to:tH, dur:1200},
+      {type:'flash', at:'hair'},
+    ];
+  }else{
+    const tH = lg(a);
+    const tS = lg(a)-lg(b);
+    state.queue=[
+      {type:'move', prop:'hair',  to:tH, dur:1200},
+      {type:'move', prop:'slide', to:tS, dur:1200},
+      {type:'flash', at:'idx'},
+    ];
+  }
+}
+btnSolve.addEventListener('click', solve);
+[inA,inB].forEach(el=>el.addEventListener('keydown', e=>{ if(e.key==='Enter') solve(); }));
+
+/* ---------- precision mini-lab ---------- */
+btnLab.addEventListener('click', ()=>{
+  setMode('mul');
+  inA.value=2.34; inB.value=3.67;
+  solve();
+  const exact = 2.34*3.67;                        // 8.5878
+  const rule = Number(exact.toPrecision(3));      // what a careful eye reads: ~8.59
+  const err = (rule-exact)/exact*100;
+  document.getElementById('labRule').textContent = rule.toFixed(2);
+  document.getElementById('labExact').textContent = exact.toFixed(4);
+  document.getElementById('labErr').textContent = (err>=0?'+':'') + err.toFixed(3) + ' %';
+});
+
+/* initial UI text */
+setMode('mul');
+updateDOM();
+</script>
+</body>
+</html>

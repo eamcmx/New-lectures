@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Abacus — Intro to Computer Systems Architecture</title>
+<style>
+:root{
+  --bg:#0e1117;
+  --panel:#161b26;
+  --panel2:#1c2230;
+  --ink:#e6e9f0;
+  --muted:#8b94a7;
+  --grid:#232b3b;
+  --axis:#4a5568;
+  --blue:#58c4dd;
+  --yellow:#ffd35a;
+  --red:#fc6255;
+  --green:#83c167;
+  --purple:#c688eb;
+  --orange:#ff9f4b;
+  --line:#2a3347;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--bg); color:var(--ink);
+  font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
+  line-height:1.55;
+}
+.wrap{max-width:1100px;margin:0 auto;padding:24px}
+a{color:var(--blue);text-decoration:none}
+a:hover{text-decoration:underline}
+header .crumb{color:var(--muted);font-size:14px}
+header .crumb:hover{color:var(--blue);text-decoration:none}
+h1{margin:10px 0 6px;font-size:32px;letter-spacing:.3px}
+.subtitle{color:var(--muted);max-width:78ch;margin:0 0 22px}
+.math{font-family:Georgia,'Times New Roman',serif;font-style:italic}
+.mono{font-family:ui-monospace,'Cascadia Mono',Consolas,monospace;font-style:normal}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin-bottom:22px}
+.panel h2{margin:0 0 12px;font-size:15px;letter-spacing:1.6px;text-transform:uppercase;color:var(--muted)}
+.c-blue{color:var(--blue)} .c-yellow{color:var(--yellow)} .c-green{color:var(--green)} .c-red{color:var(--red)} .c-purple{color:var(--purple)} .c-orange{color:var(--orange)}
+
+button{
+  background:var(--panel2);border:1px solid var(--line);color:var(--ink);
+  border-radius:9px;padding:8px 14px;cursor:pointer;font-size:14px;font-family:inherit;
+  transition:border-color .15s,color .15s,background .15s;touch-action:manipulation;
+}
+button:hover{border-color:var(--blue)}
+button.on,button.active{border-color:var(--blue);color:var(--blue);background:rgba(88,196,221,.08)}
+button:disabled{opacity:.4;cursor:default;border-color:var(--line)}
+input[type=number],input[type=text]{
+  background:#0a0d13;border:1px solid var(--line);color:var(--ink);border-radius:9px;
+  padding:8px 10px;font-size:15px;font-family:ui-monospace,Consolas,monospace;width:110px;
+}
+input[type=number]:focus,input[type=text]:focus{outline:none;border-color:var(--blue)}
+input[type=number].small{width:72px}
+.controls{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:14px}
+.controls .lbl{color:var(--muted);font-size:13.5px}
+.controls .spacer{flex:1}
+.chip{font-size:13px;padding:6px 11px;border-radius:999px}
+.chip.carry{border-color:rgba(252,98,85,.5)}
+.chip.carry:hover{border-color:var(--red);color:var(--red)}
+
+/* ---------- readout ---------- */
+.readout{display:flex;align-items:baseline;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:12px}
+.total{font-size:44px;font-weight:700;letter-spacing:1px;color:var(--green);font-family:ui-monospace,'Cascadia Mono',Consolas,monospace;line-height:1.1}
+.total .unit{font-size:15px;color:var(--muted);font-weight:400;font-family:'Segoe UI',system-ui,sans-serif;letter-spacing:0}
+.colrow{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-bottom:8px}
+.colcell{
+  background:var(--panel2);border:1px solid var(--line);border-radius:10px;
+  text-align:center;padding:6px 2px 7px;transition:border-color .25s, background .25s;
+}
+.colcell .d{font-size:26px;font-weight:700;color:var(--ink);font-family:ui-monospace,Consolas,monospace;line-height:1.15;transition:color .2s}
+.colcell .p{font-size:10.5px;color:var(--muted);letter-spacing:.3px;white-space:nowrap}
+.colcell.hot{border-color:var(--yellow);background:rgba(255,211,90,.07)}
+.colcell.hot .d{color:var(--yellow)}
+body.regmode .colcell .p{color:var(--blue);font-family:ui-monospace,Consolas,monospace}
+.modecap{color:var(--muted);font-size:13px;margin:0}
+.modecap b{color:var(--blue);font-weight:600}
+
+/* ---------- canvas ---------- */
+.cwrap{position:relative}
+canvas#abacus{
+  display:block;width:100%;height:clamp(330px,44vw,430px);
+  background:#0a0d13;border:1px solid var(--line);border-radius:12px;
+  touch-action:none;cursor:grab;
+}
+canvas#abacus.grabbing{cursor:grabbing}
+.hint{color:var(--muted);font-size:13px;margin:10px 0 0}
+.hint .bead{display:inline-block;width:14px;height:9px;border-radius:50%/60%;vertical-align:-1px;margin:0 3px}
+.hint .bead.hv{background:var(--yellow)} .hint .bead.er{background:var(--blue)}
+
+/* ---------- tutorial ---------- */
+.tutgrid{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:12px}
+.tutgrid .plus{color:var(--muted);font-size:20px}
+.capbox{
+  background:var(--panel2);border:1px solid var(--line);border-left:4px solid var(--blue);
+  border-radius:10px;padding:12px 15px;min-height:66px;font-size:15.5px;
+  display:flex;align-items:center;transition:border-color .25s;
+}
+.capbox.carry{border-left-color:var(--red);background:rgba(252,98,85,.06)}
+.capbox.done{border-left-color:var(--green);background:rgba(131,193,103,.06)}
+.capbox b{color:var(--yellow)} .capbox b.c-red{color:var(--red)}
+.capbox .num{font-family:ui-monospace,Consolas,monospace;color:var(--green)}
+.tutmeta{display:flex;justify-content:space-between;align-items:center;color:var(--muted);font-size:12.5px;margin-top:8px}
+.tutbar{height:4px;background:var(--panel2);border-radius:2px;overflow:hidden;flex:1;margin-left:14px}
+.tutbar i{display:block;height:100%;background:var(--blue);width:0%;transition:width .3s;border-radius:2px}
+
+/* ---------- insights ---------- */
+.insights{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:24px}
+@media(max-width:880px){.insights{grid-template-columns:1fr}.total{font-size:34px}}
+.insights .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px}
+.insights .card h3{margin:0 0 8px;font-size:14.5px;letter-spacing:.4px}
+.insights .card p{margin:0;font-size:14px;color:var(--muted)}
+.insights .card p b{color:var(--ink);font-weight:600}
+
+footer{color:var(--muted);font-size:13px;border-top:1px solid var(--line);padding-top:16px;margin-top:8px}
+footer .navrow{display:flex;justify-content:space-between;gap:10px;margin-top:8px;flex-wrap:wrap}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <a class="crumb" href="./index.html">← Intro to Computer Systems Architecture</a>
+  <h1>The Abacus — a register file made of beads</h1>
+  <p class="subtitle">
+    Humanity's first calculating device (~2500&nbsp;BCE Mesopotamia, refined into the Chinese
+    <span class="math">suanpan</span> and the Japanese <span class="math">soroban</span> you see below).
+    Click or drag beads toward the reckoning bar to count them in, away to count them out —
+    then watch the guided addition and meet the oldest algorithm you know: the <b class="c-red">carry</b>.
+  </p>
+</header>
+
+<!-- ============ main panel: readout + abacus ============ -->
+<section class="panel">
+  <h2>The frame — seven rods, seven decimal places</h2>
+
+  <div class="readout">
+    <div class="total"><span id="totalNum">0</span></div>
+    <button id="btnReg" title="Relabel the rods as CPU registers">Register view</button>
+  </div>
+  <div class="colrow" id="colrow"></div>
+  <p class="modecap" id="modeCap">Each rod is one decimal place. A bead counts only when it touches the bar: the <span class="c-yellow">heaven bead</span> is worth 5, each <span class="c-blue">earth bead</span> is worth 1.</p>
+
+  <div class="cwrap" style="margin-top:14px">
+    <canvas id="abacus" aria-label="Interactive soroban abacus, seven rods. Click or drag beads toward the bar to activate them."></canvas>
+  </div>
+  <p class="hint">
+    <span class="bead hv"></span>heaven bead = 5 &nbsp;·&nbsp; <span class="bead er"></span>earth bead = 1 &nbsp;·&nbsp;
+    beads move in groups, just like a real soroban — push earth bead 3 up and beads 1–2 come with it.
+  </p>
+
+  <div class="controls">
+    <span class="lbl">Set a number:</span>
+    <input id="setInput" type="number" min="0" max="9999999" step="1" placeholder="e.g. 1947" inputmode="numeric">
+    <button id="btnSet">Set</button>
+    <button id="btnClear">Clear</button>
+    <span class="spacer"></span>
+    <button class="chip" id="chip1947">set 1947</button>
+    <button class="chip" id="chip2025">set 2025</button>
+    <button class="chip" id="chip2517">add 25 + 17</button>
+    <button class="chip carry" id="chip991">add 99 + 1 (carry parade!)</button>
+  </div>
+</section>
+
+<!-- ============ tutorial panel ============ -->
+<section class="panel">
+  <h2>Guided addition — watch the carry happen</h2>
+  <p style="margin:0 0 14px;color:var(--muted);font-size:14px;max-width:80ch">
+    A soroban never "does" 7&nbsp;+&nbsp;8 in one motion — there aren't enough beads on one rod.
+    Instead it uses <b style="color:var(--ink)">complements</b>: when a rod overflows, add 1 to the
+    next rod and take the ten-complement away here. Notice how… that's exactly a carry propagating
+    through an adder circuit.
+  </p>
+
+  <div class="tutgrid">
+    <span class="lbl" style="color:var(--muted);font-size:13.5px">Watch</span>
+    <input id="inA" class="small" type="number" min="1" max="99" step="1" value="47" inputmode="numeric">
+    <span class="plus">+</span>
+    <input id="inB" class="small" type="number" min="1" max="99" step="1" value="38" inputmode="numeric">
+    <button id="btnBuild">Build steps</button>
+    <span class="spacer"></span>
+    <button id="btnPlay">▶ Auto-play</button>
+    <button id="btnStep">Step ›</button>
+    <button id="btnRestart">↺ Restart</button>
+  </div>
+
+  <div class="capbox" id="tutCap">Press <b>▶ Auto-play</b> (or Step) to watch <span class="num">47 + 38</span> the way a soroban operator does it — carry and all.</div>
+  <div class="tutmeta">
+    <span id="tutProg">step 0 / 0</span>
+    <div class="tutbar"><i id="tutBarFill"></i></div>
+  </div>
+</section>
+
+<!-- ============ insights ============ -->
+<section class="insights">
+  <div class="card">
+    <h3 class="c-blue">Where a bead sits is what it means</h3>
+    <p>The genius here isn't the beads — it's <b>positional notation</b>. The very same bead is
+    worth 1 on the right rod and 1,000,000 on the left one, purely by <b>where it sits</b>.
+    Your CPU inherits the trick unchanged: bit 0 of a word means 1, bit 20 means 1,048,576 —
+    same bit, different column.</p>
+  </div>
+  <div class="card">
+    <h3 class="c-red">The oldest algorithm you know</h3>
+    <p>"No room on this rod → pass 1 to the next rod" is the <b>carry</b>, and it may be the
+    oldest algorithm still in daily use. Soroban complements, the ratcheting gears of Pascal's
+    calculator, and the carry chain inside your <b>ALU</b> are three implementations of one
+    idea, four thousand years apart.</p>
+  </div>
+  <div class="card">
+    <h3 class="c-yellow">Storage without a processor</h3>
+    <p>An abacus <b>stores state but doesn't process it</b> — every rule ("if it overflows,
+    carry") runs in the operator's head. The human is the control unit; the frame is just
+    registers. Mechanizing <em>that</em> — putting the rules into the machine — was
+    <a href="./analytical-engine.html">Babbage's leap</a>.</p>
+  </div>
+</section>
+
+<footer>
+  Interactive companion to the lecture <em>Introduction to Computers &amp; Computer Systems Architecture</em> · CCSA T1
+  <div class="navrow">
+    <a href="./timeline.html">← The Grand Timeline</a>
+    <a href="./index.html">All explorations</a>
+    <a href="./slide-rule.html">The Slide Rule →</a>
+  </div>
+</footer>
+
+</div>
+
+<script>
+(function(){
+'use strict';
+
+/* ============================ constants ============================ */
+const NRODS = 7;
+const PLACE_NAME  = ['ones','tens','hundreds','thousands','ten-thousands','hundred-thousands','millions'];
+const PLACE_LABEL = ['1','10','100','1,000','10,000','100,000','1,000,000'];
+const PLACE_SHORT = ['1','10','100','1k','10k','100k','1M'];
+const ANIM_MS = 150;          // bead ease duration
+const GLOW_MS = 700;          // post-move glow
+
+/* ============================ state ============================ */
+const state = {
+  rods: Array.from({length:NRODS}, () => ({h:0, e:0})),   // index 0 = ones (rightmost)
+  beads: Array.from({length:NRODS}, () => ({
+    h: {u:0, from:0, tgt:0, t0:-1, glow:-1e9},
+    e: Array.from({length:4}, () => ({u:0, from:0, tgt:0, t0:-1, glow:-1e9}))
+  })),
+  regView: false,
+  queue: [],                  // timed rod-sets for "set number" cascade: {at, rod, d}
+  hotRod: -1, hotUntil: 0,    // readout cell highlight
+  tut: {steps:[], i:0, playing:false, nextAt:0, active:false},
+  drag: null,
+  now: performance.now()
+};
+
+const cv  = document.getElementById('abacus');
+const ctx = cv.getContext('2d');
+
+/* ============================ helpers ============================ */
+const smooth = t => t*t*(3-2*t);
+const clamp  = (v,a,b) => Math.max(a, Math.min(b,v));
+const digit  = i => state.rods[i].h*5 + state.rods[i].e;
+const totalValue = () => state.rods.reduce((s,_,i) => s + digit(i)*Math.pow(10,i), 0);
+
+function beadU(b){
+  if(b.t0 < 0) return b.tgt;
+  const t = (state.now - b.t0)/ANIM_MS;
+  if(t >= 1){ b.t0 = -1; b.u = b.tgt; return b.u; }
+  b.u = b.from + (b.tgt - b.from)*smooth(t);
+  return b.u;
+}
+function setBeadTarget(b, active){
+  const tgt = active ? 1 : 0;
+  if(b.tgt === tgt) return;
+  b.from = beadU(b); b.tgt = tgt; b.t0 = state.now; b.glow = state.now;
+}
+
+/* set one rod's model (h: 0/1, e: 0..4), animate beads, refresh readout */
+function setRod(i, h, e){
+  const r = state.rods[i];
+  if(r.h === h && r.e === e) return;
+  r.h = h; r.e = e;
+  setBeadTarget(state.beads[i].h, !!h);
+  for(let k=0;k<4;k++) setBeadTarget(state.beads[i].e[k], k < e);
+  state.hotRod = i; state.hotUntil = state.now + GLOW_MS;
+  updateReadout();
+}
+function setRodDigit(i, d){ setRod(i, d>=5?1:0, d%5); }
+
+function setNumberCascade(n){
+  n = clamp(Math.floor(n||0), 0, 9999999);
+  state.queue.length = 0;
+  let t = state.now;
+  for(let i=NRODS-1; i>=0; i--){                     // leftmost column first
+    const d = Math.floor(n/Math.pow(10,i)) % 10;
+    state.queue.push({at:t, rod:i, d});
+    t += 90;
+  }
+}
+
+/* ============================ readout ============================ */
+const colrow = document.getElementById('colrow');
+const cells = [];
+for(let i=NRODS-1; i>=0; i--){
+  const div = document.createElement('div');
+  div.className = 'colcell';
+  div.innerHTML = '<div class="d">0</div><div class="p"></div>';
+  colrow.appendChild(div);
+  cells[i] = div;
+}
+const totalEl  = document.getElementById('totalNum');
+const modeCap  = document.getElementById('modeCap');
+const btnReg   = document.getElementById('btnReg');
+
+function updateReadout(){
+  for(let i=0;i<NRODS;i++){
+    cells[i].querySelector('.d').textContent = digit(i);
+    cells[i].querySelector('.p').textContent = state.regView ? ('R'+i) : PLACE_LABEL[i];
+  }
+  totalEl.textContent = totalValue().toLocaleString('en-US');
+}
+btnReg.addEventListener('click', () => {
+  state.regView = !state.regView;
+  btnReg.classList.toggle('on', state.regView);
+  document.body.classList.toggle('regmode', state.regView);
+  modeCap.innerHTML = state.regView
+    ? 'Rods relabelled <b>R6 … R0</b> — seven digit-registers holding the machine\'s state. <em>Same thing, older packaging.</em>'
+    : 'Each rod is one decimal place. A bead counts only when it touches the bar: the <span class="c-yellow">heaven bead</span> is worth 5, each <span class="c-blue">earth bead</span> is worth 1.';
+  updateReadout();
+});
+
+/* ============================ geometry ============================ */
+function geom(){
+  const W = cv.clientWidth, H = cv.clientHeight;
+  const pad = 12, labelH = 44;
+  const fx = pad, fy = pad, fw = W - 2*pad, fh = H - 2*pad - labelH;
+  const ft = clamp(fw*0.018, 9, 15);                 // frame thickness
+  const ix = fx+ft, iy = fy+ft, iw = fw-2*ft, ih = fh-2*ft;
+  const bh = ih/7.8;                                  // bead height
+  const trav = 1.15*bh, barH = 0.5*bh;
+  const barY = iy + bh + trav;                        // top of reckoning bar
+  const spacing = iw/NRODS;
+  const bw = Math.min(spacing*0.8, bh*2.5);
+  return {W,H,fx,fy,fw,fh,ft,ix,iy,iw,ih,bh,trav,barH,barY,spacing,bw,labelH,
+    rodX: i => ix + spacing*(NRODS-1-i) + spacing/2,  // i=0 → rightmost
+    heavenY: u => (iy + bh/2) + u*((barY - bh/2) - (iy + bh/2)),
+    earthY: (k,u) => {
+      const act = barY + barH + bh/2 + k*bh;
+      const ina = iy + ih - bh/2 - (3-k)*bh;
+      return ina + u*(act - ina);
+    }
+  };
+}
+
+/* ============================ drawing ============================ */
+function drawBead(g, x, y, kind, active, glowAge){
+  const bw = g.bw, bh = g.bh*0.94;
+  const col  = kind==='h' ? '#ffd35a' : '#58c4dd';
+  const dark = kind==='h' ? '#8a6a1e' : '#1e5f74';
+  const lite = kind==='h' ? '#ffe9a8' : '#a8e4f2';
+  ctx.save();
+  const glowing = glowAge < GLOW_MS;
+  if(active || glowing){
+    ctx.shadowColor = col;
+    ctx.shadowBlur  = glowing ? (14 - 8*(glowAge/GLOW_MS)) : 6;
+  }
+  ctx.beginPath();
+  ctx.moveTo(x - bw/2, y);
+  ctx.lineTo(x - bw*0.20, y - bh/2);
+  ctx.lineTo(x + bw*0.20, y - bh/2);
+  ctx.lineTo(x + bw/2, y);
+  ctx.lineTo(x + bw*0.20, y + bh/2);
+  ctx.lineTo(x - bw*0.20, y + bh/2);
+  ctx.closePath();
+  const grad = ctx.createLinearGradient(x, y-bh/2, x, y+bh/2);
+  grad.addColorStop(0, lite); grad.addColorStop(0.45, col); grad.addColorStop(1, dark);
+  ctx.fillStyle = grad;
+  ctx.globalAlpha = active ? 1 : 0.82;
+  ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.globalAlpha = 1;
+  ctx.strokeStyle = active ? lite : 'rgba(0,0,0,.45)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  ctx.restore();
+}
+
+function draw(){
+  const g = geom();
+  const dpr = window.devicePixelRatio || 1;
+  if(cv.width !== Math.round(g.W*dpr) || cv.height !== Math.round(g.H*dpr)){
+    cv.width = Math.round(g.W*dpr); cv.height = Math.round(g.H*dpr);
+  }
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,g.W,g.H);
+
+  /* faint grid backdrop */
+  ctx.strokeStyle = '#141a26'; ctx.lineWidth = 1;
+  for(let x=0.5; x<g.W; x+=34){ ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,g.H); ctx.stroke(); }
+  for(let y=0.5; y<g.H; y+=34){ ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(g.W,y); ctx.stroke(); }
+
+  /* frame */
+  ctx.beginPath(); ctx.roundRect(g.fx, g.fy, g.fw, g.fh, 16);
+  ctx.fillStyle = '#242c3e'; ctx.fill();
+  ctx.strokeStyle = '#39435c'; ctx.lineWidth = 1.5; ctx.stroke();
+  ctx.beginPath(); ctx.roundRect(g.ix, g.iy, g.iw, g.ih, 8);
+  ctx.fillStyle = '#0c0f16'; ctx.fill();
+  ctx.strokeStyle = '#1c2230'; ctx.lineWidth = 1; ctx.stroke();
+
+  /* rods */
+  const rodW = Math.max(3, g.bh*0.14);
+  for(let i=0;i<NRODS;i++){
+    const x = g.rodX(i);
+    ctx.strokeStyle = '#3a445e'; ctx.lineWidth = rodW; ctx.lineCap='round';
+    ctx.beginPath(); ctx.moveTo(x, g.iy+3); ctx.lineTo(x, g.iy+g.ih-3); ctx.stroke();
+    ctx.strokeStyle = 'rgba(255,255,255,.06)'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(x-rodW/2+1, g.iy+3); ctx.lineTo(x-rodW/2+1, g.iy+g.ih-3); ctx.stroke();
+  }
+
+  /* reckoning bar (with unit dots every 3rd rod, like a real soroban) */
+  ctx.fillStyle = '#38415c';
+  ctx.fillRect(g.ix, g.barY, g.iw, g.barH);
+  ctx.fillStyle = '#4a5578';
+  ctx.fillRect(g.ix, g.barY, g.iw, 1.5);
+  for(let i=0;i<NRODS;i+=3){
+    ctx.beginPath(); ctx.arc(g.rodX(i), g.barY+g.barH/2, Math.max(2,g.barH*0.18), 0, 7);
+    ctx.fillStyle = '#0c0f16'; ctx.fill();
+  }
+
+  /* beads */
+  for(let i=0;i<NRODS;i++){
+    const x = g.rodX(i), B = state.beads[i], r = state.rods[i];
+    drawBead(g, x, g.heavenY(beadU(B.h)), 'h', !!r.h, state.now - B.h.glow);
+    for(let k=0;k<4;k++)
+      drawBead(g, x, g.earthY(k, beadU(B.e[k])), 'e', k < r.e, state.now - B.e[k].glow);
+  }
+
+  /* column digits + labels under frame */
+  ctx.textAlign = 'center';
+  for(let i=0;i<NRODS;i++){
+    const x = g.rodX(i), y = g.fy+g.fh;
+    const hot = (i===state.hotRod && state.now < state.hotUntil);
+    ctx.fillStyle = hot ? '#ffd35a' : '#83c167';
+    ctx.font = '700 16px ui-monospace,Consolas,monospace';
+    ctx.fillText(String(digit(i)), x, y+18);
+    ctx.fillStyle = '#8b94a7';
+    ctx.font = '10.5px "Segoe UI",system-ui,sans-serif';
+    ctx.fillText(state.regView ? 'R'+i : PLACE_SHORT[i], x, y+32);
+  }
+}
+
+/* ============================ pointer interaction ============================ */
+function pointerPos(e){
+  const r = cv.getBoundingClientRect();
+  return {x: e.clientX - r.left, y: e.clientY - r.top};
+}
+function hitBead(x, y){
+  const g = geom();
+  for(let i=0;i<NRODS;i++){
+    const rx = g.rodX(i);
+    if(Math.abs(x - rx) > Math.max(g.bw/2 + 6, 15)) continue;
+    const B = state.beads[i];
+    const hy = g.heavenY(beadU(B.h));
+    if(Math.abs(y - hy) <= Math.max(g.bh/2 + 5, 14)) return {rod:i, type:'h', k:-1};
+    for(let k=0;k<4;k++){
+      const ey = g.earthY(k, beadU(B.e[k]));
+      if(Math.abs(y - ey) <= Math.max(g.bh/2 + 5, 14)) return {rod:i, type:'e', k};
+    }
+  }
+  return null;
+}
+function manualTouched(){
+  if(state.tut.active){
+    state.tut.active = false; state.tut.playing = false;
+    setPlayBtn(false);
+    tutCap.className = 'capbox';
+    tutCap.innerHTML = 'You took over the beads — nice. Press <b>↺ Restart</b> to rebuild the tutorial.';
+  }
+  state.queue.length = 0;
+}
+
+cv.addEventListener('pointerdown', e => {
+  const p = pointerPos(e);
+  const hit = hitBead(p.x, p.y);
+  if(!hit) return;
+  e.preventDefault();
+  cv.setPointerCapture(e.pointerId);
+  cv.classList.add('grabbing');
+  state.drag = {...hit, startY: p.y, moved:false};
+});
+cv.addEventListener('pointermove', e => {
+  if(!state.drag) return;
+  const p = pointerPos(e);
+  const d = state.drag, dy = p.y - d.startY;
+  if(Math.abs(dy) < 8) return;
+  d.moved = true;
+  const r = state.rods[d.rod];
+  if(d.type === 'h'){
+    const want = dy > 0 ? 1 : 0;               // heaven activates by moving DOWN toward the bar
+    if(r.h !== want){ manualTouched(); setRod(d.rod, want, r.e); }
+  } else {
+    const want = dy < 0 ? Math.max(r.e, d.k+1)  // earth activates by moving UP toward the bar
+                        : Math.min(r.e, d.k);
+    if(r.e !== want){ manualTouched(); setRod(d.rod, r.h, want); }
+  }
+});
+function endDrag(e){
+  if(!state.drag) return;
+  const d = state.drag;
+  state.drag = null;
+  cv.classList.remove('grabbing');
+  if(!d.moved){                                 // plain click → toggle (group-wise)
+    manualTouched();
+    const r = state.rods[d.rod];
+    if(d.type === 'h') setRod(d.rod, r.h ? 0 : 1, r.e);
+    else setRod(d.rod, r.h, d.k < r.e ? d.k : d.k+1);
+  }
+}
+cv.addEventListener('pointerup', endDrag);
+cv.addEventListener('pointercancel', endDrag);
+
+/* ============================ set / clear / chips ============================ */
+const setInput = document.getElementById('setInput');
+document.getElementById('btnSet').addEventListener('click', () => {
+  manualTouched(); setNumberCascade(+setInput.value);
+});
+setInput.addEventListener('keydown', e => {
+  if(e.key === 'Enter'){ manualTouched(); setNumberCascade(+setInput.value); }
+});
+document.getElementById('btnClear').addEventListener('click', () => {
+  manualTouched(); setNumberCascade(0);
+});
+document.getElementById('chip1947').addEventListener('click', () => { manualTouched(); setInput.value = 1947; setNumberCascade(1947); });
+document.getElementById('chip2025').addEventListener('click', () => { manualTouched(); setInput.value = 2025; setNumberCascade(2025); });
+document.getElementById('chip2517').addEventListener('click', () => startChallenge(25, 17));
+document.getElementById('chip991').addEventListener('click', () => startChallenge(99, 1));
+
+/* ============================ soroban addition script ============================ */
+/*ALGO-START*/
+/* Builds the mechanically-correct soroban move sequence for a+b (1..99 each).
+   Each step: {moves:[{rod,h,e}...], cap:html, cls:''|'carry'|'done', slow:bool}.
+   Moves are ABSOLUTE rod states, so every intermediate configuration is physical. */
+function buildAdditionScript(a, b){
+  const steps = [];
+  const cur = [0,0,0,0,0,0,0];
+  const beads = n => n + ' earth bead' + (n===1?'':'s');
+  const rodCap = i => '<b>' + PLACE_NAME[i] + '</b> rod';
+
+  function push(place, nd, cap, cls, slow){
+    cur[place] = nd;
+    steps.push({moves:[{rod:place, h: nd>=5?1:0, e: nd%5}], cap, cls:cls||'', slow:!!slow});
+  }
+  function note(cap, cls){ steps.push({moves:[], cap, cls:cls||'', slow:true}); }
+
+  function addDigit(place, d, depth){
+    if(d === 0) return;
+    const c = cur[place], h = c>=5?1:0, e = c%5;
+    const pre = depth > 0 ? '<b class="c-red">CARRY:</b> ' : '';
+    if(c + d <= 9){
+      if(d < 5 && e + d <= 4 ){
+        push(place, c+d, pre + 'Add ' + d + ' on the ' + rodCap(place) + ' — push ' + beads(d) +
+          ' up to the bar. <span class="num">' + c + ' + ' + d + ' = ' + (c+d) + '</span>.');
+      } else if(d < 5){
+        /* five-complement: +d = +5 − (5−d).  (Here h is necessarily 0.) */
+        note(pre + ((4-e)===0 ? 'No loose earth beads left' : 'Only ' + (4-e) + ' loose earth bead' + ((4-e)===1?'':'s') + ' left') +
+          ' on the ' + rodCap(place) +
+          ' — not enough for +' + d + '. Use the five: <span class="num">+' + d + ' = +5 − ' + (5-d) + '</span>.');
+        cur[place] = c + 5;
+        steps.push({moves:[{rod:place, h:1, e:e}],
+          cap:'Push the <span class="c-yellow">heaven bead</span> down: +5. The rod momentarily reads <span class="num">' + (c+5) + '</span>…'});
+        cur[place] = c + d;
+        steps.push({moves:[{rod:place, h:1, e:e-(5-d)}],
+          cap:'…and take ' + beads(5-d) + ' away: −' + (5-d) + '. Net +' + d +
+          ' → the rod reads <span class="num">' + (c+d) + '</span>.'});
+      } else {
+        push(place, c+d, pre + 'Add ' + d + ' on the ' + rodCap(place) +
+          ': <span class="c-yellow">heaven bead</span> down (+5)' +
+          (d>5 ? ' and ' + beads(d-5) + ' up (+' + (d-5) + ')' : '') +
+          '. <span class="num">' + c + ' + ' + d + ' = ' + (c+d) + '</span>.');
+      }
+    } else {
+      /* ten-complement: +d = +10 − (10−d), the +10 is a carry to the next rod */
+      const s = 10 - d;
+      note('The ' + rodCap(place) + ' reads ' + c + ' — <b>no room</b> for +' + d +
+        ' (' + c + '+' + d + ' ≥ 10). So: add one to the next rod, take ' + s + ' away here ' +
+        '(<span class="num">+' + d + ' = +10 − ' + s + '</span>). That\'s a <b class="c-red">CARRY</b> — ' +
+        'the same carry your CPU\'s adder propagates.', 'carry');
+      addDigit(place+1, 1, depth+1);
+      subDigit(place, s);
+    }
+  }
+
+  function subDigit(place, s){
+    const c = cur[place], h = c>=5?1:0, e = c%5;
+    if(s < 5 && e >= s){
+      push(place, c-s, 'Back on the ' + rodCap(place) + ': take ' + beads(s) +
+        ' away. <span class="num">' + c + ' − ' + s + ' = ' + (c-s) + '</span>.');
+    } else if(s < 5){
+      /* five-complement subtract: −s = −5 + (5−s).  (Here h is necessarily 1.) */
+      note((e===0 ? 'No earth beads' : 'Only ' + e + ' earth bead' + (e===1?'':'s')) + ' at the bar on the ' + rodCap(place) +
+        ' — can\'t remove ' + s + ' directly. Use the five: <span class="num">−' + s + ' = −5 + ' + (5-s) + '</span>.');
+      cur[place] = c - 5;
+      steps.push({moves:[{rod:place, h:0, e:e}],
+        cap:'<span class="c-yellow">Heaven bead</span> up and away: −5. The rod reads <span class="num">' + (c-5) + '</span>…'});
+      cur[place] = c - s;
+      steps.push({moves:[{rod:place, h:0, e:e+(5-s)}],
+        cap:'…then push ' + beads(5-s) + ' up: +' + (5-s) + '. Net −' + s +
+        ' → the rod reads <span class="num">' + (c-s) + '</span>.'});
+    } else {
+      push(place, c-s, 'Back on the ' + rodCap(place) + ': <span class="c-yellow">heaven bead</span> up (−5)' +
+        (s>5 ? ' and ' + beads(s-5) + ' away (−' + (s-5) + ')' : '') +
+        '. <span class="num">' + c + ' − ' + s + ' = ' + (c-s) + '</span>.');
+    }
+  }
+
+  /* --- 1. clear --- */
+  steps.push({
+    moves: Array.from({length:7}, (_,i)=>({rod:i, h:0, e:0})),
+    cap: 'First, clear the frame — every bead away from the bar. (A register reset: all rods read 0.)',
+    cls:'', slow:true
+  });
+
+  /* --- 2. load a --- */
+  const aT = Math.floor(a/10), aO = a%10;
+  if(aT > 0) push(1, aT, 'Load <span class="num">' + a + '</span>: set the tens rod to ' + aT + ' — ' +
+      (aT>=5 ? '<span class="c-yellow">heaven bead</span> down' + (aT>5 ? ' plus ' + beads(aT-5) : '') : 'push ' + beads(aT) + ' up') + '.');
+  if(aO > 0) push(0, aO, (aT>0?'…and ':'Load <span class="num">' + a + '</span>: ') + 'set the ones rod to ' + aO + ' — ' +
+      (aO>=5 ? '<span class="c-yellow">heaven bead</span> down' + (aO>5 ? ' plus ' + beads(aO-5) : '') : 'push ' + beads(aO) + ' up') + '.');
+  note('<span class="num">' + a + '</span> is stored in the frame. Now add <span class="num">' + b +
+       '</span>, rod by rod — ones first, then tens. Watch what happens when a rod overflows.');
+
+  /* --- 3. add b, ones then tens --- */
+  const bT = Math.floor(b/10), bO = b%10;
+  if(bO > 0){
+    note('Ones digit of ' + b + ': add <span class="num">' + bO + '</span> to the ones rod (which reads ' + cur[0] + ').');
+    addDigit(0, bO, 0);
+  }
+  if(bT > 0){
+    note('Tens digit of ' + b + ': add <span class="num">' + bT + '</span> to the tens rod (which reads ' + cur[1] + ').');
+    addDigit(1, bT, 0);
+  }
+
+  /* --- 4. done --- */
+  const sum = a + b;
+  note('Done — the frame reads <span class="num">' + sum + '</span>. ' + a + ' + ' + b + ' = ' + sum +
+       ', computed entirely by pushing beads in the right order. The beads stored; <b>you</b> were the ALU.', 'done');
+  return steps;
+}
+/*ALGO-END*/
+
+/* ============================ tutorial runtime ============================ */
+const inA = document.getElementById('inA'), inB = document.getElementById('inB');
+const tutCap = document.getElementById('tutCap');
+const tutProg = document.getElementById('tutProg');
+const tutBarFill = document.getElementById('tutBarFill');
+const btnPlay = document.getElementById('btnPlay');
+const btnStep = document.getElementById('btnStep');
+const btnRestart = document.getElementById('btnRestart');
+
+function readAB(){
+  const a = clamp(Math.floor(+inA.value || 0), 1, 99);
+  const b = clamp(Math.floor(+inB.value || 0), 1, 99);
+  inA.value = a; inB.value = b;
+  return [a,b];
+}
+function buildTut(autoplay){
+  const [a,b] = readAB();
+  state.tut.steps = buildAdditionScript(a,b);
+  state.tut.i = 0;
+  state.tut.active = true;
+  state.tut.playing = !!autoplay;
+  state.tut.nextAt = state.now + 350;
+  setPlayBtn(state.tut.playing);
+  tutCap.className = 'capbox';
+  tutCap.innerHTML = 'Ready: <span class="num">' + a + ' + ' + b + '</span> in ' + state.tut.steps.length +
+    ' steps. Press <b>▶ Auto-play</b> or advance with <b>Step ›</b>.';
+  updateTutMeta();
+}
+function setPlayBtn(playing){
+  btnPlay.textContent = playing ? '⏸ Pause' : '▶ Auto-play';
+  btnPlay.classList.toggle('on', playing);
+}
+function updateTutMeta(){
+  const n = state.tut.steps.length;
+  tutProg.textContent = 'step ' + state.tut.i + ' / ' + n;
+  tutBarFill.style.width = (n ? (100*state.tut.i/n) : 0) + '%';
+}
+function applyNextStep(){
+  const t = state.tut;
+  if(!t.active || t.i >= t.steps.length) return false;
+  const step = t.steps[t.i++];
+  step.moves.forEach(m => setRod(m.rod, m.h, m.e));
+  tutCap.className = 'capbox' + (step.cls ? ' ' + step.cls : '');
+  tutCap.innerHTML = step.cap;
+  updateTutMeta();
+  if(t.i >= t.steps.length){ t.playing = false; setPlayBtn(false); }
+  return true;
+}
+btnPlay.addEventListener('click', () => {
+  const t = state.tut;
+  if(!t.active || t.i >= t.steps.length) buildTut(true);
+  else { t.playing = !t.playing; t.nextAt = state.now + 250; setPlayBtn(t.playing); }
+});
+btnStep.addEventListener('click', () => {
+  const t = state.tut;
+  if(!t.active) buildTut(false);
+  if(t.playing){ t.playing = false; setPlayBtn(false); }
+  applyNextStep();
+});
+btnRestart.addEventListener('click', () => buildTut(false));
+document.getElementById('btnBuild').addEventListener('click', () => buildTut(false));
+inA.addEventListener('change', () => buildTut(false));
+inB.addEventListener('change', () => buildTut(false));
+
+function startChallenge(a, b){
+  inA.value = a; inB.value = b;
+  buildTut(true);
+  tutCap.scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+
+/* ============================ main loop ============================ */
+function frame(now){
+  state.now = now;
+
+  /* timed cascade queue (set-a-number) */
+  while(state.queue.length && state.queue[0].at <= now){
+    const q = state.queue.shift();
+    setRodDigit(q.rod, q.d);
+  }
+
+  /* tutorial autoplay */
+  const t = state.tut;
+  if(t.active && t.playing && now >= t.nextAt){
+    if(applyNextStep()){
+      const step = t.steps[t.i-1];
+      t.nextAt = now + (step.slow ? 2600 : 1650);
+    }
+  }
+
+  /* readout hot-cell highlight */
+  for(let i=0;i<NRODS;i++)
+    cells[i].classList.toggle('hot', i===state.hotRod && now < state.hotUntil);
+
+  draw();
+  requestAnimationFrame(frame);
+}
+
+new ResizeObserver(() => draw()).observe(cv);
+updateReadout();
+buildTut(false);
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
