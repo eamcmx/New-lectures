@@ -488,7 +488,7 @@ function renderRules(){
 function validateRules(){
   const seen={}; const dups=new Set();
   state.rules.forEach((r,i)=>{
-    const key=r.q+' '+r.read;
+    const key=r.q+'|'+r.read;
     if(r.q!=='' && key in seen){ dups.add(i); dups.add(seen[key]); }
     else seen[key]=i;
   });
