@@ -500,8 +500,9 @@ btnPlay.addEventListener('click',()=>{
   if(state.playing){stopPlay();return;}
   state.playing=true; btnPlay.textContent='⏸ Pause'; btnPlay.classList.add('on');
   const vis=visList();
-  if(state.playIdx<0||!vis.includes(state.playIdx)){state.playIdx=-1;stepPlay(performance.now());}
-  else state.lastStep=performance.now();
+  if(state.playIdx<0||!vis.includes(state.playIdx)||vis.indexOf(state.playIdx)===vis.length-1){
+    state.playIdx=-1;stepPlay(performance.now());
+  } else state.lastStep=performance.now();
 });
 
 /* ---------- main loop ---------- */
