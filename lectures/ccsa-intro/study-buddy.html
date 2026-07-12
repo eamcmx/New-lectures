@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Study Buddy — Intro to Computer Systems Architecture</title>
+<style>
+:root{
+  --bg:#0e1117; --panel:#161b26; --panel2:#1c2230; --ink:#e6e9f0; --muted:#8b94a7;
+  --grid:#232b3b; --axis:#4a5568; --blue:#58c4dd; --yellow:#ffd35a; --red:#fc6255;
+  --green:#83c167; --purple:#c688eb; --orange:#ff9f4b; --line:#2a3347;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:'Segoe UI',system-ui,-apple-system,sans-serif;line-height:1.55}
+.wrap{max-width:1100px;margin:0 auto;padding:24px}
+a{color:var(--blue);text-decoration:none}
+a:hover{text-decoration:underline}
+header a.crumb{color:var(--muted);font-size:14px}
+header a.crumb:hover{color:var(--blue);text-decoration:none}
+h1{margin:10px 0 6px;font-size:32px;letter-spacing:.3px}
+.paal{display:inline-block;font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--purple);border:1px solid var(--purple);border-radius:999px;padding:3px 10px;margin:0 0 10px}
+.subtitle{color:var(--muted);max-width:78ch;margin:0 0 22px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin-bottom:22px}
+.math{font-family:Georgia,'Times New Roman',serif;font-style:italic}
+h2{font-size:15px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);margin:0 0 12px}
+h2 .accent{color:var(--yellow)}
+button{background:var(--panel2);border:1px solid var(--line);color:var(--ink);border-radius:9px;padding:8px 14px;cursor:pointer;font-size:14px;font-family:inherit}
+button:hover{border-color:var(--blue)}
+button:disabled{opacity:.45;cursor:not-allowed}
+button:disabled:hover{border-color:var(--line)}
+button.primary{border-color:rgba(88,196,221,.55);color:var(--blue);background:rgba(88,196,221,.08);font-weight:600}
+button.primary:hover{border-color:var(--blue)}
+button.danger{color:var(--red)}
+button.danger:hover{border-color:var(--red)}
+
+/* ---------- setup panel ---------- */
+#setup ol{margin:8px 0 16px;padding-left:22px;color:var(--ink)}
+#setup li{margin:7px 0;font-size:14.5px}
+#setup li b{color:var(--yellow);font-weight:600}
+#setup li code{background:var(--panel2);border:1px solid var(--line);border-radius:5px;padding:1px 6px;font-size:13px;color:var(--blue)}
+.keyrow{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:0 0 12px}
+.keyfield{position:relative;flex:1 1 300px;display:flex}
+#keyinput{flex:1;background:#0b0e14;border:1px solid var(--line);color:var(--ink);border-radius:9px;padding:9px 76px 9px 12px;font-size:14px;font-family:inherit;letter-spacing:.06em}
+#keyinput:focus{outline:none;border-color:var(--blue)}
+#keyeye{position:absolute;right:6px;top:50%;transform:translateY(-50%);border:none;background:none;color:var(--muted);font-size:13px;padding:4px 8px}
+#keyeye:hover{color:var(--blue);border:none}
+.privacy{font-size:13px;color:var(--muted);border-left:3px solid var(--purple);padding:6px 0 6px 12px;background:rgba(198,136,235,.05);border-radius:0 8px 8px 0;max-width:80ch}
+.privacy b{color:var(--ink);font-weight:600}
+#keystatus{font-size:13px;color:var(--green);min-height:1.2em;margin:8px 0 0}
+#keystatus.err{color:var(--red)}
+.keysaved{display:flex;flex-wrap:wrap;gap:10px;align-items:center;font-size:14px;color:var(--muted)}
+.keysaved .dot{width:9px;height:9px;border-radius:50%;background:var(--green);display:inline-block;box-shadow:0 0 8px rgba(131,193,103,.7)}
+
+/* ---------- chat ---------- */
+#chatpanel{display:none}
+#chatbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin:0 0 12px}
+#chatbar .left{display:flex;gap:10px;align-items:center;color:var(--muted);font-size:13px;flex-wrap:wrap}
+#msgs{height:440px;overflow-y:auto;background:#0b0e14;border:1px solid var(--line);border-radius:10px;padding:16px 14px;display:flex;flex-direction:column;gap:12px;scroll-behavior:smooth}
+@media(max-width:640px){#msgs{height:380px}}
+.msg{max-width:82%;border-radius:12px;padding:9px 13px;font-size:14.5px;word-wrap:break-word;overflow-wrap:break-word}
+.msg.user{align-self:flex-end;background:rgba(88,196,221,.12);border:1px solid rgba(88,196,221,.35);border-bottom-right-radius:4px}
+.msg.buddy{align-self:flex-start;background:var(--panel2);border:1px solid var(--line);border-bottom-left-radius:4px}
+.msg.sys{align-self:center;background:none;border:1px dashed var(--line);color:var(--muted);font-size:13px;max-width:92%;text-align:center}
+.msg.errcard{align-self:flex-start;border:1px solid rgba(252,98,85,.5);background:rgba(252,98,85,.07)}
+.msg.errcard b{color:var(--red)}
+.msg p{margin:0 0 8px}
+.msg p:last-child{margin-bottom:0}
+.msg ul,.msg ol{margin:4px 0 8px;padding-left:20px}
+.msg li{margin:2px 0}
+.msg code{background:rgba(0,0,0,.4);border:1px solid var(--line);border-radius:5px;padding:1px 5px;font-size:13px;color:var(--yellow);font-family:ui-monospace,Consolas,monospace}
+.msg .who{font-size:11px;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;font-weight:600}
+.msg.user .who{color:var(--blue)}
+.msg.buddy .who{color:var(--green)}
+/* typing dots */
+.typing{align-self:flex-start;display:flex;gap:10px;align-items:center;background:var(--panel2);border:1px solid var(--line);border-radius:12px;border-bottom-left-radius:4px;padding:12px 16px}
+.typing .d{width:8px;height:8px;border-radius:50%;background:var(--blue);animation:pulse 1.2s ease-in-out infinite}
+.typing .d:nth-child(2){animation-delay:.2s}
+.typing .d:nth-child(3){animation-delay:.4s}
+@keyframes pulse{0%,60%,100%{opacity:.25;transform:scale(.8)}30%{opacity:1;transform:scale(1)}}
+/* composer */
+#composer{display:flex;gap:10px;margin:12px 0 0;align-items:flex-end}
+#input{flex:1;background:#0b0e14;border:1px solid var(--line);color:var(--ink);border-radius:10px;padding:10px 12px;font-size:14.5px;font-family:inherit;resize:vertical;min-height:48px;max-height:180px;line-height:1.45}
+#input:focus{outline:none;border-color:var(--blue)}
+#seedtag{display:none;font-size:12px;color:var(--purple);border:1px dashed var(--purple);border-radius:999px;padding:2px 10px;margin:10px 0 0}
+#warnrow{display:none;font-size:13px;color:var(--orange);margin:10px 0 0}
+/* starter chips */
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 0}
+.chips button{padding:6px 13px;border-radius:999px;font-size:13px;color:var(--muted)}
+.chips button:hover{color:var(--blue)}
+
+/* offline card */
+#offline{display:none;border-color:rgba(255,159,75,.5)}
+#offline h2 .accent{color:var(--orange)}
+#offline p{font-size:14px;color:var(--muted);max-width:80ch;margin:6px 0}
+#offline p b{color:var(--ink)}
+
+/* insights */
+.insights{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;margin:0 0 22px}
+.insights .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px}
+.insights .card h3{margin:0 0 8px;font-size:14px;text-transform:uppercase;letter-spacing:.1em}
+.insights .card p{margin:0;font-size:14px;color:var(--muted)}
+.insights .card p b{color:var(--ink);font-weight:600}
+.c-blue h3{color:var(--blue)} .c-green h3{color:var(--green)}
+
+footer{color:var(--muted);font-size:13px;margin-top:8px}
+footer .navrow{display:flex;justify-content:space-between;gap:12px;margin-top:10px;flex-wrap:wrap}
+footer a{color:var(--muted)}
+footer a:hover{color:var(--blue);text-decoration:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <a class="crumb" href="./index.html">← Intro to Computer Systems Architecture</a>
+  <h1>Study Buddy — a tutor in the page</h1>
+  <div><span class="paal">PAAL · CourseForge session kit</span></div>
+  <p class="subtitle">A Socratic tutor that lives right here, knows this lecture inside-out, and never just hands you the answer. It runs on <b>your own free Mistral API key</b> — stored only in your browser, sent only to Mistral. Paste a key once and start asking.</p>
+</header>
+
+<!-- ================= SETUP ================= -->
+<section class="panel" id="setup">
+  <h2><span class="accent">Step 0</span> · Get your free key (2 minutes)</h2>
+  <ol>
+    <li>Go to <b>console.mistral.ai</b> and create a free account (the free tier is plenty for studying).</li>
+    <li>In the console, open <b>API Keys</b> and click <b>Create new key</b>.</li>
+    <li>Copy the key and paste it below, then hit <b>Save key</b>. That's it — the chat unlocks instantly.</li>
+  </ol>
+  <div class="keyrow" id="keyentry">
+    <div class="keyfield">
+      <input id="keyinput" type="password" autocomplete="off" spellcheck="false" placeholder="Paste your Mistral API key…">
+      <button id="keyeye" type="button" title="Show / hide key">show</button>
+    </div>
+    <button class="primary" id="savekey">Save key</button>
+  </div>
+  <div class="keysaved" id="keysavedrow" style="display:none">
+    <span class="dot"></span><span>A key is saved in this browser.</span>
+    <button class="danger" id="forgetkey">Forget key</button>
+  </div>
+  <p class="privacy"><b>Honest privacy note:</b> your key is stored in this browser's localStorage under <code style="font-style:normal">ccsa-mistral-key</code> and is sent to exactly one place: <b>api.mistral.ai</b>, when you send a message. It never touches any other server — this page has no backend. Avoid saving it on a shared or lab computer, and use "Forget key" when you're done there.</p>
+  <p id="keystatus"></p>
+</section>
+
+<!-- ================= OFFLINE FALLBACK ================= -->
+<section class="panel" id="offline">
+  <h2><span class="accent">Offline?</span> · Plan B</h2>
+  <p><b>The page couldn't reach api.mistral.ai.</b> That's usually no network, a firewall, or a blocked cross-origin request on this connection.</p>
+  <p>No problem — the tutoring doesn't have to happen here. Open the <a href="./prompt-studio.html">Prompt Studio</a>, build the tutor prompt for the topic you're stuck on, and paste it into <b>any AI chat you already use</b>. Same Socratic buddy, different window.</p>
+  <p><button id="retrybtn">Try again here</button></p>
+</section>
+
+<!-- ================= CHAT ================= -->
+<section class="panel" id="chatpanel">
+  <div id="chatbar">
+    <div class="left">
+      <span>Model: <b style="color:var(--ink)">mistral-small-latest</b></span>
+      <span>· history lives in memory only — refresh wipes it (by design)</span>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button id="clearbtn">Clear chat</button>
+      <button id="changekey" title="Show the key panel again">Key…</button>
+    </div>
+  </div>
+
+  <div id="msgs" aria-live="polite"></div>
+
+  <div class="chips" id="starters">
+    <button>Quiz me on the first computers</button>
+    <button>Architecture vs organization — test me</button>
+    <button>Why was ENIAC's wiring a problem?</button>
+    <button>I don't get the stored-program idea</button>
+    <button>Interview me as if you're Ada Lovelace</button>
+  </div>
+
+  <span id="seedtag">↳ brought over from Prompt Studio — edit freely, then Send</span>
+  <div id="composer">
+    <textarea id="input" rows="2" placeholder="Ask anything about the lecture… (Enter to send, Shift+Enter for a new line)"></textarea>
+    <button class="primary" id="sendbtn">Send</button>
+    <button class="danger" id="abortbtn" style="display:none">Stop</button>
+  </div>
+  <div id="warnrow">Long session! Past ~30 messages the buddy only sees the last 16 anyway — consider "Clear chat" and a fresh, focused question.</div>
+</section>
+
+<!-- ================= INSIGHTS ================= -->
+<section class="insights">
+  <div class="card c-blue">
+    <h3>Why it won't just tell you</h3>
+    <p>The buddy is <b>deliberately Socratic</b>. When it answers a question with a question, that's not evasion — retrieving and reasoning your way to an answer is what builds the skill. Notice how a good hint feels annoying for five seconds and satisfying for a week.</p>
+  </div>
+  <div class="card c-green">
+    <h3>Your key, your usage</h3>
+    <p>Everything here runs on <b>your</b> free Mistral account — this page has no server and pays for nothing on your behalf. The free tier is plenty for a study session; if it ever rate-limits you, wait a minute and carry on.</p>
+  </div>
+</section>
+
+<footer>
+  <div>Interactive companion to the lecture <i>Introduction to Computers &amp; Computer Systems Architecture</i> · CCSA T1</div>
+  <div class="navrow">
+    <a href="./prompt-studio.html">← Prompt Studio</a>
+    <a href="./index.html">All explorations</a>
+    <a href="./flashcards.html">Flashcards →</a>
+  </div>
+</footer>
+
+</div>
+
+<script>
+'use strict';
+/* ============================================================
+   Study Buddy — in-page Socratic tutor on the student's own
+   Mistral key. One external endpoint: api.mistral.ai (POST,
+   only after a key is saved). Everything else is local.
+   ============================================================ */
+
+const KEY_LS   = 'ccsa-mistral-key';
+const SEED_LS  = 'ccsa-buddy-seed';
+const ENDPOINT = 'https://api.mistral.ai/v1/chat/completions';
+const MODEL    = 'mistral-small-latest';
+
+/* ---------- the baked-in system prompt ---------- */
+const SYSTEM_PROMPT = `You are the Study Buddy for the lecture "Introduction to Computers & Computer Systems Architecture" (CCSA T1). You are a warm, precise, SOCRATIC tutor embedded in the lecture's interactive site. You tutor ONLY this lecture's material.
+
+LECTURE CONTENT YOU KNOW (and must stay faithful to):
+S1 DEFINITIONS. Computer architecture = the design, organization and implementation of a computer system; the programmer-visible blueprint: the ISA (instructions, opcodes, addressing modes, registers), memory organization (hierarchy, caches, virtual memory), I/O mechanisms, parallel processing (pipelining, superscalar, multiprocessing), and communication protocols/buses. Why study it: write efficient software, design better hardware, benchmark systems, understand innovations (RISC, vector, multicore, neuromorphic, quantum). ARCHITECTURE vs ORGANIZATION: architecture = WHAT the system does, programmer-visible, fixed early, affects software; organization = HOW it is physically built (circuits, gates, register-transfer level, microarchitecture), changes with IC technology, affects hardware. Architecture optimizes performance/capability; organization optimizes cost/power/size/reliability.
+S2 EARLY DEVICES. Abacus (~2500 BCE Mesopotamia; beads = register values, columns = orders of magnitude). Antikythera mechanism (~100 BCE Greek geared analog computer, 30+ bronze gears, predicted eclipses and Olympiads; gears are like logic gates, the geartrain like mechanical software). Astrolabe (~200 BCE; the alidade's angle measurement is like an analog-to-digital converter). Slide rule (1600s to the 1970s; logarithmic scales, analog computation; used during the Apollo program).
+S3 MECHANICAL COMPUTING. Babbage's Difference Engine (1822, steam-powered polynomial tabulation by finite differences) and Analytical Engine (1837, first general-purpose programmable DESIGN: Mill = arithmetic unit, Store = memory, punched cards for program input, loops and conditional branching — never fully built). Ada Lovelace (1843, Note G, regarded as the first programmer; foresaw computing beyond numbers). Jacquard loom (1801, punch-card-controlled weaving = binary instruction storage). Hollerith tabulating machine (1890 US census, electrical card reading; his company became part of IBM in 1924).
+S4 BIRTH OF DIGITAL. Turing 1936 "On Computable Numbers": the Turing machine, computability, the universal machine. Atanasoff-Berry Computer (ABC) 1939: FIRST ELECTRONIC digital computing device (300+ vacuum tubes) but NOT programmable — built to solve systems of linear equations. Zuse Z3 1941: FIRST WORKING PROGRAMMABLE automatic digital computer, but ELECTROMECHANICAL (about 2,400 relays), binary floating point, roughly 5-10 Hz, program on punched film, no conditional branch. Harvard Mark I 1944 (IBM-built, ~750,000 parts, 24-channel paper tape, computed tables for the US Navy; nicknamed "Bessie"). ENIAC 1945: FIRST GENERAL-PURPOSE ALL-ELECTRONIC computer — 17,468 vacuum tubes, ~30 tons, ~5,000 additions/second, about 1000x faster than electromechanical machines, programmed by plugboards and switches (rewiring could take days), built for artillery firing tables; its six women programmers (Kathleen McNulty, Jean Bartik, Betty Holberton, Marlyn Wescoff, Frances Bilas, Ruth Lichterman) did pioneering work. Von Neumann 1945 "First Draft of a Report on the EDVAC": the STORED-PROGRAM concept — data AND instructions in one memory; CPU (ALU + registers + control unit), memory, I/O, connected by a system bus; a practical realization of Turing's universal machine.
+S5 EVOLUTION. Transistor 1947 Bell Labs (Bardeen, Brattain, Shockley); TRADIC 1954 (~800 transistors); integrated circuit 1958-59 (Kilby at TI, Noyce at Fairchild); Moore's Law 1965 (transistor count doubling roughly every two years); Intel 4004 1971 (first microprocessor); Altair 8800 1975 (first personal computer), then Apple II / Commodore PET / TRS-80; clock speeds plateaued in the early 2000s, pushing the shift to multicore and parallelism (GPUs, clusters, accelerators).
+S6 MODERN ERA. CISC (x86: many complex, multi-cycle instructions) vs RISC (ARM/SPARC/PowerPC: few simple single-cycle instructions, pipelining, compiler optimization; Patterson & Ditzel 1980). Modern CPUs are effectively RISC cores behind CISC front-ends. Internet/TCP-IP/Web brought networked and distributed computing. Mobile and embedded architectures: low power, specialized, real-time. Virtualization & cloud: on-demand elastic resources, IaaS; virtualization = multiple simulated environments from one physical system. Edge computing: processing near data sources for low latency (5G, IoT). Quantum computing: qubits can be 0, 1, or a superposition; entanglement; Shor's factoring and Grover's search; NISQ era — fragile hardware, error correction still open.
+S7 CONCLUSION. History gives context; the big paradigm shifts (stored program, ICs, RISC, cloud) teach how architecture evolves; knowing the history helps you design the future.
+
+TUTORING RULES (strict):
+1. ASK BEFORE TELLING. Open with a probing question or ask what the student already thinks before explaining. Prefer guiding questions, analogies, and one-step-at-a-time reasoning.
+2. NEVER answer a numbered exercise or quiz question outright. Give the NEXT hint only — one nudge at a time — and ask the student to attempt the step.
+3. Keep replies under about 150 words, unless tracing a mechanism step by step genuinely needs more.
+4. When the student answers correctly, say so briefly and RAISE the difficulty: a harder follow-up, an edge case, or a "now connect it to..." question.
+5. HISTORICAL PRECISION IS SACRED. Maintain the lecture's exact distinctions: ABC = first ELECTRONIC but NOT programmable; Z3 = first PROGRAMMABLE but ELECTROMECHANICAL (relays, not tubes); ENIAC = first GENERAL-PURPOSE ELECTRONIC; the EDVAC lineage = STORED-PROGRAM. If a student blurs these (e.g. "ENIAC was the first computer"), correct them gently and precisely. If you are unsure of a date or fact, SAY you are unsure rather than inventing one.
+6. Recommend the matching interactive page by name when a visual or simulator would help. Available in this folder (all .html): timeline, abacus, slide-rule, punch-card, analytical-engine, turing-machine, abc, z3, mark1, eniac, stored-program, moore, cisc-risc. E.g. "try dragging the beads on the abacus page" or "step the fetch-decode-execute cycle on the stored-program page".
+7. Formatting: plain conversational text with occasional **bold** for key terms, *italics* for emphasis, \`code\` for register/instruction names, and short "-" lists. No headings, no tables.
+8. Stay on topic. If asked about unrelated things, steer warmly back to the lecture.`;
+
+/* ---------- state ---------- */
+const state = {
+  history: [],        // {role:'user'|'assistant', content}
+  busy: false,
+  controller: null,
+  warned: false
+};
+
+/* ---------- element handles ---------- */
+const $ = id => document.getElementById(id);
+const setupEl=$('setup'), chatEl=$('chatpanel'), offlineEl=$('offline'),
+      msgsEl=$('msgs'), inputEl=$('input'), sendBtn=$('sendbtn'), abortBtn=$('abortbtn'),
+      keyInput=$('keyinput'), keyStatus=$('keystatus'), seedTag=$('seedtag'),
+      warnRow=$('warnrow'), keyEntry=$('keyentry'), keySavedRow=$('keysavedrow');
+
+const getKey = () => { try { return localStorage.getItem(KEY_LS) || ''; } catch(e){ return ''; } };
+
+/* ---------- tiny SAFE markdown renderer ----------
+   Step 1: escape ALL html. Step 2: layer a few inline
+   styles + lists + paragraphs back on top. Nothing the
+   model sends can inject markup. */
+function escapeHTML(s){
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+          .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+function inlineMD(s){
+  return s
+    .replace(/`([^`\n]+)`/g,'<code>$1</code>')
+    .replace(/\*\*([^*\n]+)\*\*/g,'<b>$1</b>')
+    .replace(/(^|[^*])\*([^*\n]+)\*(?!\*)/g,'$1<i>$2</i>');
+}
+function renderMD(raw){
+  const lines = escapeHTML(raw).split('\n');
+  let html='', list=null, para=[];
+  const flushPara=()=>{ if(para.length){ html+='<p>'+inlineMD(para.join('<br>'))+'</p>'; para=[]; } };
+  const flushList=()=>{ if(list){ html+=(list.ord?'<ol>':'<ul>')+list.items.map(i=>'<li>'+inlineMD(i)+'</li>').join('')+(list.ord?'</ol>':'</ul>'); list=null; } };
+  for(const line of lines){
+    const ul=line.match(/^\s*[-*]\s+(.*)/), ol=line.match(/^\s*\d+[.)]\s+(.*)/);
+    if(ul||ol){
+      flushPara();
+      const ord=!!ol, text=(ol||ul)[1];
+      if(!list||list.ord!==ord){ flushList(); list={ord,items:[]}; }
+      list.items.push(text);
+    } else if(line.trim()===''){ flushList(); flushPara(); }
+    else { flushList(); para.push(line); }
+  }
+  flushList(); flushPara();
+  return html || '<p></p>';
+}
+
+/* ---------- message DOM ---------- */
+function addMsg(role, text, cls){
+  const div=document.createElement('div');
+  div.className='msg '+(cls||role);
+  if(role==='user'||role==='buddy'){
+    const who=document.createElement('div');
+    who.className='who'; who.textContent= role==='user'?'You':'Study Buddy';
+    div.appendChild(who);
+    const body=document.createElement('div');
+    body.innerHTML=renderMD(text);
+    div.appendChild(body);
+  } else {
+    div.innerHTML=renderMD(text);
+  }
+  msgsEl.appendChild(div);
+  msgsEl.scrollTop=msgsEl.scrollHeight;
+  return div;
+}
+function addTyping(){
+  const div=document.createElement('div');
+  div.className='typing';
+  div.innerHTML='<span class="d"></span><span class="d"></span><span class="d"></span>';
+  msgsEl.appendChild(div);
+  msgsEl.scrollTop=msgsEl.scrollHeight;
+  return div;
+}
+function greet(){
+  addMsg('buddy',
+    "Hey! I'm your study buddy for this lecture — everything from the abacus to quantum, architecture vs organization, and the whole ABC / Z3 / ENIAC / stored-program story. Fair warning: I mostly ask questions rather than answer them. Pick a chip below or just tell me what's fuzzy.");
+}
+
+/* ---------- key handling ---------- */
+function refreshPanels(){
+  const has=!!getKey();
+  chatEl.style.display = has ? 'block' : 'none';
+  keyEntry.style.display = has ? 'none' : 'flex';
+  keySavedRow.style.display = has ? 'flex' : 'none';
+  setupEl.style.display = has ? 'none' : 'block';
+}
+$('savekey').addEventListener('click', ()=>{
+  const v=keyInput.value.trim();
+  keyStatus.classList.remove('err');
+  if(!v){ keyStatus.textContent='Paste a key first — it looks empty.'; keyStatus.classList.add('err'); return; }
+  if(v.length<12){ keyStatus.textContent='That looks too short to be an API key — double-check the copy.'; keyStatus.classList.add('err'); return; }
+  try{ localStorage.setItem(KEY_LS, v); }catch(e){
+    keyStatus.textContent='Could not write to localStorage (private mode?). The key cannot be saved.'; keyStatus.classList.add('err'); return;
+  }
+  keyInput.value='';
+  keyStatus.textContent='Key saved in this browser. Chat unlocked below.';
+  refreshPanels();
+  if(!msgsEl.children.length) greet();
+  inputEl.focus();
+});
+$('forgetkey').addEventListener('click', ()=>{
+  try{ localStorage.removeItem(KEY_LS); }catch(e){}
+  keyStatus.classList.remove('err');
+  keyStatus.textContent='Key forgotten. Nothing about it remains in this browser.';
+  refreshPanels();
+});
+$('keyeye').addEventListener('click', ()=>{
+  const show = keyInput.type==='password';
+  keyInput.type = show ? 'text' : 'password';
+  $('keyeye').textContent = show ? 'hide' : 'show';
+});
+keyInput.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); $('savekey').click(); } });
+$('changekey').addEventListener('click', ()=>{
+  setupEl.style.display='block';
+  setupEl.scrollIntoView({behavior:'smooth'});
+});
+
+/* ---------- error cards ---------- */
+function errCard(html){
+  const div=document.createElement('div');
+  div.className='msg errcard';
+  div.innerHTML=html; // internal, fixed strings only — never model/user text
+  msgsEl.appendChild(div);
+  msgsEl.scrollTop=msgsEl.scrollHeight;
+}
+
+/* ---------- send ---------- */
+async function send(text){
+  const content=(text!==undefined?text:inputEl.value).trim();
+  if(!content || state.busy) return;
+  const key=getKey();
+  if(!key){ refreshPanels(); setupEl.scrollIntoView({behavior:'smooth'}); return; }
+
+  inputEl.value=''; seedTag.style.display='none';
+  addMsg('user', content);
+  state.history.push({role:'user', content});
+
+  // ~30-message session warning (once)
+  if(!state.warned && state.history.length>=30){
+    state.warned=true; warnRow.style.display='block';
+  }
+
+  state.busy=true;
+  sendBtn.disabled=true; abortBtn.style.display='inline-block';
+  const typing=addTyping();
+  state.controller=new AbortController();
+
+  const messages=[{role:'system',content:SYSTEM_PROMPT},
+                  ...state.history.slice(-16).map(m=>({role:m.role,content:m.content}))];
+  try{
+    const res=await fetch(ENDPOINT,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},
+      body:JSON.stringify({model:MODEL,messages,temperature:0.7,max_tokens:700}),
+      signal:state.controller.signal
+    });
+    typing.remove();
+    if(res.status===401){
+      errCard('<b>Key rejected (401).</b> Mistral did not accept that key — it may have been revoked or mis-pasted. Hit <b>Key…</b> above, forget it, and paste a fresh one from console.mistral.ai.');
+    } else if(res.status===429){
+      errCard('<b>Rate limited (429).</b> The free tier is catching its breath — wait ~30 seconds and try again. Your message is still in the box of your memory, so just re-ask.');
+    } else if(!res.ok){
+      errCard('<b>API error '+res.status+'.</b> Mistral answered but not happily. Wait a moment and try again; if it persists, check status at console.mistral.ai.');
+    } else {
+      const data=await res.json();
+      const reply=data && data.choices && data.choices[0] && data.choices[0].message
+                  ? String(data.choices[0].message.content||'') : '';
+      if(reply){
+        state.history.push({role:'assistant',content:reply});
+        addMsg('buddy',reply);
+      } else {
+        errCard('<b>Empty reply.</b> The API returned no text — try sending again.');
+      }
+    }
+  }catch(err){
+    typing.remove();
+    if(err && err.name==='AbortError'){
+      addMsg('sys','Stopped. Ask away whenever you\'re ready.');
+    } else {
+      // network / CORS / offline → point to the offline plan
+      errCard('<b>Couldn\'t reach api.mistral.ai.</b> See the "Offline? Plan B" card above — Prompt Studio + any AI chat gets you the same tutor.');
+      offlineEl.style.display='block';
+      offlineEl.scrollIntoView({behavior:'smooth'});
+    }
+  }finally{
+    state.busy=false; state.controller=null;
+    sendBtn.disabled=false; abortBtn.style.display='none';
+    inputEl.focus();
+  }
+}
+
+sendBtn.addEventListener('click', ()=>send());
+abortBtn.addEventListener('click', ()=>{ if(state.controller) state.controller.abort(); });
+inputEl.addEventListener('keydown', e=>{
+  if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); send(); }
+});
+$('retrybtn').addEventListener('click', ()=>{
+  offlineEl.style.display='none';
+  inputEl.focus();
+});
+
+/* ---------- clear chat ---------- */
+$('clearbtn').addEventListener('click', ()=>{
+  if(state.controller) state.controller.abort();
+  state.history=[]; state.warned=false;
+  warnRow.style.display='none';
+  msgsEl.innerHTML='';
+  greet();
+});
+
+/* ---------- starter chips ---------- */
+$('starters').addEventListener('click', e=>{
+  const b=e.target.closest('button');
+  if(!b) return;
+  inputEl.value=b.textContent;
+  inputEl.focus();
+});
+
+/* ---------- seed from Prompt Studio ---------- */
+(function initSeed(){
+  let seed='';
+  try{ seed=localStorage.getItem(SEED_LS)||''; if(seed) localStorage.removeItem(SEED_LS); }catch(e){}
+  if(seed){
+    inputEl.value=seed;
+    seedTag.style.display='inline-block';
+  }
+})();
+
+/* ---------- boot ---------- */
+refreshPanels();
+if(getKey() && !msgsEl.children.length) greet();
+</script>
+</body>
+</html>
