@@ -101,7 +101,7 @@ The full CourseForge per-session package around the 13 labs. Mounting guide: [`M
 | ✅ Formative quiz | `quiz.html` — 12 questions, 80% gate | [Open](https://eamcmx.github.io/New-lectures/lectures/ccsa-intro/quiz.html) |
 | 🔓 Worked solutions | `worked-solutions.html` — 5 exercises, unlocked by the quiz | [Open](https://eamcmx.github.io/New-lectures/lectures/ccsa-intro/worked-solutions.html) |
 | 🤖 Prompt Studio | `prompt-studio.html` — PAAL guided AI prompts | [Open](https://eamcmx.github.io/New-lectures/lectures/ccsa-intro/prompt-studio.html) |
-| 💬 Study Buddy | `study-buddy.html` — Socratic in-page tutor (own Mistral key) | [Open](https://eamcmx.github.io/New-lectures/lectures/ccsa-intro/study-buddy.html) |
+| 💬 TSI Buddy | embedded in `lecture.html` and `prompt-studio.html` — Stage 1 Consultant tutor (own Mistral key) | *no separate page* |
 | 🃏 Flashcards | `flashcards.html` — 26 cards, Leitner boxes | [Open](https://eamcmx.github.io/New-lectures/lectures/ccsa-intro/flashcards.html) |
 | 🗝 Instructor key | `instructor-key.html` — unlisted; quiz key, runbook, misconceptions | *teacher-only, code required* |
 
