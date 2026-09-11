@@ -10,7 +10,7 @@ Modeled on the TSI CourseForge PAAL edition (repo eamcmx/courseforge-dilc). One 
 | Worked solutions | `worked-solutions.html` | 5 exam-style exercises, progressive step reveal (move + WHY), gated by the quiz |
 | Instructor key | `instructor-key.html` | UNLISTED (no page links to it), code-gated: quiz key + distractor rationales, solutions summary, 90-min runbook, misconceptions, grading/Moodle notes |
 | Prompt Studio | `prompt-studio.html` | PAAL signature: prompt recipe builder, expert prompt gallery, weak-vs-strong prompt clinic, verification habit |
-| Study Buddy | `study-buddy.html` | In-page Socratic chat on the student's own free Mistral key (browser-only storage; only endpoint api.mistral.ai) |
+| Study Buddy | `study-buddy.html` | In-page Socratic chat on the student's own free Mistral key (browser-only storage; only endpoint api.mistral.ai). **TSI deployments** replace this page with TSI Buddy embedded in `lecture.html` and `prompt-studio.html` (tsi-buddy skill asset inlined, `ministral-8b-2512`, temperature 0.4, stage-gated prompt). |
 | Flashcards | `flashcards.html` | Leitner 3-box deck, localStorage persistence |
 | Mounting sheet | `MOUNTING.md` | Which file → which Moodle resource; graded-variant instructions |
 
@@ -19,7 +19,7 @@ Modeled on the TSI CourseForge PAAL edition (repo eamcmx/courseforge-dilc). One 
 - Quiz stores best score percent (integer, ONLY ever raised) in localStorage `<prefix>-quiz-best`.
 - `worked-solutions.html` is locked until `<prefix>-quiz-best >= 80`; re-checks on the `storage` event and window focus (passing in another tab unlocks live). Muted "instructor?" link → prompt(); the instructor code sets `<prefix>-solutions-override=1`.
 - `instructor-key.html`: content hidden behind the same code; success stores `<prefix>-instructor=1`. Honest footnote: this is deterrence, not security (answers are in the page source).
-- Prompt Studio → Study Buddy seed: `<prefix>-buddy-seed` (prefilled into the buddy's input, then cleared).
+- Prompt Studio → Study Buddy seed: `<prefix>-buddy-seed` (prefilled into the buddy's input, then cleared; TSI deployments instead remount the on-page TSI Buddy with the prompt as its opening line, key `tsi_mistral_key` shared by every TSI page).
 - Study Buddy key: `<prefix>-mistral-key`. Flashcards: `<prefix>-cards-v1`.
 
 Instructor codes used so far: QC linear algebra `TSI-T2`; CCSA T1 `TSI-CCSA`.
@@ -30,4 +30,4 @@ Under the h1 of kit pages: `<span>` styled font-size .72rem, letter-spacing .08e
 
 ## Kit nav order
 
-lecture → teacher-deck → quiz → worked-solutions → prompt-studio → study-buddy → flashcards (wrap). Instructor key is outside the chain.
+lecture → teacher-deck → quiz → worked-solutions → prompt-studio → study-buddy → flashcards (wrap); TSI deployments skip study-buddy (prompt-studio → flashcards). Instructor key is outside the chain.

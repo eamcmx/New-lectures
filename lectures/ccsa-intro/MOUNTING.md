@@ -21,8 +21,9 @@ URL, or upload the files to Moodle as File resources. Base URL:
 | Kit part | File | Moodle resource |
 |----------|------|-----------------|
 | Prompt Studio | `prompt-studio.html` | URL resource "🤖 Prompt Studio — practice with an AI, properly" |
-| Study Buddy | `study-buddy.html` | URL resource "💬 Study Buddy (bring your own free Mistral key)" |
 | Flashcards | `flashcards.html` | URL resource "🃏 Flashcards — spaced repetition" |
+
+**TSI Buddy replaces the kit's Study Buddy page.** The tutor is embedded in `lecture.html` and `prompt-studio.html` (🤖 TSI Buddy button, top right), so there is nothing extra to mount. It runs `ministral-8b-2512` at temperature 0.4 in the Stage 1 · Consultant role, grounded in this lecture's notes. Students bring their own free Mistral key, stored only in their browser.
 
 ### The 13 interactive labs (linked from inside the lecture — optional to list separately)
 
@@ -51,8 +52,7 @@ mounting.
 3. ✅ Formative quiz — `quiz.html`
 4. 🔓 Worked solutions — `worked-solutions.html`
 5. 🤖 Prompt Studio — `prompt-studio.html`
-6. 💬 Study Buddy — `study-buddy.html`
-7. 🃏 Flashcards — `flashcards.html`
+6. 🃏 Flashcards — `flashcards.html`
 
 Teacher-only (not on Moodle): `teacher-deck.html`, `instructor-key.html` (+ code `TSI-CCSA`).
 
@@ -60,3 +60,7 @@ Teacher-only (not on Moodle): `teacher-deck.html`, `instructor-key.html` (+ code
 
 A ready 90-minute runbook (hook → devices → six-simulator group activity → modern era →
 quiz) is inside `instructor-key.html`.
+
+## Mounted on e.tsi.lv (UWE 2026 course)
+
+Course 3981 *Computer and Сomputer System Architecture 2026 (UWE – E.Merchan)*, section *Topic 0 · Introduction to Computer Systems Architecture* (section id 52442). The kit is added as URL resources beside the section's existing items, which stay in place: the older lecture, the teacher slides, the graded Moodle quiz *Formative check* (20 questions, pass 8/10) and the worked solutions it gates. e.tsi offers only Automatic, Embed, Open and pop-up display for URL resources, so the kit uses **Open**. The teacher deck is a hidden URL resource; the instructor key stays off Moodle.

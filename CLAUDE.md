@@ -10,7 +10,7 @@ Interactive, single-page HTML lectures published with GitHub Pages at https://ea
 
 ## Rules
 
-- Every page is ONE self-contained HTML file (inline CSS + vanilla JS + canvas). No CDNs, no fonts, no images, no build step. Must work from `file://` and on GitHub Pages.
+- Every page is ONE self-contained HTML file (inline CSS + vanilla JS + canvas). No CDNs, no fonts, no images, no build step. Must work from `file://` and on GitHub Pages. Exception: the embedded TSI Buddy tutor calls api.mistral.ai with the student's own key and lazy-loads marked/KaTeX from jsDelivr, degrading to plain text without them.
 - Each lecture set lives in `lectures/<set>/` with an `index.html` landing page; sibling pages carry prev/next footer nav and an "All explorations" link.
 - Keep instructor keys unlisted (no links from any page); note the instructor code in the set's `MOUNTING.md`.
 - After building or changing pages: verify in headless Chromium (zero console errors), sweep internal links, update the set's `index.html` and the README table, then commit and open a PR to `main`.
