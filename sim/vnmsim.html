@@ -46,6 +46,7 @@ table.cells td{border:1px solid var(--line);padding:3px 6px} table.cells td.k{wi
 table.cells input{width:100%;border:none;background:transparent;font-family:var(--mono);font-size:13px;color:#1a1a1a;padding:2px 4px}
 table.cells tr.res td.k{background:#e3edda;color:var(--good)} table.cells tr.res input{color:var(--good);font-weight:700}
 /* TCELLS */ table.cells td.k.tmp{color:#7a5c00;background:#fbf4dd} table.cells td.v{position:relative} table.cells td.v input.rm{width:calc(100% - 22px)} table.cells button.cellrm{position:absolute;right:3px;top:50%;transform:translateY(-50%);border:none;background:transparent;color:#9a9a9a;cursor:pointer;font-size:12px;line-height:1;padding:2px 3px} table.cells button.cellrm:hover{color:#c0392b} .cellbar{display:flex;align-items:center;gap:10px;margin:7px 0 3px} .cellbar .mini{font:600 12px system-ui,sans-serif;background:#fff;border:1px solid var(--line);border-radius:6px;padding:4px 10px;cursor:pointer;color:#2F5496} .cellbar .mini:hover{background:#eef3fb} .cellbar .hint{margin:0}
+/* MANUAL */ .manual{position:fixed;inset:0;z-index:9000} .manual[hidden]{display:none} .manual-back{position:absolute;inset:0;background:rgba(20,24,32,.55)} .manual-panel{position:absolute;left:50%;top:4vh;transform:translateX(-50%);width:min(900px,94vw);max-height:92vh;display:flex;flex-direction:column;background:#fff;border-radius:12px;box-shadow:0 12px 40px rgba(0,0,0,.35);overflow:hidden} .manual-head{display:flex;align-items:center;justify-content:space-between;padding:12px 18px;background:var(--blue);color:#fff;font-weight:700;font-size:1.05rem} .manual-x{border:none;background:transparent;color:#fff;font-size:18px;cursor:pointer;padding:2px 8px;border-radius:6px} .manual-x:hover{background:rgba(255,255,255,.18)} .manual-toc{padding:8px 18px;border-bottom:1px solid var(--line);font-size:12.5px;line-height:1.9;background:#f7f5ef} .manual-toc a{color:var(--blue);text-decoration:none;white-space:nowrap} .manual-toc a:hover{text-decoration:underline} .manual-body{overflow:auto;padding:6px 22px 22px;font-size:14px;line-height:1.55} .manual-body h2{font-size:1.02rem;color:var(--blue);margin:22px 0 6px;padding-top:6px;border-top:1px solid var(--line)} .manual-body h2:first-child{border-top:none;margin-top:10px} .manual-body h3{font-size:.9rem;margin:14px 0 4px} .manual-body p{margin:6px 0} .manual-body ul{margin:4px 0 8px 20px;padding:0} .manual-body li{margin:2px 0} .manual-body code{font-family:var(--mono);font-size:12.5px;background:#f3f0e8;padding:1px 5px;border-radius:4px} .manual-body pre{font-family:var(--mono);font-size:12.5px;background:#f7f5ef;border:1px solid var(--line);border-radius:8px;padding:8px 12px;margin:6px 0 10px;overflow:auto;line-height:1.45} .manual-body table{border-collapse:collapse;width:100%;margin:6px 0 10px;font-size:13px} .manual-body th,.manual-body td{border:1px solid var(--line);padding:5px 8px;text-align:left;vertical-align:top} .manual-body th{background:#f3f0e8} .manual-body td.mn{font-family:var(--mono);font-weight:700;white-space:nowrap} .manual-body td.ts{text-align:center;white-space:nowrap} .manual-body .tip{border-left:4px solid var(--amber);background:#fff8e6;padding:8px 12px;border-radius:6px;margin:8px 0} .manual-body .warn{border-left:4px solid var(--warn);background:#fdecea;padding:8px 12px;border-radius:6px;margin:8px 0}
 .hint{font-size:11.5px;color:#777;margin-top:6px}
 .changed{background:#fff3cd!important}
 </style></head>
@@ -119,6 +120,7 @@ HLT</textarea>
         <button class="b alt" id="run">Run ⏵</button>
         <button class="b alt" id="fastrun" title="Run straight to the end with no animation">⏩ Finish</button>
         <button class="b alt" id="reset">Reset ⟲</button>
+        <button class="b alt" id="helpbtn" title="User's manual: the machine, the instruction set, addressing modes, patterns">📖 Manual</button>
         <select id="examplesel" class="b alt" style="max-width:165px" title="Load a worked example"><option value="">📚 Examples…</option></select>
       </div>
       <div class="toolbar">
@@ -147,6 +149,177 @@ HLT</textarea>
   </div>
 </div>
 </div>
+<!-- MANUAL -->
+<div id="manual" class="manual" hidden>
+  <div class="manual-back" data-close="1"></div>
+  <div class="manual-panel" role="dialog" aria-modal="true" aria-labelledby="manual-title">
+    <div class="manual-head"><span id="manual-title">📖 vnmsim · Von Neumann Machine Simulator — user's manual</span><button type="button" class="manual-x" data-close="1" title="Close (Esc)">✕</button></div>
+    <nav class="manual-toc"><a href="#m-quick">Quick start</a> · <a href="#m-machine">The machine</a> · <a href="#m-isa">Instruction set (ISA)</a> · <a href="#m-modes">Operands &amp; addressing modes</a> · <a href="#m-rules">Program rules</a> · <a href="#m-arith">Arithmetic</a> · <a href="#m-patterns">Patterns cookbook</a> · <a href="#m-controls">Controls &amp; files</a> · <a href="#m-errors">Errors</a></nav>
+    <div class="manual-body">
+      <h2 id="m-quick">Quick start</h2>
+      <ol>
+        <li>Type your inputs into the <b>memory cells</b> on the right (<code>X</code>, <code>Y</code>…). Every other cell starts at 0.</li>
+        <li>Write the program in the <b>Program</b> box, one instruction per line, and press <b>Compile ✓</b>. The compiler rejects anything that is not a legal instruction and marks the bad lines.</li>
+        <li>Press <b>Step ▸</b> to advance <b>one T-state</b> (one clock tick) and watch the datapath, <b>Run ⏵</b> to animate continuously at the slider speed, or <b>⏩ Finish</b> to jump to the end.</li>
+        <li>Read the <b>answer from a cell</b> (by convention <code>Z</code>), not from ACC. <b>Reset ⟲</b> restores the cells to the values you typed.</li>
+      </ol>
+
+      <h2 id="m-machine">The machine</h2>
+      <p>This is a <b>Von Neumann</b> machine: <b>one memory</b> holds both the program lines and the data cells, reached over <b>one address bus and one data bus</b>. Fetching an instruction and reading or writing a cell therefore take turns on the same wires, which is the <i>Von Neumann bottleneck</i> you can see in the T-state counts.</p>
+      <p>Every instruction is played as a sequence of <b>T-states</b>: FETCH (the instruction travels from memory into IR and PC advances), DECODE (the control unit reads IR), EXECUTE (operands flow into the ALU or the data path) and STORE (the result is written to ACC or to a cell). The τ badge counts the T-states of the current instruction.</p>
+      <table>
+        <tr><th>Part</th><th>Role</th></tr>
+        <tr><td><b>ACC</b></td><td>The accumulator: the only working register. Every arithmetic instruction reads it and writes it.</td></tr>
+        <tr><td><b>PC</b></td><td>Program counter: the line number of the next instruction (lines are numbered from 0).</td></tr>
+        <tr><td><b>IR</b></td><td>Instruction register: the instruction being executed.</td></tr>
+        <tr><td><b>MAR</b> / <b>MDR</b></td><td>Address and data registers between the CPU and memory: the address goes out through MAR, the value in or out through MDR.</td></tr>
+        <tr><td><b>ALU</b></td><td>Does + − × ÷ on two inputs and shows the result during EXECUTE.</td></tr>
+        <tr><td><b>Memory cells</b></td><td>Named integer cells: <code>X</code>, <code>Y</code> (inputs), <code>Z</code> (result), <code>W</code>, and temporaries <code>T0</code>, <code>T1</code>… Any name you use in a program is created automatically at 0. Use <b>+ add T cell</b> to reserve a temporary before you write the code.</td></tr>
+      </table>
+
+      <h2 id="m-isa">Instruction set (ISA)</h2>
+      <p>Ten instructions. <i>cell</i> is a named memory cell, <i>#n</i> an immediate number, <i>line</i> an absolute line number. T-states are the clock ticks the instruction takes on this machine.</p>
+      <table>
+        <tr><th>Mnemonic</th><th>Operand</th><th>What it does</th><th>T-states</th></tr>
+        <tr><td class="mn">LOD</td><td><i>cell</i> or <i>#n</i></td><td>ACC ← value. Loads the accumulator from a cell or with a constant.</td><td class="ts">8 · 6</td></tr>
+        <tr><td class="mn">STO</td><td><i>cell</i></td><td>cell ← ACC. Stores the accumulator into a cell. ACC keeps its value. An immediate is not allowed.</td><td class="ts">7</td></tr>
+        <tr><td class="mn">ADD</td><td><i>cell</i> or <i>#n</i></td><td>ACC ← ACC + value.</td><td class="ts">11 · 9</td></tr>
+        <tr><td class="mn">SUB</td><td><i>cell</i> or <i>#n</i></td><td>ACC ← ACC − value.</td><td class="ts">11 · 9</td></tr>
+        <tr><td class="mn">MUL</td><td><i>cell</i> or <i>#n</i></td><td>ACC ← ACC × value.</td><td class="ts">11 · 9</td></tr>
+        <tr><td class="mn">DIV</td><td><i>cell</i> or <i>#n</i></td><td>ACC ← ACC ÷ value, <b>integer division truncated toward zero</b> (7÷2 = 3, −7÷2 = −3). Dividing by 0 stops the machine with an error.</td><td class="ts">11 · 9</td></tr>
+        <tr><td class="mn">JMZ</td><td><i>line</i></td><td>Jump if zero: if ACC = 0 then PC ← line, otherwise continue with the next line. <b>The only conditional instruction.</b></td><td class="ts">6</td></tr>
+        <tr><td class="mn">JMP</td><td><i>line</i></td><td>Unconditional jump: PC ← line.</td><td class="ts">6</td></tr>
+        <tr><td class="mn">NOP</td><td>—</td><td>No operation. Blank lines, comment lines and lines holding only a number behave as NOP too.</td><td class="ts">6 (NOP) · 5 (blank / comment)</td></tr>
+        <tr><td class="mn">HLT</td><td>—</td><td>Halt. The run ends and the cells hold the result.</td><td class="ts">1 (stops at its first tick)</td></tr>
+      </table>
+      <p>Two T-state counts mean <i>with a cell operand · with an immediate</i>: a cell costs an extra memory access. Mnemonics are case-insensitive (<code>lod x</code> works).</p>
+
+      <h2 id="m-modes">Operands and addressing modes</h2>
+      <table>
+        <tr><th>Mode</th><th>Written as</th><th>Meaning</th><th>Used by</th></tr>
+        <tr><td><b>Immediate</b></td><td><code>#7</code>, <code>#-1</code></td><td>The operand <i>is</i> the number. It travels straight from the instruction into the ALU, no memory access. Negative numbers are allowed.</td><td>LOD ADD SUB MUL DIV</td></tr>
+        <tr><td><b>Direct</b> (by name)</td><td><code>X</code>, <code>T3</code>, <code>total</code></td><td>The operand names a memory cell; the CPU puts the cell's address in MAR and reads or writes it through MDR. Names are case-insensitive, start with a letter or underscore, and are created at 0 the first time they are used.</td><td>LOD STO ADD SUB MUL DIV</td></tr>
+        <tr><td><b>Absolute line number</b></td><td><code>12</code></td><td>The jump target is the line's index, counted from 0. There are no labels.</td><td>JMZ JMP</td></tr>
+      </table>
+      <div class="warn"><b>What this machine does not have.</b> No register addressing (ACC is the only register and it is implicit), no <b>indirect</b> or <b>indexed</b> addressing (no pointers, no arrays, no <code>T[i]</code>), no stack and no subroutine call. Every cell you touch must be named in the code, so "store into the next cell" cannot be written as a loop: to fill T0…T7 you write eight STO lines. The addressing modes that remove this limit are exactly what you meet on the 8051 in Topic 4.</div>
+
+      <h2 id="m-rules">Program rules</h2>
+      <ul>
+        <li>One instruction per line: <code>MNEMONIC operand</code>. Anything after <code>//</code> is a comment.</li>
+        <li><b>Every line counts</b> in the numbering, including blank lines, comment lines and lines holding only a number: they are NOP cells the PC passes through. Line 0 is the first line of the box.</li>
+        <li><b>Jumps target a line number.</b> Insert or delete a line and every later target shifts: re-check your JMP and JMZ lines. The <b>Program lines — jump targets</b> panel shows the numbering.</li>
+        <li>Inputs are typed into the cells <b>before</b> Compile; Compile re-reads them. Any cell name used by the program appears in the table automatically.</li>
+        <li>The result is read from a <b>cell</b>, conventionally <code>Z</code>. ACC is scratch, not the answer.</li>
+        <li>The run ends at <code>HLT</code>. Running past the last line also halts, quietly.</li>
+        <li>Temporaries are <code>T0</code>, <code>T1</code>, … as many as you need. An added cell the program does not use shows a ✕ to remove it.</li>
+      </ul>
+
+      <h2 id="m-arith">Arithmetic</h2>
+      <ul>
+        <li>Integers only. There are no fractions: <code>DIV</code> truncates toward zero.</li>
+        <li>Negative values are fine in cells, in ACC and as immediates (<code>#-3</code>).</li>
+        <li>A cell that was never written reads as 0.</li>
+        <li><b>Remainder</b> of a ÷ b: <code>a − (a ÷ b) × b</code>, see the cookbook.</li>
+        <li>Division by zero halts the machine with an error message.</li>
+      </ul>
+
+      <h2 id="m-patterns">Patterns cookbook</h2>
+      <p>Line numbers on the left are the jump targets; they assume the snippet starts at line 0 of the box.</p>
+      <h3>IF: run some lines only when X equals Y</h3>
+<pre>0  LOD X
+1  SUB Y
+2  JMZ 4     // equal → line 4
+3  HLT       // not equal → stop
+4  ...       // the "then" part</pre>
+      <h3>Loop with a counter (sum 1..X into Z)</h3>
+<pre>0  // sum 1..X -> Z
+1  LOD #0
+2  STO Z
+3  LOD X
+4  JMZ 12    // counter reached 0 → done
+5  LOD Z
+6  ADD X
+7  STO Z
+8  LOD X
+9  SUB #1
+10 STO X
+11 JMP 3
+12 HLT</pre>
+      <h3>Remainder and parity (is X even?)</h3>
+<pre>0  LOD X
+1  DIV #2
+2  MUL #2
+3  SUB X      // 0 if X is even, −1 if odd
+4  JMZ 7      // even
+5  LOD #0     // odd: Z = 0
+6  JMP 8
+7  LOD #1     // even: Z = 1
+8  STO Z
+9  HLT</pre>
+      <p>The same trick gives any remainder: <code>X − (X ÷ N) × N</code>.</p>
+      <h3>Comparing two numbers with only JMZ (the sign trick)</h3>
+      <p>Let <code>d = A − B</code>. If d ≠ 0, then <code>(d − 1) ÷ d</code> is <b>0 when d is positive</b> and <b>at least 1 when d is negative</b>, because integer division truncates toward zero. That turns "is A greater than B?" into a JMZ:</p>
+<pre>0  LOD A
+1  SUB B
+2  JMZ 9      // equal
+3  STO T2     // T2 = d (not zero, so it is safe to divide by it)
+4  SUB #1
+5  DIV T2     // 0 if A > B, ≥1 if A < B
+6  JMZ 8      // A > B → line 8
+7  ...        // A < B
+8  ...        // A > B
+9  ...        // A = B</pre>
+      <h3>Swap X and Y through a temporary</h3>
+<pre>0  LOD X
+1  STO T0
+2  LOD Y
+3  STO X
+4  LOD T0
+5  STO Y
+6  HLT</pre>
+
+      <h2 id="m-controls">Controls and files</h2>
+      <table>
+        <tr><th>Control</th><th>What it does</th></tr>
+        <tr><td><b>Compile ✓</b></td><td>Checks every line against the instruction set, loads the program and the cell values, resets PC and ACC.</td></tr>
+        <tr><td><b>Step ▸</b></td><td>Advances one T-state. Keep pressing to watch an instruction go through FETCH, DECODE, EXECUTE and STORE.</td></tr>
+        <tr><td><b>Run ⏵ / Pause ⏸</b></td><td>Plays T-states continuously. The <b>speed</b> slider goes from 1 (slowest) to 6 (fastest).</td></tr>
+        <tr><td><b>⏩ Finish</b></td><td>Runs to HLT with no animation and shows the final cells.</td></tr>
+        <tr><td><b>Reset ⟲</b></td><td>Back to the start with the cell values you typed.</td></tr>
+        <tr><td><b>📚 Examples…</b></td><td>Loads a worked program with its inputs.</td></tr>
+        <tr><td><b>💾 Save / 📂 My saved programs / 🗑</b></td><td>Keeps programs in this browser only (nothing is sent anywhere).</td></tr>
+        <tr><td><b>⬆ Import / ⬇ Download</b></td><td>Reads or writes a plain-text <code>.vnm</code> file, so you can keep programs on disk or hand them in.</td></tr>
+        <tr><td><b>Memory cells / + add T cell</b></td><td>Type inputs here; add temporaries; ✕ removes an added cell the program does not use.</td></tr>
+        <tr><td><b>🤖 TSI Buddy</b></td><td>The page tutor (bring your own free Mistral key). It explains the cycle and helps you debug; it will not write the coursework for you.</td></tr>
+      </table>
+
+      <h2 id="m-errors">Errors you may see</h2>
+      <table>
+        <tr><th>Message</th><th>Cause and fix</th></tr>
+        <tr><td>unknown instruction "…"</td><td>Only LOD STO ADD SUB MUL DIV JMZ JMP NOP HLT exist. Check the spelling.</td></tr>
+        <tr><td>… needs an operand</td><td>LOD, STO, ADD, SUB, MUL, DIV, JMZ and JMP all take one operand.</td></tr>
+        <tr><td>… must jump to a LINE NUMBER</td><td>You wrote a label such as <code>loop</code>. There are no labels: use the line's number.</td></tr>
+        <tr><td>bad immediate "…"</td><td>An immediate is <code>#</code> followed by an integer, for example <code>#5</code> or <code>#-1</code>.</td></tr>
+        <tr><td>cannot STO into an immediate</td><td>STO needs a cell name: <code>STO Z</code>, not <code>STO #5</code>.</td></tr>
+        <tr><td>division by zero is undefined</td><td>The divisor was 0 at run time. Guard it with a JMZ first.</td></tr>
+        <tr><td>step limit exceeded — infinite loop</td><td>Nothing ever reaches the JMZ exit or HLT. Check that the loop counter is decremented and stored back.</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+<script>
+(function(){
+  var m=document.getElementById('manual'), btn=document.getElementById('helpbtn');
+  if(!m||!btn) return;
+  function open(){ m.hidden=false; m.querySelector('.manual-body').scrollTop=0; m.querySelector('.manual-x').focus(); }
+  function close(){ m.hidden=true; btn.focus(); }
+  btn.addEventListener('click', open);
+  m.addEventListener('click', function(e){ var t=e.target; if(t&&t.getAttribute&&t.getAttribute('data-close')) close(); });
+  document.addEventListener('keydown', function(e){ if(e.key==='Escape'&&!m.hidden) close(); });
+  m.addEventListener('click', function(e){ var a=e.target&&e.target.closest?e.target.closest('a[href^="#m-"]'):null; if(!a) return;
+    e.preventDefault(); var s=document.getElementById(a.getAttribute('href').slice(1)); if(s) s.scrollIntoView({block:'start'}); });
+})();
+</script>
 <script src="./vnmsim.js"></script>
 <script>
 (function(){
