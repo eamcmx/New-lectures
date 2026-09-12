@@ -28,6 +28,15 @@
   var MODEL_LS  = 'tsi_mistral_model';
   var ENABLE_LS = 'tsi_buddy_enabled';
 
+
+  /* TSI_BUDDY_DEAD_MODELS: models this organisation has no completion quota for. A student
+     who used the buddy before the fix has one of them saved, and a saved
+     value beats a new default, so rewrite it on load. */
+  var TSI_BUDDY_DEAD_MODELS = ['mistral-small-latest', 'mistral-small-2603', 'mistral-small-2503', 'mistral-medium-latest', 'mistral-medium-2505', 'mistral-large-latest', 'mistral-large-2512', 'mistral-large-2411', 'mistral-tiny', 'open-mistral-7b'];
+  function tsiLiveModel(m) {
+    return (!m || TSI_BUDDY_DEAD_MODELS.indexOf(m) !== -1) ? 'ministral-8b-2512' : m;
+  }
+
   function lsGet(k, fb) { try { var v = localStorage.getItem(k); return v == null ? fb : v; } catch (e) { return fb; } }
   function lsSet(k, v)  { try { localStorage.setItem(k, v); } catch (e) {} }
 
@@ -330,7 +339,7 @@
       method: 'POST',
       headers: { 'Authorization': 'Bearer ' + apiKey, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: model || 'mistral-small-latest',
+        model: model || 'ministral-8b-2512',
         temperature: 0.4,
         max_tokens: 1500,
         stream: true,
@@ -409,7 +418,7 @@
     // ---- State (closure-scoped) ----
     var state = {
       apiKey:  lsGet(KEY_LS, ''),
-      model:   lsGet(MODEL_LS, 'mistral-small-latest'),
+      model:   tsiLiveModel(lsGet(MODEL_LS, 'ministral-8b-2512')),
       enabled: lsGet(ENABLE_LS, '') === '1',
       messages: [],     // {role, content}
       pending: '',
@@ -442,8 +451,8 @@
     });
     var modelSelect = el('select', {
       onchange: function (e) { state.model = e.target.value; }
-    }, ['mistral-small-latest', 'mistral-medium-latest', 'mistral-large-latest'].map(function (m) {
-      var o = el('option', { value: m }, m + (m === 'mistral-small-latest' ? ' (recommended)' : ''));
+    }, ['ministral-8b-2512', 'ministral-3b-2512', 'codestral-2508'].map(function (m) {
+      var o = el('option', { value: m }, m + (m === 'ministral-8b-2512' ? ' (recommended)' : ''));
       if (m === state.model) o.selected = true;
       return o;
     }));
@@ -568,7 +577,7 @@
     function closeSettings() { modalOverlay.hidden = true; }
     function saveSettings() {
       lsSet(KEY_LS, state.apiKey || '');
-      lsSet(MODEL_LS, state.model || 'mistral-small-latest');
+      lsSet(MODEL_LS, state.model || 'ministral-8b-2512');
       lsSet(ENABLE_LS, state.enabled ? '1' : '');
       closeSettings();
       refreshButton();
