@@ -252,12 +252,19 @@ HLT</textarea>
   function setPill(bus){ $('ipill').className='actpill '+(bus==='i'?'i':'off'); $('dpill').className='actpill '+(bus==='d'?'d':'off'); }
   function setAlu(a,op,b,r){ $('alu_a').textContent=(a==null?'':(''+a)); $('alu_op').textContent=(op==null?'':op); $('alu_b').textContent=(b==null?'':(''+b)); $('alu_r').textContent=(r==null?'':(''+r)); }
   function clearAlu(){ setAlu('','','',''); }
-  function animMs(){ return ({1:900,2:600,3:400,4:250,5:120,6:45})[$('spd').value]||400; }
+  /* SPEED profile per slider value: [packet flight ms, idle micro-op ms, gap between T-states ms].
+     1-5 are the original timings; 6 (full speed) runs three times faster than it used to. */
+  var SPEED={1:[900,675,108],2:[600,450,72],3:[400,300,48],4:[250,188,30],5:[120,120,20],6:[15,36,6]};
+  function speedRow(){ return SPEED[$('spd').value]||SPEED[3]; }
+  function animMs(){ return speedRow()[0]; }
+  function idleMs(){ return speedRow()[1]; }
+  function gapMs(){ return speedRow()[2]; }
   function movePacket(from,to,val,col,cb){
     var pk=$('packet'), rect=pk.querySelector('rect'), txt=pk.querySelector('text');
     txt.textContent=(''+val).slice(0,8); var w=Math.max(34,txt.textContent.length*9+14); rect.setAttribute('width',w); rect.setAttribute('x',-w/2);
     rect.setAttribute('fill', col==='i'?'#1f4fb0':col==='d'?'#3f8c2a':'#2F5496');
     pk.style.opacity='1'; var t0=null, dur=animMs();
+    if(dur<20){ pk.setAttribute('transform','translate('+to[0]+','+to[1]+')'); setTimeout(function(){ pk.style.opacity='0'; cb&&cb(); }, dur); return; } /* full speed: no frame-locked flight */
     function fr(ts){ if(!t0)t0=ts; var p=Math.min(1,(ts-t0)/dur); var e=p<.5?2*p*p:1-Math.pow(-2*p+2,2)/2;
       pk.setAttribute('transform','translate('+(from[0]+(to[0]-from[0])*e)+','+(from[1]+(to[1]-from[1])*e)+')');
       if(p<1) requestAnimationFrame(fr); else { pk.style.opacity='0'; cb&&cb(); } }
@@ -312,7 +319,7 @@ HLT</textarea>
       if(o.commit){ renderDataMem(); }
       done&&done();
     };
-    if(o.from&&o.to) movePacket(o.from,o.to,o.val,o.bus,fin); else setTimeout(fin, Math.max(120,animMs()*0.75));
+    if(o.from&&o.to) movePacket(o.from,o.to,o.val,o.bus,fin); else setTimeout(fin, idleMs());
   }
   function genNextInstr(){
     if(vnm.halted) return false;
@@ -350,7 +357,7 @@ HLT</textarea>
     running=true; $('run').textContent='Pause ⏸'; $('step').disabled=true; loop();
   }
   function loop(){ if(!running) return;
-    microStepOnce(function(ok){ if(!ok||vnm.halted){ stopRun(); haltMsg(); return; } if(running) gapTimer=setTimeout(loop, Math.max(20,animMs()*0.12)); });
+    microStepOnce(function(ok){ if(!ok||vnm.halted){ stopRun(); haltMsg(); return; } if(running) gapTimer=setTimeout(loop, gapMs()); });
   }
   function toggleRun(){ if(running) stopRun(); else runStart(); }
   function runToEnd(){
